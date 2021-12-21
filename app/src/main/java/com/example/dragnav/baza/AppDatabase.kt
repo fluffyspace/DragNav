@@ -5,13 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.example.dragnav.modeli.AppInfo
 import com.example.dragnav.modeli.MeniJednoPolje
 import com.example.dragnav.modeli.MeniPolja
 
-@Database(entities = arrayOf(MeniJednoPolje::class/*, MeniPolja::class*/), version = 1, exportSchema = false)
+@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun meniJednoPoljeDao(): MeniJednoPoljeDao
+    abstract fun appInfoDao(): AppInfoDao
     //abstract fun meniPoljaDao(): MeniPoljaDao
 
     companion object {

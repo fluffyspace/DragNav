@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 data class MeniJednoPolje(
     @PrimaryKey(autoGenerate = true) var id:Int,
     var text:String,
-    var nextId:Int = -1,
+    var nextId:String = "",
     var nextIntent: String = "",
-    var polja: List<Int> = listOf()
+    var polja: List<Int> = listOf(),
+    var shortcut: Boolean = false,
+    var color: String = ""
 )

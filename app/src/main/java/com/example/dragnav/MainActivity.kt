@@ -3,67 +3,97 @@ package com.example.dragnav
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import android.content.pm.ShortcutInfo
+import android.content.pm.*
+import android.content.res.ColorStateList
+import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.media.Image
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Browser
+import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.MotionEvent
+import android.view.*
 import android.view.MotionEvent.ACTION_UP
-import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.ListPopupWindow
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.graphics.blue
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.green
+import androidx.core.graphics.red
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.baza.AppDatabase
+import com.example.dragnav.baza.AppInfoDao
 import com.example.dragnav.baza.MeniJednoPoljeDao
+import com.example.dragnav.modeli.AppInfo
 import com.example.dragnav.modeli.MeniJednoPolje
 import com.example.dragnav.modeli.MessageEvent
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.util.Collections.max
+import java.util.Collections.min
 
 
 class MainActivity : AppCompatActivity() {
 
     val MENU_UNDEFINED = -1
-    val MENU_FOLDER = 0
-    val MENU_APPLICATION = 1
-    val MENU_SHORTCUT = 2
-    val MENU_ACTION = 3
+    val MENU_APPLICATION_OR_FOLDER = 0
+    val MENU_SHORTCUT = 1
+    val MENU_ACTION = 2
+
+    companion object{
+        val ACTION_CANCEL = -1
+        val ACTION_LAUNCH = -2
+        val ACTION_ADD = -3
+        val ACTION_HOME = -4
+    }
+
+    val LAYOUT_MAIN = 0
+    val LAYOUT_SEARCH = 1
+    val LAYOUT_ACTIVITIES = 2
 
     var loadIconBool:Boolean = false
-    var textovi:List<TextView> = mutableListOf()
+    var loadAppsBool:Boolean = true
     var lastTextViewEnteredCounter:Int = -1
     lateinit var currentMenu: MeniJednoPolje
+    var currentSubmenuList: List<MeniJednoPolje> = listOf()
     var currentMenuType: Int = MENU_UNDEFINED
     var max_subcounter:Int = -1
     var stack:MutableList<Pair<Int,Int>> = mutableListOf()
     var shortcutPopup:PopupWindow? = null
     var highestId = -1
     var selected_global:Int = -1
-    var lastEnteredIntent:Intent? = null
+    var lastEnteredIntent:MeniJednoPolje? = null
 
     var editMode:Boolean = false
     var editSelected:Int = -1
     var appListOpened:Boolean = false
     var pocetnaId:Int = -1
+    val cache_apps:Boolean = true
 
     var selectAppMenuOpened:Boolean = false
+    var circleView:CircleView? = null
+    var currentLayout:Int = LAYOUT_MAIN
+    lateinit var lista_aplikacija: MutableList<Pair<Int, AppInfo>>
+
 
     var roomMeniPolja:List<MeniJednoPolje>? = null
 
@@ -86,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         MeniJednoPolje("Pošalji zadnju sliku", nextIntent = "whatsapp_last_image"),
         MeniJednoPolje("Pošalji česti odgovor", nextIntent = "whatsapp_last_common")
     ))*/
-    val pocetna:MeniJednoPolje = MeniJednoPolje(0, "Početna")
+    val pocetna:MeniJednoPolje = MeniJednoPolje(0, "Home")
     val gmail = MeniJednoPolje(1, "Gmail", polja=listOf(4,5,6))
     val whatsapp = MeniJednoPolje(2, "Whatsapp", polja=listOf(9,10))
     val postavke = MeniJednoPolje(3, "Postavke", polja=listOf(7,8))
@@ -105,40 +135,276 @@ class MainActivity : AppCompatActivity() {
     var defaultMenus:MutableList<MeniJednoPolje> = mutableListOf(pocetna, gmail, whatsapp, postavke, gmail_nova, gmail_inbox, gmail_outbox, postavke_wifi, postavke_torch, whatsapp_akcije, whatsapp_akcije_sendapetit, whatsapp_call, whatsapp_kodbaci, whatsapp_message, whatsapp_sara, whatsapp_akcije_sendpic)
     var listaMenija:MutableList<MeniJednoPolje> = mutableListOf()
     lateinit var radapter:RAdapter
+    lateinit var chipGroup:ChipGroup
 
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        textovi = listOf(findViewById<TextView>(R.id.t1),findViewById<TextView>(R.id.t2),findViewById<TextView>(R.id.t3),findViewById<TextView>(R.id.t4),
-            findViewById<TextView>(R.id.t5),findViewById<TextView>(R.id.t6),findViewById<TextView>(R.id.t7),findViewById<TextView>(R.id.t8))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            val w: Window = window // in Activity's onCreate() for instance
+            /*w.setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )*/
+            //w.statusBarColor = Color.TRANSPARENT
+        }
         findViewById<Button>(R.id.edit_mode_button).setOnClickListener{ changeEditMode() }
         findViewById<Button>(R.id.back_button).setOnClickListener{ goBack() }
         findViewById<Button>(R.id.edit_rename_button).setOnClickListener{ showDialog() }
         findViewById<Button>(R.id.edit_delete_button).setOnClickListener{ deleteSelectedItem() }
-        findViewById<Button>(R.id.edit_cancel).setOnClickListener{ deYellowAll() }
+        findViewById<Button>(R.id.edit_cancel).setOnClickListener{
+            prebaciMeni(selected_global, selected_global)
+            deYellowAll()
+        }
         findViewById<Button>(R.id.pocetna_button).setOnClickListener{
-            stack.clear()
-            prebaciMeni(pocetnaId, -1)
-            findViewById<Button>(R.id.back_button).isEnabled = false
+            goToPocetna()
         }
         radapter = RAdapter(this)
         findViewById<RecyclerView>(R.id.recycler_view).adapter = radapter
+        //Toast.makeText(this, "App list loading", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch(Dispatchers.IO) {
             initializeRoom()
             withContext(Dispatchers.Main){
-                prebaciMeni(pocetnaId, -1)
+                goToPocetna()
             }
         }
-        lifecycleScope.launch(Dispatchers.IO) {
-            loadApps()
+        circleView = findViewById<CircleView>(R.id.circleview)
+        circleView?.radapter = radapter
+        circleView?.setEventListener(object :
+            com.example.dragnav.CircleView.IMyEventListener {
+            override fun onEventOccurred(event: MotionEvent, counter: kotlin.Int) {
+                touched(event, counter)
+            }
+        })
+        chipGroup = findViewById<ChipGroup>(R.id.chipgroup_aplikacije)
+        val c:Context = this
+        findViewById<FloatingActionButton>(R.id.floating_action_button).setOnClickListener{
+            val search_bar = findViewById<EditText>(R.id.search_bar)
+            search_bar.setText("")
+            showLayout(LAYOUT_SEARCH)
+            search_bar.apply {
+                setOnEditorActionListener { _, actionId, _ ->
+                    if (actionId == EditorInfo.IME_ACTION_GO) {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + search_bar.text.toString()))
+                        intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.packageName)
+                        //intent.setPackage("com.android.chrome");
+                        startActivity(intent)
+                        showLayout(LAYOUT_MAIN)
+                        search_bar.setText("")
+                        return@setOnEditorActionListener true
+                    }
+                    false
+                }
+                requestFocus()
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                addTextChangedListener {
+                    // find apps
+                    if(search_bar.text.toString().length == 0) {
+                        chipGroup.removeAllViews()
+                        return@addTextChangedListener
+                    }
+                    lista_aplikacija = mutableListOf<Pair<Int, AppInfo>>()
+                    var slova_search = search_bar.text.toString().map{ it }
+                    var slova_search_lowercase = search_bar.text.toString().map{ it.lowercaseChar() }
+
+
+                    for(app in radapter.appsList) {
+                        var counter = 0
+                        var index_counter = 0
+                        for(slovo in app.label.toString().lowercase()){
+                            if(slovo == search_bar.text.toString()[index_counter].lowercaseChar()){
+                                index_counter++
+                                if(index_counter == search_bar.text.toString().length) break
+                            }
+                        }
+                        if(index_counter != search_bar.text.toString().length){
+                            continue
+                        }
+                        if(app.label.toString().first().lowercaseChar() == slova_search_lowercase[0]){
+                            counter += 5
+                            if(search_bar.text.toString().length == 2) {
+                                if (app.label.toString().last().lowercaseChar() == slova_search_lowercase[1]) {
+                                    counter += 10
+                                    Log.d("ingo", app.label.toString() + " ako počinje s prvim slovom i završava s drugim " + search_bar.text.toString())
+                                }
+                                val splitano = app.label.split(" ")
+                                if (splitano.size > 1 && splitano[1].first().lowercaseChar() == slova_search_lowercase[1]) {
+                                    counter += 5
+                                    Log.d("ingo", app.label.toString() + " ako je prvo slovo prva riječ, drugo slovo druga riječ " + search_bar.text.toString())
+                                }
+                                val sslwf = slova_search_lowercase.subList(1, slova_search_lowercase.size
+                                )
+                                for ((index, slovo) in app.label.iterator().withIndex()) {
+                                    if (index == 0) continue
+                                    if (slovo.isUpperCase() && sslwf.contains(slovo.lowercaseChar())) {
+                                        counter += 6
+                                        Log.d("ingo", app.label.toString() + " upper case contains " + search_bar.text.toString())
+                                    }
+                                }
+                            }
+                            if(app.label.toString().lowercase().startsWith(search_bar.text.toString().lowercase())){
+                                counter += 5*search_bar.text.toString().length
+                                Log.d("ingo", app.label.toString() + " startsWith " + search_bar.text.toString())
+                            }
+                        }
+                        var matches = countMatches(app.label.toString().lowercase(), search_bar.text.toString().lowercase())
+                        if(matches == search_bar.text.toString().length) {
+                            counter += matches*4
+                            Log.d(
+                                "ingo",
+                                "matches " + app.label.toString() + " " + search_bar.text.toString() + " " + matches
+                            )
+                        }
+                        if(counter > 0) lista_aplikacija.add(Pair(counter, app))
+                    }
+
+                    /*if(lista_aplikacija.size == 0){
+                        for(app in radapter.appsList) {
+                            var counter = 0
+                        }
+                    }
+                    for(app in radapter.appsList){
+                        var counter = 0
+
+                        val app_slova = app.label.map { it.lowercase().first() }
+                        // sadrži u sebi
+                        /*for(slovo in slova_search_lowercase){
+                            if(app_slova.contains(slovo)){
+                                counter++
+                                Log.d("ingo", app.label.toString() + " contains " + slovo)
+                                break
+                            }
+                        }*/
+                        val app_rijeci = app.label.toString().lowercase().split(" ")
+                        for(app_rijec in app_rijeci){
+                            // da li počinje s
+                            if(app_rijec.startsWith(search_bar.text.toString().lowercase())){
+                                counter += 5
+                                Log.d("ingo", app.label.toString() + " startsWith " + search_bar.text.toString())
+                            }
+                            // case matches
+                            if(slova_search_lowercase.contains(app_rijec.first().lowercase().first())){
+                                if(slova_search.contains(app_rijec.first())){
+                                    counter += 4
+                                    Log.d("ingo", app.label.toString() + "same case match! " + slova_search + " " + app_rijec.first())
+                                } else {
+                                    counter += 2
+                                    Log.d("ingo", app.label.toString() + " match " + slova_search + " " + app_rijec.first())
+                                }
+                            }
+                        }
+                        if(slova_search.size > 1) {
+                            var matches = countMatches(app.label.toString(), search_bar.text.toString())*2
+                            if(matches > 0) {
+                                counter += matches
+                                Log.d(
+                                    "ingo",
+                                    "matches " + app.label.toString() + " " + search_bar.text.toString() + " " + matches
+                                )
+                            }
+                        }
+                        if(counter > 0) lista_aplikacija.add(Pair(counter, app))
+                    }*/
+                    lista_aplikacija.sortByDescending { it.first }
+
+                    chipGroup.setOnClickListener{
+                        val chip = it as Chip
+                        val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(lista_aplikacija[chip.id].second.packageName.toString())
+                        startActivity(launchIntent)
+                    }
+                    chipGroup.removeAllViews()
+                    //var chips: MutableList<Chip> = mutableListOf()
+                    for ((index,app) in lista_aplikacija.iterator().withIndex()) {
+                        if(index > 10) break
+                        val chip = layoutInflater.inflate(R.layout.chip_template, null) as Chip
+                        val chip_text = app.second.label.toString()
+                        chip.setText(chip_text)// + " " + app.first)
+                        chip.id = index
+                        try {
+                            chip.chipBackgroundColor = ColorStateList.valueOf(app.second.color.toInt())
+                        } catch (e:NumberFormatException){
+                            e.printStackTrace()
+                        }
+                        chip.setOnClickListener {
+                            Log.d(
+                                "ingo", chip.text.toString() + " " + chip.id.toString()
+                            )
+                            // otvori ovu aplikaciju
+                            val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(app.second.packageName.toString())
+                            startActivity(launchIntent)
+                        }
+                        //chips.add(chip)
+                        chipGroup.addView(chip)
+                    }
+
+                }
+            }
         }
-        findViewById<ImageButton>(R.id.plus_button).setOnClickListener { openAddMenu(it) }
+        //findViewById<ImageButton>(R.id.plus_button).setOnClickListener { openAddMenu(it) }
+    }
+
+    fun countMatches(string: String, pattern: String): Int {
+        var max_match = 0
+        var match_counter = 0
+        var index_counter = 0
+        for(i in string){
+            if(i == pattern[index_counter]){
+                index_counter++
+                match_counter++
+                if(match_counter > max_match) max_match = match_counter
+                if(index_counter >= pattern.length) break
+            } else {
+                index_counter = 0
+                match_counter = 0
+            }
+        }
+        return max_match
+    }
+
+    fun showLayout(id:Int){
+        val exclude = mutableListOf<View>()
+        val all = listOf<View>(
+            findViewById(R.id.search_container),
+            findViewById(R.id.recycle_container),
+            findViewById(R.id.relativelayout),
+            findViewById(R.id.floating_action_button))
+        when(id){
+            LAYOUT_ACTIVITIES -> exclude.add(all[1])
+            LAYOUT_SEARCH -> exclude.add(all[0])
+            LAYOUT_MAIN -> exclude.addAll(listOf(all[2], all[3]))
+        }
+        for(view in all){
+            if(exclude.contains(view)){
+                view.visibility = View.VISIBLE
+            } else {
+                view.visibility = View.INVISIBLE
+            }
+        }
+        currentLayout = id
+    }
+
+    fun startShortcut(shortcut:MeniJednoPolje){
+        val launcherApps: LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        Log.d("ingo", "startshortcut " + shortcut.nextIntent + "->" + shortcut.nextId)
+        /*sendIntent.setAction(Intent.ACTION_SEND)
+        sendIntent.putExtra(Intent.EXTRA_TEXT, "This is my text to send.")
+        sendIntent.setType("text/plain")*/
+        launcherApps.startShortcut(shortcut.nextIntent, shortcut.nextId, null, null, android.os.Process.myUserHandle())
     }
 
     override fun onStart() {
         super.onStart()
         EventBus.getDefault().register(this);
+    }
+
+    fun goToPocetna(){
+        stack.clear()
+        prebaciMeni(pocetnaId, -1)
+        //prikaziPrecace
+        findViewById<Button>(R.id.back_button).isEnabled = false
+        currentMenuType = MENU_APPLICATION_OR_FOLDER
     }
 
     override fun onStop() {
@@ -148,7 +414,7 @@ class MainActivity : AppCompatActivity() {
 
     fun showDialog() {
         val fragmentManager = supportFragmentManager
-        getPolje(currentMenu.polja[editSelected])?.let{
+        currentSubmenuList[editSelected].let{
             val newFragment = CustomDialogFragment(it)
 
             val isLargeLayout = true
@@ -180,7 +446,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun initializeRoom(){
+    suspend fun initializeRoom(){
+        Log.d("ingo", "initializeRoom start")
+        if(!loadAppsBool){
+            listaMenija += pocetna
+            pocetnaId = pocetna.id
+            return
+        }
         val db = AppDatabase.getInstance(this)
         val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
         var meniPolja:List<MeniJednoPolje> = recDao.getAll()
@@ -199,6 +471,54 @@ class MainActivity : AppCompatActivity() {
         Log.d("ingo", "pocetnaId = " + pocetnaId)
         for(meni in listaMenija){
             if(meni.id > highestId) highestId = meni.id
+        }
+        val appDao: AppInfoDao = db.appInfoDao()
+        Log.d("ingo", "initializeRoom before cache")
+        if(cache_apps) {
+            radapter.appsList = appDao.getAll() as MutableList<AppInfo>
+            Log.d("ingo", "loaded " + radapter.appsList.size + " cached apps")
+        }
+        Log.d("ingo", "initializeRoom before loadnewapps")
+        val newApps = loadNewApps()
+        Log.d("ingo", "initializeRoom before insertall")
+        if(cache_apps && newApps.isNotEmpty()){
+            for(app in newApps){
+                Log.d("ingo", "new app " + app.label)
+                appDao.insertAll(app)
+            }
+        }
+        Log.d("ingo", "initializeRoom before addall")
+        radapter.appsList.addAll(newApps)
+        radapter.appsList.sortBy { it.label.toString().lowercase() }
+        //if(cache_apps){
+        Log.d("ingo", "initializeRoom before loadicons")
+        loadIcons()
+        Log.d("ingo", "initializeRoom after loadicons")
+        //}
+        var c:Context = this
+        withContext(Dispatchers.Main) {
+            updateStuff();
+            Toast.makeText(c, "App list loaded", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    fun loadIcons(){
+        for(app in radapter.appsList) {
+            if (radapter.icons.containsKey(app.packageName)) continue
+            /*try {
+            icons[pname] = context.packageManager.getApplicationIcon(pname)
+        } catch (e: PackageManager.NameNotFoundException){
+            e.printStackTrace()
+        }*/
+            val applicationInfo = packageManager.getApplicationInfo(app.packageName, 0)
+            val res: Resources = packageManager.getResourcesForApplication(applicationInfo)
+            val icon = res.getDrawableForDensity(
+                applicationInfo.icon,
+                DisplayMetrics.DENSITY_LOW,
+                null
+            )
+            radapter.icons[app.packageName] = icon
         }
     }
 
@@ -219,10 +539,12 @@ class MainActivity : AppCompatActivity() {
 
     fun changeEditMode(){
         editMode = !editMode
+        circleView?.editMode = !circleView?.editMode!!
+        circleView?.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_EDIT)
+        circleView?.invalidate()
         if(editMode){
-            findViewById<ImageButton>(R.id.plus_button).visibility = View.VISIBLE
+            circleView?.invalidate()
         } else {
-            findViewById<ImageButton>(R.id.plus_button).visibility = View.INVISIBLE
             deYellowAll()
         }
     }
@@ -240,7 +562,7 @@ class MainActivity : AppCompatActivity() {
         if(polje1 != null) {
             for (polje2 in listaMenija) {
                 if(polje1.polja!!.contains(polje2.id)){
-                    //Log.d("ingo", "dodajem " + polje2.text)
+                    Log.d("ingo", "dodajem " + polje2.text)
                     lista.add(polje2)
                 }
             }
@@ -250,50 +572,95 @@ class MainActivity : AppCompatActivity() {
         return listOf()
     }
 
-    fun prikaziPrecace(precaci: List<ShortcutInfo>, selected:Int){
+    fun prikaziPrecace(prosiriId: Int, selected:Int){
+        circleView?.setPosDontDraw(selected)
         selected_global = selected
-        Log.d("ingo", "prikazi prečace " + precaci.map{ it.shortLabel }.toString())
-        var counter = 0
-        for(polje in textovi){
-            polje.text = ""
-        }
-        for(polje in precaci){
-            if(selected==counter){
-                counter++
+        var precaci:MutableList<MeniJednoPolje> = mutableListOf()
+        val launcherApps: LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        if(launcherApps.hasShortcutHostPermission()){
+            val precaci_info = getPolje(prosiriId)?.let {
+                radapter.getShortcutFromPackage(
+                    it.nextIntent,
+                    this
+                )
             }
-            if(counter >= 8) break
-            textovi[counter].text = polje.shortLabel
-            counter++
+            //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
+            precaci = precaci_info?.map{
+                MeniJednoPolje(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
+            } as MutableList<MeniJednoPolje>
         }
-        max_subcounter = precaci.size
+        if(prosiriId == pocetnaId){
+            circleView?.amIHome(true)
+        } else {
+            circleView?.amIHome(false)
+        }
+        Log.d("ingo", "prikazi prečace " + precaci.map{ it.text + "->" + it.nextIntent + "->" + it.nextId }.toString())
+        var polja = getSubPolja(prosiriId)
+        currentSubmenuList = precaci + polja
+        currentMenuType = MENU_SHORTCUT
+        circleView?.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
+        val precaci_i_polja = precaci+polja
+        circleView?.setTextList(precaci_i_polja)
+        max_subcounter = (precaci_i_polja).size
+    }
+
+    fun getIcon(pname:String):Drawable? {
+        //if(radapter.icons.containsKey(pname)) continue
+        try {
+            return packageManager.getApplicationIcon(pname)
+        } catch (e: PackageManager.NameNotFoundException) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    fun ucitajIkonu(view:ImageView, pname: String){
+        lifecycleScope.launch(Dispatchers.IO) {
+            var drawable:Drawable? = null
+            try {
+                drawable = packageManager.getApplicationIcon(pname)
+            } catch (e: PackageManager.NameNotFoundException) {
+                e.printStackTrace()
+            }
+            withContext(Dispatchers.Main){
+                if(drawable != null) {
+                    view.setImageDrawable(drawable)
+                }
+            }
+        }
     }
 
     fun prikazi(prosiriId: Int, selected:Int){
+        if(prosiriId == pocetnaId){
+            circleView?.amIHome(true)
+        } else {
+            circleView?.amIHome(false)
+        }
         selected_global = selected
         Log.d("ingo", "prikazi " + prosiriId)
         var polja = getSubPolja(prosiriId)//getRoomMeniPolja(prosiri.polja)
-        var counter = 0
-        for(polje in textovi){
-            polje.text = ""
-        }
-        for(polje in polja){
-            if(selected==counter){
-                counter++
-            }
-            if(counter >= 8) break
-            textovi[counter].text = polje.text
-            counter++
-        }
+        currentSubmenuList = polja
+        currentMenuType = MENU_APPLICATION_OR_FOLDER
+        //var lista:List<String> = polja.map{ it.text }
+        circleView?.setPosDontDraw(selected)
+        circleView?.setTextList(polja)
         max_subcounter = polja.size
     }
 
-    fun prebaciMeni(nextId:Int, counter:Int, noStack:Boolean=false): MeniJednoPolje? {
+    fun prebaciMeni(id:Int, counter:Int, noStack:Boolean=false, precaci:Boolean=false): MeniJednoPolje? {
         lastTextViewEnteredCounter = counter
-        val polje = getPolje(nextId)
-        Log.d("ingo", "prebaciMeni " + nextId)
+        Log.d("ingo", "lastTextViewEnteredCounter " + lastTextViewEnteredCounter)
+        val polje = getPolje(id)
+        Log.d("ingo", "prebaciMeni " + id)
         if(polje != null){
-            prikazi(polje.id, counter)
             currentMenu = polje
+            prikaziPrecace(polje.id, counter)
+            /*if(!precaci) {
+                prikazi(polje.id, counter)
+            } else {
+
+            }*/
+
             findViewById<TextView>(R.id.selected_text).text = polje.text
             if(!noStack){
                 stack.add(Pair(currentMenu.id, counter))
@@ -308,9 +675,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun deYellowAll(){
-        for(txt in textovi) {
-            txt.setBackgroundColor(Color.TRANSPARENT)
-        }
+        circleView?.deyellowAll()
         findViewById<ConstraintLayout>(R.id.editbuttonslayout).visibility = View.INVISIBLE
         editSelected = -1
     }
@@ -324,86 +689,109 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isSystemPackage(pkgInfo: PackageInfo): Boolean {
-        Log.d("ingo", "" + pkgInfo.packageName + " " + pkgInfo.applicationInfo.flags + " " + (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0))
+        //Log.d("ingo", "" + pkgInfo.packageName + " " + pkgInfo.applicationInfo.flags + " " + (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0))
         return pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
     }
 
-    suspend fun loadApps() {
+    fun isAppLoaded(p:String): Boolean{
+        return radapter.appsList.map{ it.packageName }.contains(p)
+    }
+
+    fun getBestPrimaryColor(icon:Drawable): Int{
+        val bitmap: Bitmap = icon.toBitmap(5, 5, Bitmap.Config.RGB_565)
+        var best_diff_j = 0
+        var best_diff_k = 0
+        var best_diff = 0
+        var current_diff = 0
+        for(j in 0..4){
+            for(k in 0..4){
+                val c = bitmap.getPixel(j,k)
+                current_diff = max(listOf(c.red,c.green,c.blue)) - min(listOf(c.red,c.green,c.blue))
+                if(current_diff > best_diff){
+                    best_diff = current_diff
+                    best_diff_j = j
+                    best_diff_k = k
+                }
+            }
+        }
+        return bitmap.getPixel(best_diff_j, best_diff_k)
+    }
+
+
+    @SuppressWarnings("ResourceType")
+    suspend fun loadNewApps(): MutableList<AppInfo>{
+        var pixels = Array<Int>(9){0}
+        var newApps: MutableList<AppInfo> = mutableListOf()
         val packs = packageManager.getInstalledPackages(0)
+        var colorPrimary: Int = 0
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
+                if(isAppLoaded(p.packageName)) {
+                    Log.d("ingo", "already loaded " + p.packageName)
+                    continue
+                }
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
+                Log.d("ingo", "loading new app " + appName)
                 var icon:Drawable? = null
-                if(loadIconBool) icon = p.applicationInfo.loadIcon(packageManager)
-                val packages = p.applicationInfo.packageName
-                if (appName != packages.toString()) radapter.appsList.add(
-                    AppInfo(
-                        appName,
-                        packages,
-                        icon
+                val res: Resources = packageManager.getResourcesForApplication(p.applicationInfo)
+
+                if(loadIconBool){
+
+                    icon = res.getDrawableForDensity(
+                        p.applicationInfo.icon,
+                        DisplayMetrics.DENSITY_LOW,
+                        null
                     )
-                )
+                    radapter.icons[p.applicationInfo.packageName] = icon
+                    if(icon != null) {
+                        colorPrimary = getBestPrimaryColor(icon)
+                    }
+                    //icon = p.applicationInfo.loadIcon(packageManager)
+                } else {
+                    colorPrimary = 0
+                }
+                val packageName = p.applicationInfo.packageName
+                if (appName != packageName.toString()) {
+                    newApps.add(AppInfo(0, appName, packageName, colorPrimary.toString()))
+                }
             }
         }
-        /*val shortcutManager = getSystemService(LauncherApps::class.java)
-        val shortcutQuery: LauncherApps.ShortcutQuery = LauncherApps.ShortcutQuery()
-        val shortcutInfo:MutableList<ShortcutInfo> =
-            shortcutManager.getShortcuts(shortcutQuery, android.os.Process.myUserHandle()) as MutableList<ShortcutInfo>
-*/
-        /*val shortcutIntent = Intent(Intent.ACTION_CREATE_SHORTCUT)
-        val shortcuts = packageManager.queryIntentActivities(shortcutIntent, 0)
-        shortcuts.forEach {
-            println("name = ${it.activityInfo.name}, label = ${it.loadLabel(packageManager)}")
-        }*/
-        /*//val appsList: MutableList<AppInfo> = mutableListOf()
-        */
+
         val i = Intent(Intent.ACTION_MAIN, null)
         i.addCategory(Intent.CATEGORY_LAUNCHER)
-
         val allApps = packageManager.queryIntentActivities(i, 0)
         for (ri in allApps) {
-            var app:AppInfo? = null
+            if(isAppLoaded(ri.activityInfo.packageName) || newApps.map{it.packageName}.contains(ri.activityInfo.packageName)) continue
+            Log.d("ingo", ri.activityInfo.packageName)
+            //val res: Resources = packageManager.getResourcesForApplication(ri.activityInfo.packageName)
             if(loadIconBool){
-                app = AppInfo(ri.loadLabel(packageManager), ri.activityInfo.packageName, ri.activityInfo.loadIcon(packageManager))
+                val icon = ri.loadIcon(packageManager)
+                radapter.icons[ri.activityInfo.packageName] = icon
+                if(icon != null) {
+                    colorPrimary = getBestPrimaryColor(icon)
+                }
             } else {
-                app = AppInfo(ri.loadLabel(packageManager), ri.activityInfo.packageName, null)
+                colorPrimary = 0
             }
-
-            Log.d("ingo", app.label.toString() + " " + app.packageName.toString() + " loaded")
+            val app: AppInfo = AppInfo(0, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString())
+            //Log.d("ingo", app.label.toString() + " " + app.packageName)
+            //Log.d("ingo", app.label.toString() + " " + app.packageName.toString() + " loaded")
             //appsList.add(app)
             //radapter.appsList.add(app)
-            if(!radapter.appsList.map { it.packageName.toString() }.contains(app.packageName.toString())) radapter.appsList.add(app)
+            newApps.add(app)
+            /*if(!radapter.appsList.map { it.packageName.toString() }.contains(app.packageName.toString())) {
+                Log.d("ingo", app.label.toString())
+                radapter.appsList.add(app)
+            }*/
         }
-        radapter.appsList.sortBy { it.label.toString() }
-        withContext(Dispatchers.Main) {
-            updateStuff();
-        }
+        return newApps
     }
-
-    /*fun getShortcutFromPackage(){
-        val shortcutManager:LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-        val shortcutQuery: LauncherApps.ShortcutQuery = LauncherApps.ShortcutQuery()
-        shortcutQuery.setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
-        shortcutQuery.setPackage(appsList[pos].packageName.toString())
-        try {
-            val shortcutInfo: MutableList<ShortcutInfo> =
-                shortcutManager.getShortcuts(
-                    shortcutQuery,
-                    android.os.Process.myUserHandle()
-                ) as MutableList<ShortcutInfo>
-            shortcutInfo.forEach {
-                println("name = ${it.`package`}, label = ${it.shortLabel}")
-            }
-        } catch (e: SecurityException){
-            //Collections.emptyList<>()
-            Log.d("ingo", e.toString())
-        }
-    }*/
 
     fun updateStuff() {
         //findViewById<RecyclerView>(R.id.recycler_view).adapter?.notifyDataSetChanged()
-        radapter.notifyItemInserted(radapter.getItemCount() - 1)
+        //radapter.notifyItemInserted(radapter.getItemCount() - 1)
+        radapter.notifyDataSetChanged()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -413,7 +801,7 @@ class MainActivity : AppCompatActivity() {
             if(selectAppMenuOpened){
                 // izaberi ovu aplikaciju
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val dodanoPolje = databaseAddNewPolje(MeniJednoPolje(id=0, text = event.text, nextIntent = event.launchIntent))
+                    val dodanoPolje = databaseAddNewPolje(MeniJednoPolje(id=0, text = event.text, nextIntent = event.launchIntent, color=event.color))
                     val trenutnoPolje = getPolje(currentMenu.id)
                     if(trenutnoPolje != null){
                         trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
@@ -424,31 +812,33 @@ class MainActivity : AppCompatActivity() {
                         refreshCurrentMenu()
                     }
                 }
+                selectAppMenuOpened = false
             } else {
                 // otvori ovu aplikaciju
                 val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(event.launchIntent)
                 startActivity(launchIntent)
             }
-            selectAppMenuOpened = !selectAppMenuOpened
-            Log.d("ingo", "on message event " + event.launchIntent)
+            Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
         }
     }
 
-    fun toggleAppMenu(){
+    private fun toggleAppMenu(){
         updateStuff()
         appListOpened = !appListOpened
         if(appListOpened){
-            findViewById<LinearLayout>(R.id.recycle_container).visibility = View.VISIBLE
-            findViewById<ConstraintLayout>(R.id.relativelayout).visibility = View.INVISIBLE
+            showLayout(LAYOUT_ACTIVITIES)
         } else {
             findViewById<TextView>(R.id.recycle_view_label).visibility = View.GONE
-            findViewById<LinearLayout>(R.id.recycle_container).visibility = View.INVISIBLE
-            findViewById<ConstraintLayout>(R.id.relativelayout).visibility = View.VISIBLE
+            showLayout(LAYOUT_MAIN)
         }
     }
 
     override fun onBackPressed() {
-        toggleAppMenu()
+        if(currentLayout == LAYOUT_SEARCH){
+            showLayout(LAYOUT_MAIN)
+        } else {
+            toggleAppMenu()
+        }
         //super.onBackPressed()
     }
 
@@ -464,16 +854,14 @@ class MainActivity : AppCompatActivity() {
         shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
     }
 
-    fun openAddMenu(view: View){
+    fun openAddMenu(){
         val contentView = createAddMenu()
-        val locations = IntArray(2, {0})
-        view.getLocationOnScreen(locations)
         shortcutPopup?.dismiss()
         shortcutPopup = PopupWindow(contentView,
             ListPopupWindow.WRAP_CONTENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(circleView, Gravity.CENTER, 0, 0)
     }
 
     fun createFolderNameMenu():View{
@@ -506,13 +894,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun refreshCurrentMenu(){
-        prikazi(currentMenu.id, selected_global)
+        prebaciMeni(currentMenu.id, selected_global)
+        Log.d("ingo", "current menu refreshed")
     }
 
     fun databaseUpdateItem(polje:MeniJednoPolje){
         val db = AppDatabase.getInstance(this)
         val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
         recDao.update(polje)
+        var staro_polje = getPolje(polje.id)
+        staro_polje = polje
         Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
     }
 
@@ -525,7 +916,7 @@ class MainActivity : AppCompatActivity() {
 
     fun deleteSelectedItem(){
         lifecycleScope.launch(Dispatchers.IO) {
-            databaseDeleteById(currentMenu.polja[editSelected])
+            databaseDeleteById(currentSubmenuList[editSelected].id)
             withContext(Dispatchers.Main){
                 deYellowAll()
                 refreshCurrentMenu()
@@ -560,21 +951,128 @@ class MainActivity : AppCompatActivity() {
     fun createAddMenu():View{
         val view = LayoutInflater.from(this).inflate(R.layout.popup_add_which, null)
         view.findViewById<ImageView>(R.id.new_folder).setOnClickListener{
-            Toast.makeText(this, "new folder", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
             openFolderNameMenu(view)
         }
         view.findViewById<ImageView>(R.id.new_shortcut).setOnClickListener{
-            Toast.makeText(this, "new shortcut", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
             selectAppMenuOpened = true
             shortcutPopup?.dismiss()
             findViewById<TextView>(R.id.recycle_view_label).visibility = View.VISIBLE
             toggleAppMenu()
         }
+        view.findViewById<ImageView>(R.id.new_action).setOnClickListener{
+            Toast.makeText(this, "Not yet implemented:(", Toast.LENGTH_SHORT).show()
+        }
         return view
     }
 
+    fun pronadiMoguceAkcije(intent:String):List<MeniJednoPolje>{
+        return listOf()
+    }
+
+    fun launchLastEntered(){
+        if(lastEnteredIntent == null) return
+        if(!lastEnteredIntent?.shortcut!!) {
+            Log.d("ingo", "launchLastEntered app_or_folder " + lastEnteredIntent.toString())
+            val launchIntent: Intent? =
+                lastEnteredIntent?.let { packageManager.getLaunchIntentForPackage(it.nextIntent) }
+            startActivity(launchIntent)
+        } else {
+            Log.d("ingo", "launchLastEntered shortcut " + lastEnteredIntent.toString())
+            lastEnteredIntent?.let { startShortcut(it) }
+        }
+        lastEnteredIntent = null
+        lastTextViewEnteredCounter = -1
+        circleView?.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_HIDE)
+        goToPocetna()
+    }
+
+    fun touched(event:MotionEvent, counter:Int){
+        Log.d("ingo", event.action.toString() + " " + counter)
+        //Log.d("ingo", "pozvalo me")
+        var sublist_counter = counter
+        //if(counter+1 > lastTextViewEnteredCounter) sublist_counter = counter+1
+        //Toast.makeText(this, lista[counter], Toast.LENGTH_SHORT).show()
+        if(counter == ACTION_CANCEL){
+            /*lastEnteredIntent = null
+            lastTextViewEnteredCounter = -1
+            findViewById<TextView>(R.id.selected_text).text = currentMenu.text*/
+            goToPocetna()
+            return
+        }
+        if(counter == ACTION_HOME){
+            goToPocetna()
+            return
+        }
+        if(event.action == ACTION_UP && !editMode){
+            Log.d("ingo", "action up")
+            if(counter == ACTION_LAUNCH){
+                Log.d("ingo", "launch")
+                // obavi intent
+                launchLastEntered()
+            }
+            //Toast.makeText(this, findViewById<TextView>(R.id.selected_text).text, Toast.LENGTH_SHORT).show()
+            return
+        }
+        /*if(counter == lastTextViewEnteredCounter || sublist_counter >= max_subcounter ) {
+            Log.d("ingo", "returnic")
+            return
+        }*/
+        //Log.d("ingo", "mi smo unutar " + counter + " texta")
+        //Log.d("ingo", subcounter.toString() + " " + counter.toString() + " "  + lastItem.toString() + " " + getSubPolja(currentMenu.id)[subcounter].nextId.toString())
+        if(!editMode && sublist_counter != selected_global) {
+
+            findViewById<TextView>(R.id.selected_text).text = currentSubmenuList[sublist_counter].text
+            if (currentSubmenuList[sublist_counter].nextIntent == "") { // mapa
+                Log.d("ingo", "nextIntent je prazan")
+                lastEnteredIntent = null
+                prebaciMeni(currentSubmenuList[sublist_counter].id, counter)
+            } else {
+                lastEnteredIntent = currentSubmenuList[sublist_counter]
+                Log.d("ingo", "lastTextViewEnteredCounter " + lastTextViewEnteredCounter)
+                // TODO: potrebno pronaći prečace
+                // mape/aplikacije -> prečaci/akcije
+                prebaciMeni(currentSubmenuList[sublist_counter].id, counter, precaci = true)
+                //lastEnteredIntent = precaci[0].intent
+                //launchLastEntered()
+                //return
+                // TODO("potraži ostale prečace: koje akcije se mogu raditi s trenutne aktivnosti/prečaca")
+                //precaci_as_menijednopolje += pronadiMoguceAkcije(currentSubmenuList[sublist_counter].nextIntent)
+
+            }
+            Log.d("ingo", "MENU_SHORTCUT " + lastEnteredIntent)
+        } else if(editMode && event.action == MotionEvent.ACTION_DOWN) {
+            if(sublist_counter >= 0) {
+                if (editSelected == -1) {
+                    editSelected = sublist_counter
+                    circleView?.yellowIt(sublist_counter)
+                    Log.d("ingo", "selected " + sublist_counter + " " + currentSubmenuList[sublist_counter].text + " " + currentSubmenuList[sublist_counter].id)
+                    //textView?.setBackgroundColor(Color.YELLOW)
+                    findViewById<ConstraintLayout>(R.id.editbuttonslayout).visibility = View.VISIBLE
+                } else {
+                    if (editSelected == sublist_counter) {
+                        //Log.d("ingo", getPolje(editSelected))
+                        deYellowAll()
+                        findViewById<ConstraintLayout>(R.id.editbuttonslayout).visibility =
+                            View.INVISIBLE
+                    } else {
+                        // zamijeni indexe od MeniJednoPolje s id-evima editSelected i subcounter u listi od trenutno prikazanog MeniJednoPolje
+                    }
+                }
+            }
+            if(sublist_counter == ACTION_ADD){
+                if((currentMenu.id == 0 && currentSubmenuList.size >= 8) || (currentMenu.id != 0 && currentSubmenuList.size >= 7)) {
+                    Toast.makeText(this, "Max. elements present", Toast.LENGTH_SHORT)
+                } else {
+                    openAddMenu()
+                }
+            }
+        }
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        if(appListOpened) return super.onTouchEvent(event)
+        /*if(appListOpened) return super.onTouchEvent(event)
         var textview_counter = 0 // govori na kojem textviewu je polje
         var sublist_counter = 0 // govori koje je polje po redu
         var textView:TextView? = null // govori u kojem smo textviewu
@@ -597,51 +1095,7 @@ class MainActivity : AppCompatActivity() {
         }
         // ovdje sad imamo found, textview_counter i sublist_counter definirano
         if(found){
-            if(event?.action == ACTION_UP && editMode == false){
-                Log.d("ingo", "action up")
-                if(textview_counter == lastTextViewEnteredCounter){
-                    // obavi intent
-                    Log.d("ingo", "pokrecemo intent " + lastEnteredIntent.toString())
-                    startActivity(lastEnteredIntent)
-                    lastEnteredIntent = null
-                    lastTextViewEnteredCounter = -1
-                }
-                //Toast.makeText(this, findViewById<TextView>(R.id.selected_text).text, Toast.LENGTH_SHORT).show()
-                return super.onTouchEvent(event)
-            }
-            if(textview_counter == lastTextViewEnteredCounter || sublist_counter >= max_subcounter ) return super.onTouchEvent(event)
-            Log.d("ingo", "mi smo unutar " + textview_counter + " texta")
-            //Log.d("ingo", subcounter.toString() + " " + counter.toString() + " "  + lastItem.toString() + " " + getSubPolja(currentMenu.id)[subcounter].nextId.toString())
-            if(!editMode) {
-                val trenutnaSubPolja = getSubPolja(currentMenu.id)
-                if (trenutnaSubPolja[sublist_counter].nextIntent == "") {
-                    Log.d("ingo", "nextIntent je prazan")
-                    findViewById<TextView>(R.id.selected_text).text = trenutnaSubPolja[sublist_counter].text
-                    prebaciMeni(trenutnaSubPolja[sublist_counter].id, textview_counter)
-                } else {
-                    val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(trenutnaSubPolja[sublist_counter].nextIntent)
-                    lastEnteredIntent = launchIntent
-                    lastTextViewEnteredCounter = textview_counter
-                    // TODO: potrebno pronaći prečace
-                    // mape -> aplikacije -> prečaci -> akcije
-                    prikaziPrecace(radapter.getShortcutFromPackage(trenutnaSubPolja[sublist_counter].nextIntent, this), textview_counter)
-                    currentMenuType = MENU_SHORTCUT
-                }
-            } else if(event?.action == MotionEvent.ACTION_DOWN) {
-                if(editSelected == -1){
-                    editSelected = sublist_counter
-                    textView?.setBackgroundColor(Color.YELLOW)
-                    findViewById<ConstraintLayout>(R.id.editbuttonslayout).visibility = View.VISIBLE
-                } else {
-                    if(editSelected == sublist_counter){
-                        //Log.d("ingo", getPolje(editSelected))
-                        deYellowAll()
-                        findViewById<ConstraintLayout>(R.id.editbuttonslayout).visibility = View.INVISIBLE
-                    } else {
-                        // zamijeni indexe od MeniJednoPolje s id-evima editSelected i subcounter u listi od trenutno prikazanog MeniJednoPolje
-                    }
-                }
-            }
+
         }
 
         /*if(currentMenu?.polja?.get(counter)?.nextId != null){
@@ -649,6 +1103,8 @@ class MainActivity : AppCompatActivity() {
             currentMenu = prebaciMeni(currentMenu?.polja?.get(counter)?.nextId!!, counter)
         }*/
         //Log.d("ingo", event?.action.toString() + " " + event?.historySize)
+
+         */
         return super.onTouchEvent(event)
     }
 }

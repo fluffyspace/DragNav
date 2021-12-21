@@ -9,7 +9,7 @@
         android:id="@+id/popup_folder_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ime direktorija"
+        android:hint="Folder name"
         android:textSize="25sp"
         android:padding="10dp"/>
     <LinearLayout
@@ -24,7 +24,7 @@
         android:text="cancel"
         style="@style/Widget.Shrine.Button"
         android:layout_marginHorizontal="5dp"
-        android:padding="10dp"/>
+        android:padding="20dp"/>
     <Button
         android:id="@+id/popup_folder_submit"
         android:layout_width="0dp"
@@ -33,6 +33,6 @@
         android:text="Add folder"
         style="@style/Widget.Shrine.Button"
         android:layout_marginHorizontal="5dp"
-        android:padding="10dp"/>
+        android:padding="20dp"/>
     </LinearLayout>
 </LinearLayout>

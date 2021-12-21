@@ -3,8 +3,10 @@ package com.example.dragnav
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +18,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.ListPopupWindow.WRAP_CONTENT
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.dragnav.modeli.AppInfo
 import com.example.dragnav.modeli.MessageEvent
 import org.greenrobot.eventbus.EventBus
 import java.util.*
@@ -23,6 +26,7 @@ import java.util.*
 
 class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
     var appsList: MutableList<AppInfo> = mutableListOf()
+    val icons: MutableMap<String, Drawable?> = mutableMapOf()
     var context:Context
     var shortcutPopup:PopupWindow? = null
     init {
@@ -37,10 +41,14 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
             val pos = adapterPosition
             val context = v.context
             val launchIntent: Intent? =
-                context.packageManager.getLaunchIntentForPackage(appsList[pos].packageName.toString())
-            if(launchIntent != null) EventBus.getDefault().post(MessageEvent(appsList[pos].label.toString(), pos, appsList[pos].packageName.toString()))
+                context.packageManager.getLaunchIntentForPackage(appsList[pos].packageName)
+            if(launchIntent != null) {
+                EventBus.getDefault().post(MessageEvent(appsList[pos].label, pos, appsList[pos].packageName, appsList[pos].color))
+            } else {
+                Log.d("ingo", "No launch intent")
+            }
             //context.startActivity(launchIntent)
-            Toast.makeText(v.context, appsList[pos].label.toString(), Toast.LENGTH_LONG).show()
+            Toast.makeText(v.context, appsList[pos].label, Toast.LENGTH_SHORT).show()
         }
 
 
@@ -49,8 +57,8 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
         init {
 
             //Finds the views from our row.xml
-            textView = itemView.findViewById<View>(R.id.text) as TextView
-            img = itemView.findViewById<View>(R.id.img) as ImageView
+            textView = itemView.findViewById(R.id.text) as TextView
+            img = itemView.findViewById(R.id.img) as ImageView
             itemView.setOnClickListener(this)
             itemView.setOnLongClickListener{ v ->
                 val pos = adapterPosition
@@ -67,7 +75,26 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
         }
     }
 
-    fun showPopup(app:AppInfo, itemView:View):Boolean{
+
+    fun getIcon(pname:String):Drawable?{
+        //if(radapter.icons.containsKey(pname)) continue
+        try {
+            return context.packageManager.getApplicationIcon(pname)
+        } catch (e: PackageManager.NameNotFoundException){
+            e.printStackTrace()
+        }
+        return null
+        /*val applicationInfo = packageManager.getApplicationInfo(pname, 0)
+        val res: Resources = packageManager.getResourcesForApplication(applicationInfo)
+        val icon = res.getDrawableForDensity(
+            applicationInfo.icon,
+            DisplayMetrics.DENSITY_LOW,
+            null
+        )
+        radapter.icons[pname] = icon*/
+    }
+
+    fun showPopup(app: AppInfo, itemView:View):Boolean{
         val shortcuts = getShortcutFromPackage(app.packageName.toString(), context)
         if(shortcuts.isNotEmpty()){
 
@@ -106,19 +133,15 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, i: Int) {
-
         //Here we use the information in the list we created to define the views
-        val appLabel = appsList[i].label.toString()
-        val appPackage = appsList[i].packageName.toString()
-        val appIcon:Drawable? = appsList[i].icon
-        val textView = viewHolder.textView
-        textView.text = appLabel
-        val imageView = viewHolder.img
-        if(appIcon != null) imageView.setImageDrawable(appIcon)
+        //val appIcon:Drawable? = icons.get(appsList[i].packageName)
+        viewHolder.textView.text = appsList[i].label.toString()
+        if(appsList[i].color != "") viewHolder.textView.setBackgroundColor(appsList[i].color.toInt())
+        getIcon(appsList[i].packageName).let { viewHolder.img.setImageDrawable(it) }
+
     }
 
     override fun getItemCount(): Int {
-
         //This method needs to be overridden so that Androids knows how many items
         //will be making it into the list
         return appsList.size

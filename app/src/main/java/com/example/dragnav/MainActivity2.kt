@@ -2,6 +2,7 @@ package com.example.dragnav
 
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.dragnav.CircleView.IMyEventListener
@@ -17,14 +18,16 @@ class MainActivity2 : AppCompatActivity() {
             // Responds to when slider's value is changed
             Log.d("ingo", value.toString())
             findViewById<CircleView>(R.id.circleview).setStepSize(value)
-            findViewById<CircleView>(R.id.circleview).setTextList(lista)
-            findViewById<CircleView>(R.id.circleview).setEventListener(object : IMyEventListener {
-                override fun onEventOccurred(counter:Int) {
-                    // TODO Auto-generated method stub
-                    touched(counter)
-                }
-            })
+            //findViewById<CircleView>(R.id.circleview).setTextList(lista)
+
         }
+        findViewById<CircleView>(R.id.circleview).setEventListener(object :
+            com.example.dragnav.CircleView.IMyEventListener {
+            override fun onEventOccurred(event: MotionEvent, counter: kotlin.Int) {
+                // TODO Auto-generated method stub
+                touched(counter)
+            }
+        })
     }
 
     fun touched(counter:Int){

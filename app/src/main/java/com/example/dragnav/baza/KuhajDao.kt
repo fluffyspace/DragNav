@@ -1,6 +1,7 @@
 package com.example.dragnav.baza
 
 import androidx.room.*
+import com.example.dragnav.modeli.AppInfo
 import com.example.dragnav.modeli.MeniJednoPolje
 import com.example.dragnav.modeli.MeniPolja
 
@@ -23,6 +24,27 @@ interface MeniJednoPoljeDao {
 
     @Delete
     fun delete(polje: MeniJednoPolje)
+}
+
+@Dao
+interface AppInfoDao {
+    @Query("SELECT * FROM AppInfo")
+    fun getAll(): List<AppInfo>
+
+    @Query("SELECT * FROM AppInfo WHERE id = :id")
+    fun findById(id: Int): List<AppInfo>
+
+    @Insert
+    fun insertAll(vararg polja: AppInfo): List<Long>
+
+    @Update
+    fun update(polje: AppInfo)
+
+    @Query("SELECT * FROM AppInfo WHERE rowid = :rowId")
+    fun findByRowId(rowId: Long): List<AppInfo>
+
+    @Delete
+    fun delete(polje: AppInfo)
 }
 
 /*@Dao

@@ -2,28 +2,12 @@ package com.example.dragnav
 
 import android.content.Context
 import androidx.recyclerview.widget.RecyclerView
-import com.example.dragnav.AppInfo
-import android.content.Intent
 import android.content.pm.LauncherApps
-import com.example.dragnav.R
-import android.graphics.drawable.Drawable
 import android.view.ViewGroup
 import android.view.LayoutInflater
-import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.content.pm.ShortcutInfo
-import android.os.Build
-import android.util.Log
-import android.view.Gravity
 import android.view.View
 import android.widget.*
-import androidx.annotation.RequiresApi
-import androidx.appcompat.widget.ListPopupWindow.WRAP_CONTENT
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.content.ContextCompat.startActivity
-import androidx.core.graphics.drawable.toDrawable
-import androidx.recyclerview.widget.LinearLayoutManager
-import java.util.*
 
 class ShortcutListAdapter(c: Context, shortcuts:List<ShortcutInfo>) : RecyclerView.Adapter<ShortcutListAdapter.ViewHolder>() {
     var shortcuts:List<ShortcutInfo>

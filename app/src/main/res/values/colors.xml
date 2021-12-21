@@ -16,4 +16,5 @@
     <color name="loginPageBackgroundColor">#FFFFFF</color>
     <color name="productGridBackgroundColor">#FFFBFA</color>
     <color name="textInputOutlineColor">#FBB8AC</color>
+    <color name="semi_transparent">#66000000</color>
 </resources>
