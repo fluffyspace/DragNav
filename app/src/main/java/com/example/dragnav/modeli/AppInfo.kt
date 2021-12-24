@@ -9,5 +9,5 @@ data class AppInfo (
     @PrimaryKey(autoGenerate = true) var id:Int,
     val label:String,
     val packageName:String,
-    val color:String = ""
+    var color:String = ""
 )

@@ -75,7 +75,6 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
         }
     }
 
-
     fun getIcon(pname:String):Drawable?{
         //if(radapter.icons.containsKey(pname)) continue
         try {

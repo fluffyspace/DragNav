@@ -6,11 +6,11 @@
     android:background="@drawable/meni_jedno_polje_obrub"
     android:padding="5dp">
     <LinearLayout
+        android:id="@+id/new_folder"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
         <ImageView
-            android:id="@+id/new_folder"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_create_new_folder_50"
@@ -18,15 +18,15 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Folder"
+            android:text="@string/folder"
             android:gravity="center_horizontal"/>
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/new_shortcut"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
     <ImageView
-        android:id="@+id/new_shortcut"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_baseline_app_shortcut_50"
@@ -34,15 +34,15 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="App"
+            android:text="@string/app"
             android:gravity="center_horizontal"/>
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/new_action"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
         <ImageView
-            android:id="@+id/new_action"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_code_50"
@@ -50,7 +50,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Action"
+            android:text="@string/action"
             android:gravity="center_horizontal"/>
     </LinearLayout>
 </LinearLayout>

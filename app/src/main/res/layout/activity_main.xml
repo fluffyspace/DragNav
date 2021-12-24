@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <data>
+        <import type="android.view.View"/>
+        <variable
+            name="viewModel"
+            type="com.example.dragnav.NewRAdapterViewModel" />
+    </data>
+<FrameLayout
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,23 +20,34 @@
         android:orientation="vertical"
         android:gravity="bottom">
         <TextView
+            android:id="@+id/notification"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorPrimaryDark"
+            android:padding="5dp"
+            tools:text="Notification"
+            android:textSize="23sp"
+            android:gravity="center_horizontal"
+            android:textColor="@color/black"
+            android:visibility="invisible"/>
+        <TextView
             android:id="@+id/selected_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/circleview"
-            app:layout_constraintTop_toBottomOf="@id/buttonslayout"
             android:gravity="center"
             style="@style/TextShadowStyle"
-            android:textSize="50dp"
-            android:text="Home"
+            android:singleLine="true"
+            android:textSize="50sp"
+            android:text="@string/loading"
             android:textColor="@color/white"/>
         <com.example.dragnav.CircleView
             android:id="@+id/circleview"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="@id/selected_text"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
+            android:layout_height="wrap_content" />
+        <com.example.dragnav.BottomMenuView
+            android:id="@+id/bottomMenuView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/editbuttonslayout"
             android:layout_width="match_parent"
@@ -42,7 +61,7 @@
                 style="@style/Widget.Shrine.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="70dp"
-                android:text="rename"
+                android:text="@string/rename"
                 app:layout_constraintEnd_toStartOf="@+id/edit_delete_button"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="parent"
@@ -52,62 +71,38 @@
                 style="@style/Widget.Shrine.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="70dp"
-                android:text="delete"
-                app:layout_constraintEnd_toStartOf="@+id/edit_rename_button"
+                android:text="@string/delete"
+                app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toEndOf="@+id/edit_cancel"
+                app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintTop_toTopOf="parent"/>
             <Button
                 android:id="@+id/edit_cancel"
                 style="@style/Widget.Shrine.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="70dp"
-                android:text="Enter"
+                android:text="@string/enter"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@+id/edit_delete_button"
                 app:layout_constraintTop_toTopOf="parent"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:id="@+id/buttonslayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="10dp"
-            app:layout_constraintTop_toTopOf="parent">
-            <Button
-                android:id="@+id/pocetna_button"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="Home"
-                app:layout_constraintEnd_toStartOf="@+id/edit_mode_button"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:visibility="invisible"/>
+            app:layout_constraintTop_toTopOf="parent"
+            android:gravity="center">
             <Button
                 android:id="@+id/edit_mode_button"
                 style="@style/Widget.Shrine.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="70dp"
-                android:text="edit mode"
-                app:layout_constraintEnd_toStartOf="@+id/back_button"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toEndOf="@+id/pocetna_button"
-                app:layout_constraintTop_toTopOf="parent"/>
-            <Button
-                android:id="@+id/back_button"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="back"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toEndOf="@+id/edit_mode_button"
-                app:layout_constraintTop_toTopOf="parent"
-                android:visibility="invisible"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                android:text="@string/edit_mode"
+                />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -128,16 +123,17 @@
             android:id="@+id/recycle_view_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Choose application"
+            android:text="@string/choose_application"
             android:visibility="gone"
             android:layout_gravity="center_horizontal"
-            android:textSize="35dp"/>
+            android:textSize="35sp"/>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:layoutManager=
-                "androidx.recyclerview.widget.GridLayoutManager"/>
+                "androidx.recyclerview.widget.GridLayoutManager"
+            app:listApps="@{viewModel.appsList}"/>
     </LinearLayout>
 
     <LinearLayout
@@ -157,7 +153,7 @@
             android:padding="10dp"
             tools:text="Kako nahraniti papigu"
             android:inputType="text"
-            android:hint="Search apps and internet"
+            android:hint="@string/search_apps_or_surf_internet"
             android:imeOptions="actionGo" />
         <LinearLayout
             android:layout_width="match_parent"
@@ -167,7 +163,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Applications"
+                android:text="@string/applications"
                 android:textSize="18sp"
                 android:layout_marginTop="10dp"/>
             <View
@@ -187,12 +183,16 @@
         android:id="@+id/floating_action_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
-        android:layout_marginRight="16dp"
-        android:layout_marginBottom="50dp"
-        android:contentDescription="Search"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/search"
         app:fabCustomSize="80dp"
         app:maxImageSize="50dp"
         android:backgroundTint="#FEDBD0"
-        app:srcCompat="@drawable/ic_baseline_search_80"/>
+        app:srcCompat="@drawable/ic_baseline_search_80"
+        android:visibility="invisible"/>
+
 </FrameLayout>
+
+</layout>

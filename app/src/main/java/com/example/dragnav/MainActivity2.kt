@@ -21,13 +21,13 @@ class MainActivity2 : AppCompatActivity() {
             //findViewById<CircleView>(R.id.circleview).setTextList(lista)
 
         }
-        findViewById<CircleView>(R.id.circleview).setEventListener(object :
+        /*findViewById<CircleView>(R.id.circleview).setEventListener(object :
             com.example.dragnav.CircleView.IMyEventListener {
             override fun onEventOccurred(event: MotionEvent, counter: kotlin.Int) {
                 // TODO Auto-generated method stub
                 touched(counter)
             }
-        })
+        })*/
     }
 
     fun touched(counter:Int){

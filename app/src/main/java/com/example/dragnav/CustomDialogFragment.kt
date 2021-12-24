@@ -70,7 +70,7 @@ class CustomDialogFragment(polje:MeniJednoPolje) : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         toolbar.setNavigationOnClickListener { v -> dismiss() }
-        toolbar.setTitle("Uredi link")
+        toolbar.setTitle(R.string.edit_link)
         //toolbar.inflateMenu(R.menu.menu_main)
         toolbar.setOnMenuItemClickListener { item ->
             dismiss()
@@ -82,7 +82,7 @@ class CustomDialogFragment(polje:MeniJednoPolje) : DialogFragment() {
 
         view.findViewById<Button>(R.id.submit).setOnClickListener{ view ->
             if(recipeName.toString() == "") {
-                Toast.makeText(requireContext(), "Moraš unijeti barem ime linka.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "There has to be at least name.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             lifecycleScope.launch(Dispatchers.IO) {
@@ -97,7 +97,7 @@ class CustomDialogFragment(polje:MeniJednoPolje) : DialogFragment() {
         }
         recipeName.setText(polje.text.toString())
         recipeDesc.setText(polje.nextIntent.toString())
-        recipeId.setText(polje.id.toString())
+        recipeId.setText("id = " + polje.id.toString())
         super.onViewCreated(view, savedInstanceState)
         //polje.nextIntent = recipeDesc.editText?.text.toString()
     }
