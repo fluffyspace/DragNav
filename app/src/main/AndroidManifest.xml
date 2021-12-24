@@ -20,11 +20,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Shrine">
         <activity
-            android:name=".MainActivity2"
+            android:name="com.ingokodba.dragnav.MainActivity2"
             android:exported="true" >
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name="com.ingokodba.dragnav.MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:alwaysRetainTaskState="true"
@@ -39,7 +39,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".AddShortcutActivity"
+            android:name="com.ingokodba.dragnav.AddShortcutActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />

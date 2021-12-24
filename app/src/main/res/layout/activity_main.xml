@@ -6,13 +6,13 @@
         <import type="android.view.View"/>
         <variable
             name="viewModel"
-            type="com.example.dragnav.NewRAdapterViewModel" />
+            type="com.ingokodba.dragnav.NewRAdapterViewModel" />
     </data>
 <FrameLayout
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context="com.ingokodba.dragnav.MainActivity">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -40,11 +40,11 @@
             android:textSize="50sp"
             android:text="@string/loading"
             android:textColor="@color/white"/>
-        <com.example.dragnav.CircleView
+        <com.ingokodba.dragnav.CircleView
             android:id="@+id/circleview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-        <com.example.dragnav.BottomMenuView
+        <com.ingokodba.dragnav.BottomMenuView
             android:id="@+id/bottomMenuView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
@@ -136,6 +136,12 @@
             app:listApps="@{viewModel.appsList}"/>
     </LinearLayout>
 
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/settings_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible"/>
+
     <LinearLayout
         android:id="@+id/search_container"
         android:layout_width="match_parent"
@@ -191,7 +197,7 @@
         app:maxImageSize="50dp"
         android:backgroundTint="#FEDBD0"
         app:srcCompat="@drawable/ic_baseline_search_80"
-        android:visibility="invisible"/>
+        android:visibility="gone"/>
 
 </FrameLayout>
 

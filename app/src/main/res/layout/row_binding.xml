@@ -6,13 +6,13 @@
     <data>
         <variable
             name="aplikacija"
-            type="com.example.dragnav.modeli.AppInfo" />
+            type="com.ingokodba.dragnav.modeli.AppInfo" />
         <variable
             name="mjere"
             type="java.util.List" />
         <variable
             name="viewModel"
-            type="com.example.dragnav.NewRAdapterViewModel" />
+            type="com.ingokodba.dragnav.NewRAdapterViewModel" />
     </data>
     <LinearLayout
         android:orientation="horizontal"
