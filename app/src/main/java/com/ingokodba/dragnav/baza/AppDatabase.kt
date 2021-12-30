@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 
-@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 1, exportSchema = false)
+@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 1)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun meniJednoPoljeDao(): MeniJednoPoljeDao
@@ -23,6 +23,12 @@ abstract class AppDatabase : RoomDatabase() {
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: buildDatabase(context).also { instance = it }
+            }
+        }
+
+        fun replaceInstance(replace: AppDatabase){
+            if(instance != null) {
+                instance = replace
             }
         }
 

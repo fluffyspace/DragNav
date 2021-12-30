@@ -1,109 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-    <data>
-        <import type="android.view.View"/>
-        <variable
-            name="viewModel"
-            type="com.ingokodba.dragnav.NewRAdapterViewModel" />
-    </data>
 <FrameLayout
+    android:id="@+id/mainlayout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ingokodba.dragnav.MainActivity">
-    <LinearLayout
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/settings_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/relativelayout"
-        android:orientation="vertical"
-        android:gravity="bottom">
-        <TextView
-            android:id="@+id/notification"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/colorPrimaryDark"
-            android:padding="5dp"
-            tools:text="Notification"
-            android:textSize="23sp"
-            android:gravity="center_horizontal"
-            android:textColor="@color/black"
-            android:visibility="invisible"/>
-        <TextView
-            android:id="@+id/selected_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            style="@style/TextShadowStyle"
-            android:singleLine="true"
-            android:textSize="50sp"
-            android:text="@string/loading"
-            android:textColor="@color/white"/>
-        <com.ingokodba.dragnav.CircleView
-            android:id="@+id/circleview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-        <com.ingokodba.dragnav.BottomMenuView
-            android:id="@+id/bottomMenuView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/editbuttonslayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:visibility="invisible">
-            <Button
-                android:id="@+id/edit_rename_button"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="@string/rename"
-                app:layout_constraintEnd_toStartOf="@+id/edit_delete_button"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-            <Button
-                android:id="@+id/edit_delete_button"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="@string/delete"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-            <Button
-                android:id="@+id/edit_cancel"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="@string/enter"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toEndOf="@+id/edit_delete_button"
-                app:layout_constraintTop_toTopOf="parent"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-        <LinearLayout
-            android:id="@+id/buttonslayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="10dp"
-            app:layout_constraintTop_toTopOf="parent"
-            android:gravity="center">
-            <Button
-                android:id="@+id/edit_mode_button"
-                style="@style/Widget.Shrine.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="70dp"
-                android:text="@string/edit_mode"
-                />
-        </LinearLayout>
-    </LinearLayout>
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:id="@+id/recycle_container"
@@ -113,12 +21,6 @@
         android:background="#BBFFFFFF"
         android:padding="20dp"
         android:visibility="invisible">
-        <!--<Button
-            android:id="@+id/close_recycler"
-            style="@style/Widget.Shrine.Button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Close list"/>-->
         <TextView
             android:id="@+id/recycle_view_label"
             android:layout_width="match_parent"
@@ -132,73 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:layoutManager=
-                "androidx.recyclerview.widget.GridLayoutManager"
-            app:listApps="@{viewModel.appsList}"/>
+                "androidx.recyclerview.widget.GridLayoutManager"/>
     </LinearLayout>
-
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/settings_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="invisible"/>
-
-    <LinearLayout
-        android:id="@+id/search_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="#BBFFFFFF"
-        android:padding="20dp"
-        android:visibility="invisible">
-        <EditText
-            android:id="@+id/search_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/meni_jedno_polje_obrub"
-            android:textSize="23sp"
-            android:padding="10dp"
-            tools:text="Kako nahraniti papigu"
-            android:inputType="text"
-            android:hint="@string/search_apps_or_surf_internet"
-            android:imeOptions="actionGo" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="top">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/applications"
-                android:textSize="18sp"
-                android:layout_marginTop="10dp"/>
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#555"/>
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/chipgroup_aplikacije"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="horizontal"/>
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/floating_action_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:contentDescription="@string/search"
-        app:fabCustomSize="80dp"
-        app:maxImageSize="50dp"
-        android:backgroundTint="#FEDBD0"
-        app:srcCompat="@drawable/ic_baseline_search_80"
-        android:visibility="gone"/>
 
 </FrameLayout>
-
-</layout>

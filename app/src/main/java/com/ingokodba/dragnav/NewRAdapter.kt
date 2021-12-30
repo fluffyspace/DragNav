@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
@@ -21,13 +22,26 @@ import org.greenrobot.eventbus.EventBus
 
 
 class NewRAdapter(viewModel: NewRAdapterViewModel) :
-    ListAdapter<AppInfo, NewRAdapter.MarsPhotosViewHolder>(DiffCallback) {
+    ListAdapter<AppInfo, RecyclerView.ViewHolder>(DiffCallback) {
 
     lateinit var viewMoo: NewRAdapterViewModel
+    var idOtvorenogMenija:Int = -1
+
+    private val SHOW_MENU = 1
+    private val HIDE_MENU = 2
 
     // initializer block
     init {
         viewMoo = viewModel
+    }
+
+    //Our menu view
+    class MenuViewHolder(view: View) : RecyclerView.ViewHolder(view){
+        var infobutton:ImageView
+        init{
+            infobutton = view.findViewById(R.id.appinfobutton);
+        }
+
     }
 
     /**
@@ -46,7 +60,6 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
 
         fun bind(aplikacija: AppInfo, viewModel: NewRAdapterViewModel) {
             binding.aplikacija = aplikacija
-            binding.mjere = listOf<String>("-", "grama", "mL", "žličica")
             binding.viewModel = viewModel
             // This is important, because it forces the data binding to execute immediately,
             // which allows the RecyclerView to make the correct view size measurements
@@ -75,42 +88,78 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
-    ): MarsPhotosViewHolder {
-        return MarsPhotosViewHolder(
-            RowBindingBinding.inflate(LayoutInflater.from(parent.context))
-        )
+    ): RecyclerView.ViewHolder {
+        if(viewType==SHOW_MENU){
+            val v = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_menu, parent, false);
+            return MenuViewHolder(v);
+        }else{
+            return MarsPhotosViewHolder(
+                RowBindingBinding.inflate(LayoutInflater.from(parent.context))
+            )
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        if(idOtvorenogMenija == position) {
+            return SHOW_MENU;
+        } else {
+            return HIDE_MENU;
+        }
     }
 
     /**
      * Replaces the contents of a view (invoked by the layout manager)
      */
-    override fun onBindViewHolder(holder: MarsPhotosViewHolder, pos: Int) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
         val appInfo: AppInfo = getItem(pos)
-        holder.bind(appInfo, viewMoo)
-        if(viewMoo.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewMoo.appsList.value!![pos].color.toInt())
-        holder.itemView.setOnLongClickListener{ v ->
-            Toast.makeText(v.context, "Loading app info...", Toast.LENGTH_SHORT).show()
-            val intent = Intent()
-            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-            val uri: Uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)
-            intent.data = uri
-            startActivity(v.context, intent, null)
+        if (holder is MarsPhotosViewHolder) {
+            holder.bind(appInfo, viewMoo)
+            if(viewMoo.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewMoo.appsList.value!![pos].color.toInt())
+            holder.itemView.setOnLongClickListener{ v ->
+                Toast.makeText(v.context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
+                EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color, draganddrop = true))
+                /*Toast.makeText(v.context, "Loading app info...", Toast.LENGTH_SHORT).show()
+                val intent = Intent()
+                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                val uri: Uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)
+                intent.data = uri
+                startActivity(v.context, intent, null)*/
 
-            return@setOnLongClickListener true
-        }
-        holder.itemView.setOnClickListener { v ->
-            val context = v.context
-            val launchIntent: Intent? =
-                context.packageManager.getLaunchIntentForPackage(viewMoo.appsList.value!![pos].packageName)
-            if(launchIntent != null) {
-                EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color))
-            } else {
-                Log.d("ingo", "No launch intent")
+                return@setOnLongClickListener true
             }
-            //context.startActivity(launchIntent)
-            Toast.makeText(v.context, viewMoo.appsList.value!![pos].label, Toast.LENGTH_SHORT).show()
-            Log.d("ingo", "id grr rv klika je " + appInfo.id.toString())
-        };
+            holder.itemView.setOnClickListener { v ->
+                val context = v.context
+                val launchIntent: Intent? =
+                    context.packageManager.getLaunchIntentForPackage(viewMoo.appsList.value!![pos].packageName)
+                if(launchIntent != null) {
+                    EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color))
+                } else {
+                    Log.d("ingo", "No launch intent")
+                }
+                //context.startActivity(launchIntent)
+                Toast.makeText(v.context, viewMoo.appsList.value!![pos].label, Toast.LENGTH_SHORT).show()
+                Log.d("ingo", "id grr rv klika je " + appInfo.id.toString())
+            }
+        }
 
+        if (holder is MenuViewHolder) {
+            //Menu Actions
+        }
+    }
+
+
+    fun showMenu(position: Int) {
+        idOtvorenogMenija = position
+        notifyDataSetChanged()
+    }
+
+
+    fun isMenuShown(): Boolean {
+        return (idOtvorenogMenija != -1)
+    }
+
+    fun closeMenu() {
+        idOtvorenogMenija = -1
+        notifyDataSetChanged()
     }
 }

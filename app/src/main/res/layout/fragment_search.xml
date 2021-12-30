@@ -1,0 +1,49 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.ingokodba.dragnav.SearchFragment">
+
+    <LinearLayout
+        android:id="@+id/search_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#BBFFFFFF"
+        android:padding="20dp">
+        <EditText
+            android:id="@+id/search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/meni_jedno_polje_obrub"
+            android:textSize="23sp"
+            android:padding="10dp"
+            tools:text="Kako nahraniti papigu"
+            android:inputType="text"
+            android:hint="@string/search_apps_or_surf_internet"
+            android:imeOptions="actionGo" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="top">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/applications"
+                android:textSize="18sp"
+                android:layout_marginTop="10dp"/>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#555"/>
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipgroup_aplikacije"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="horizontal"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

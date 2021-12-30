@@ -9,6 +9,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
+import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 
@@ -16,14 +17,15 @@ import com.ingokodba.dragnav.modeli.MeniJednoPolje
 class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     companion object{
-
         val MIDDLE_BUTTON_HIDE = 0
         val MIDDLE_BUTTON_EDIT = 1
         val MIDDLE_BUTTON_CLOSE = 2
         val MIDDLE_BUTTON_CLOSE_INSIDE = 3
         val MIDDLE_BUTTON_HOME = 4
+        val MIDDLE_BUTTON_CHECK = 5
     }
     private var middleButtonState:Int = MIDDLE_BUTTON_HIDE
+
     // Paint object for coloring and styling
     private val text_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val circle_paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -36,8 +38,6 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var yellowColor = Color.YELLOW
     private var middleButtonColor = Color.WHITE
     private var closeInsideColor = Color.parseColor("#aaff0000")
-    // Face border width in pixels
-    private var borderWidth = 4.0f
     // View size in pixels
     private var size = 320
     private var step_size:Double = Math.PI*0.25
@@ -48,14 +48,31 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var hovered_over:Int = -1
     //lateinit var radapter:RAdapter
 
+    var gcolor = Color.parseColor("#FBB8AC")
+    var draw_circles = true
+    var draw_icons = true
+    var border_width = 4f
+    var shadow_toggle = true
+
     var detectSize = 100
     var editMode:Boolean = false
+    var addAppMode:Boolean = false
     var icons:MutableMap<String, Drawable?> = mutableMapOf()
 
     var mShowText:Boolean
     var textPos:Int
     var yellow:Int = -1
     var amIHomeVar = true
+
+    fun setColor(agcolor:String){
+        try {
+            gcolor = agcolor.toInt()
+            Log.d("ingo", "color set to " + agcolor)
+            invalidate()
+        } catch (e:NumberFormatException){
+            e.printStackTrace()
+        }
+    }
 
     fun setStepSize(size:Float){
         step_size = Math.PI*size // s 0.225 ih je 9 na ekranu, s 0.25 ih je 8
@@ -100,6 +117,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     init {
+        updateDesign()
         context.theme.obtainStyledAttributes(
             attrs,
             R.styleable.CircleView,
@@ -120,36 +138,21 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         semi_transparent_paint.color = Color.parseColor("#88000000")
         semi_transparent_paint.style = Paint.Style.FILL
-        semi_transparent_paint.strokeWidth = borderWidth
-
         close_inside_paint.color = closeInsideColor
         close_inside_paint.style = Paint.Style.FILL_AND_STROKE
-        close_inside_paint.strokeWidth = borderWidth
-
-        empty_circle_paint.color = Color.parseColor("#FBB8AC")
         empty_circle_paint.style = Paint.Style.STROKE
-        empty_circle_paint.strokeWidth = borderWidth
-        empty_circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
-
-        circle_paint.color = Color.parseColor("#FBB8AC")
         circle_paint.style = Paint.Style.FILL
-        circle_paint.strokeWidth = borderWidth
-        circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
-
-        //yellow_paint.color = yellowColor
-        //yellow_paint.style = Paint.Style.FILL
-        //yellow_paint.strokeWidth = borderWidth
-
         thick_paint.color = middleButtonColor
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
-        thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         // 1
         size = Math.min(measuredWidth, measuredHeight)
+        detectSize = (size / 10).toInt()
         // 2
         setMeasuredDimension(size, size)
     }
@@ -157,6 +160,22 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onDraw(canvas: Canvas) {
         // call the super method to keep any drawing from the parent side.
         super.onDraw(canvas)
+        // settings
+        empty_circle_paint.color = gcolor
+        circle_paint.color = gcolor
+        if(shadow_toggle) {
+            empty_circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK)
+            circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+            thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+        } else {
+            empty_circle_paint.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK)
+            circle_paint.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK);
+            thick_paint.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK);
+        }
+        semi_transparent_paint.strokeWidth = border_width
+        close_inside_paint.strokeWidth = border_width
+        empty_circle_paint.strokeWidth = border_width
+        circle_paint.strokeWidth = border_width
 
         drawTexts(canvas)
         when(middleButtonState){
@@ -164,6 +183,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             MIDDLE_BUTTON_CLOSE -> drawCloseButton(canvas)
             MIDDLE_BUTTON_CLOSE_INSIDE -> drawCloseButton(canvas, true)
             MIDDLE_BUTTON_HOME -> drawHomeButton(canvas)
+            MIDDLE_BUTTON_CHECK -> drawCheckButton(canvas)
         }
         //drawEditButton(canvas)
         //drawCloseButton(canvas)
@@ -180,14 +200,16 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         invalidate()
     }
 
-    fun amIHome(ami:Boolean){
+    fun amIHome(ami:Boolean=amIHomeVar){
         amIHomeVar=ami
-        if(editMode){
-            changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
-        } else if(ami) {
-            changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        } else {
-            changeMiddleButtonState(MIDDLE_BUTTON_HOME)
+        if(!addAppMode) {
+            if (editMode) {
+                changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
+            } else if (ami) {
+                changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
+            } else {
+                changeMiddleButtonState(MIDDLE_BUTTON_HOME)
+            }
         }
     }
 
@@ -213,7 +235,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             }
             counter++
         }
-        var sredina:Boolean = false
+        var sredina = false
         if (rect.contains(size / 2, size / 2)) {
             sredina = true
         }
@@ -235,10 +257,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
                 //Log.d("ingo", "editmode sredina yes")
             }
-            if(middleButtonState == MIDDLE_BUTTON_HOME) mEventListener?.onEventOccurred(event,
-                MainActivity.ACTION_HOME, no_draw_position)
+            if(addAppMode){
+                mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD_APP, no_draw_position)
+            }
+            if(middleButtonState == MIDDLE_BUTTON_HOME){
+                mEventListener?.onEventOccurred(event, MainActivity.ACTION_HOME, no_draw_position)
+            }
         }
-        if(event.action == MotionEvent.ACTION_MOVE) {
+        if(event.action == MotionEvent.ACTION_MOVE && !addAppMode) {
             if (sredina) {
                 if (middleButtonState == MIDDLE_BUTTON_CLOSE) changeMiddleButtonState(
                     MIDDLE_BUTTON_CLOSE_INSIDE
@@ -249,7 +275,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 )
             }
         }
-        if(!editMode){
+        if(!editMode && !addAppMode){
             if(found){
                 changeMiddleButtonState(MIDDLE_BUTTON_CLOSE)
             }
@@ -285,6 +311,55 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun changeMiddleButtonState(state:Int){
         middleButtonState = state
         invalidate()
+    }
+
+    fun updateDesign(){
+        val gcolor = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_COLOR, "-1")
+        if (gcolor != null) {
+            setColor(gcolor)
+            Log.d("ingo", "config setcolor to " + gcolor)
+        } else {
+            Log.d("ingo", "config no color")
+        }
+        val circles = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_CIRCLES_TOGGLE, true)
+        draw_circles = circles
+        Log.d("ingo", "config draw_circles to " + circles)
+        val icons = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
+        draw_icons = icons
+        Log.d("ingo", "config draw_icons to " + icons)
+        val shadow = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHADOW_TOGGLE, true)
+        shadow_toggle = shadow
+        Log.d("ingo", "config shadow_toggle to " + shadow)
+        val border_width1 = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_BORDER_WIDTH, "4")
+        try {
+            if (border_width1 != null) {
+                border_width = border_width1.toFloat()
+            }
+        } catch(e:NumberFormatException){
+            border_width = 4f
+            e.printStackTrace()
+        }
+
+        Log.d("ingo", "config border_width to " + border_width)
+    }
+
+    private fun drawCheckButton(canvas: Canvas) {
+        canvas.apply {
+            drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+            val drawable: Drawable? = context.getDrawable(R.drawable.ic_baseline_check_50)
+            drawable?.setTint(Color.WHITE)
+            val bitmap: Bitmap? = drawable?.toBitmap()
+            if (bitmap != null) {
+                drawBitmap(
+                    bitmap, null, Rect(
+                        (size / 2f - detectSize / 2).toInt(),
+                        (size / 2f - detectSize / 2).toInt(),
+                        (size / 2f + detectSize / 2).toInt(),
+                        (size / 2f + detectSize / 2).toInt()
+                    ), thick_paint
+                )
+            }
+        }
     }
 
     private fun drawHomeButton(canvas: Canvas){
@@ -325,7 +400,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private fun drawEditButton(canvas: Canvas){
         canvas.apply {
             drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
-            var plus_margin = 50
+            var plus_margin = detectSize/5
             thick_paint.strokeWidth = 15f
             var center = (size / 2f)
             drawLine(center, center+(-detectSize+plus_margin).toFloat(), center, center+(detectSize-plus_margin).toFloat(), thick_paint)
@@ -341,7 +416,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else {
                 drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
             }
-            var plus_margin = 60
+            var plus_margin = detectSize/5
             thick_paint.strokeWidth = 15f
             var center = (size / 2f)
             drawLine(center+(-detectSize+plus_margin).toFloat(), center+(-detectSize+plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), thick_paint)
@@ -374,7 +449,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 var text:String
                 if(counter >= app_list.size){
                     text = ""
-                    drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
+                    if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
                 } else {
                     text = app_list[counter].text
                     circle_paint.color = Color.parseColor("#55000000")
@@ -387,7 +462,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                         }
                         val bitmap: Bitmap? = icons[app_list[counter].nextIntent]?.toBitmap()//Bitmap.createBitmap(5, 5, Bitmap.Config.RGB_565)
                             //radapter.icons[app_list[counter].nextIntent]?.toBitmap()
-                        if (bitmap != null) {
+                        if (draw_icons && bitmap != null) {
                             drawBitmap(
                                 bitmap, null, Rect(
                                     (draw_pointF.x - detectSize).toInt(),
@@ -407,7 +482,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                         }
                         if(app_list[counter].shortcut){
                             drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
-                            drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
+                            if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
                             drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
                         }
                     } else {

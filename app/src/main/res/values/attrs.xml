@@ -7,4 +7,10 @@
             <enum name="right" value="1"/>
         </attr>
     </declare-styleable>
+    <declare-styleable name="BottomMenuView">
+        <attr name="pxheight" format="integer" />
+        <attr name="radius" format="integer" />
+        <attr name="detectSize" format="integer" />
+        <attr name="override" format="boolean" />
+    </declare-styleable>
 </resources>

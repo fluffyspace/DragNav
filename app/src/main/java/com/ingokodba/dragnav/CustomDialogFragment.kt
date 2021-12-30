@@ -90,7 +90,7 @@ class CustomDialogFragment(polje: MeniJednoPolje) : DialogFragment() {
                 polje.nextIntent = recipeDesc.text.toString()
                 (activity as MainActivity).databaseUpdateItem(polje)
                 withContext(Dispatchers.Main){
-                    (activity as MainActivity).refreshCurrentMenu()
+                    (activity as MainActivity).mainFragment.refreshCurrentMenu()
                 }
             }
             dismiss()

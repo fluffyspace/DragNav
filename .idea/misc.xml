@@ -25,14 +25,19 @@
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/activity_main.xml" value="0.21409921671018275" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/activity_main2.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/chip_template.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/colorpickerlayout.xml" value="0.10731081658828559" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/editall_dialog.xml" value="0.22826086956521738" />
-        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/fragment_main.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/fragment_main.xml" value="0.144" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/fragment_search.xml" value="0.13072916666666667" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/fragment_settings.xml" value="0.20863616930312098" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/popup_add_which.xml" value="0.4" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/popup_folder_name.xml" value="0.11302083333333333" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/popup_shortcut.xml" value="0.11302083333333333" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/recycler_menu.xml" value="0.12099187687045745" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/row.xml" value="0.11302083333333333" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/row_binding.xml" value="0.14739583333333334" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/small_row.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/test.xml" value="0.264" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.124" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/xml/preferences.xml" value="0.7325581395348837" />
       </map>

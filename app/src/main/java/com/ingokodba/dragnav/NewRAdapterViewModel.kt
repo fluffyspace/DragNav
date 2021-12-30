@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.ingokodba.dragnav.modeli.AppInfo
+import com.ingokodba.dragnav.modeli.MeniJednoPolje
 
 class NewRAdapterViewModel  : ViewModel() {
 
@@ -15,6 +16,20 @@ class NewRAdapterViewModel  : ViewModel() {
     // The external immutable LiveData for the request status
     val appsList: LiveData<List<AppInfo>> = _popis_aplikacija
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
+
+    var lastTextViewEnteredCounter:Int = -1
+    lateinit var currentMenu: MeniJednoPolje
+    var currentSubmenuList: List<MeniJednoPolje> = listOf()
+    var max_subcounter:Int = -1
+    var stack:MutableList<Pair<Int,Int>> = mutableListOf()
+    var highestId = -1
+    var selected_global:Int = -1
+    var lastEnteredIntent: MeniJednoPolje? = null
+    var editMode:Boolean = false
+    var addNewAppMode:Boolean = false
+    var editSelected:Int = -1
+    var pocetnaId:Int = -1
+    var listaMenija:MutableList<MeniJednoPolje> = mutableListOf()
 
     /**
      * Call getMarsPhotos() on init so we can display status immediately.
