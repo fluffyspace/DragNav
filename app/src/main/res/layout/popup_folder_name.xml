@@ -2,38 +2,54 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="@color/white"
     android:padding="15dp">
-    <EditText
-        android:id="@+id/popup_folder_name"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/folder_name"
-        android:inputType="text|textCapSentences"
+        android:gravity="center"
+        android:text="Adding a folder"
         android:textSize="25sp"
-        android:padding="10dp"/>
-    <LinearLayout
+        android:layout_marginBottom="15dp"/>
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-    <Button
-        android:id="@+id/popup_folder_submit"
-        android:layout_width="0dp"
-        android:layout_weight="1"
+        android:hint="Folder name">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/popup_folder_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            />
+
+    </com.google.android.material.textfield.TextInputLayout>
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/add_folder"
-        style="@style/Widget.Shrine.Button"
-        android:layout_marginHorizontal="5dp"
-        android:padding="20dp"/>
+        android:layout_marginTop="5dp">
+        <Button
+            android:id="@+id/popup_folder_submit"
+            style="@style/MojButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp"
+            android:text="@string/add_folder"
+            android:textAllCaps="false"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/popup_folder_cancel"
+            app:layout_constraintTop_toTopOf="parent" />
     <Button
         android:id="@+id/popup_folder_cancel"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_height="0dp"
         android:text="@string/cancel"
-        style="@style/Widget.Shrine.Button"
-        android:layout_marginHorizontal="5dp"
-        android:padding="20dp"/>
-    </LinearLayout>
+        app:layout_constraintLeft_toRightOf="@id/popup_folder_submit"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/popup_folder_submit"
+        android:layout_marginLeft="5dp"
+        style="@style/MojButton"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

@@ -50,15 +50,21 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     //lateinit var radapter:RAdapter
 
     val drawables:List<Drawable?> = listOf(
-        context.getDrawable(R.drawable.ic_baseline_home_100),
+        context.getDrawable(R.drawable.ic_baseline_add_50),
         context.getDrawable(R.drawable.ic_baseline_list_100),
         context.getDrawable(R.drawable.ic_baseline_edit_24),
         context.getDrawable(R.drawable.ic_baseline_search_80),
         context.getDrawable(R.drawable.ic_baseline_settings_100),
     )
-    val expand_icon:Drawable? = context.getDrawable(R.drawable.ic_baseline_add_50)
+    val expand_icon:Drawable? = context.getDrawable(R.drawable.ic_baseline_menu_24)
     val collapse_icon:Drawable? = context.getDrawable(R.drawable.ic_baseline_close_50)
     var edit_texts:List<String> = listOf("Rename", "Delete", "Enter", "Cancel")
+    var edit_drawables:List<Drawable?> = listOf(
+        context.getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24),
+        context.getDrawable(R.drawable.ic_baseline_delete_24),
+        context.getDrawable(R.drawable.ic_baseline_arrow_forward_24),
+        context.getDrawable(R.drawable.ic_baseline_close_50),
+    )
 
     var detectSize = 110f
     var editDetectSize = 110f
@@ -181,7 +187,9 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     }
 
     fun collapse(){
-
+        buttonsState = BUTTONS_HIDDEN
+        invalidate()
+        Log.d("ingo", "collapse")
     }
 
     fun drawBackground(canvas:Canvas){
@@ -289,7 +297,6 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                 for(drawable in drawables) {
                     val offset_n = counter*detectSize*2+counter*padding
                     val draw_pointF = PointF(cx-width+detectSize+offset_n, ccy)
-
                     drawCircleBitmapButton(canvas, draw_pointF.x, draw_pointF.y, detectSize, drawable, text_points)
                     counter++
                 }
@@ -297,16 +304,16 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         }
     }
 
-    fun drawCircleBitmapButton(canvas:Canvas, cx:Float, cy:Float, radius:Float, drawable:Drawable?, points:MutableList<Point>, shaded:Boolean=false){
+    fun drawCircleBitmapButton(canvas:Canvas, cx:Float, cy:Float, radius:Float, drawable:Drawable?, points:MutableList<Point>?, shaded:Boolean=false){
         canvas.apply {
             if (shaded) {
-                drawCircle(cx, cy, detectSize, hover_circle_paint)
+                drawCircle(cx, cy, radius, hover_circle_paint)
             } else {
-                drawCircle(cx, cy, detectSize, circle_paint)
+                drawCircle(cx, cy, radius, circle_paint)
             }
             drawCircle(cx, cy, radius, circle_border_paint)
-            points.add(Point(cx.toInt(), cy.toInt()))
-            val bitmap: Bitmap? = drawable?.toBitmap()
+            points?.add(Point(cx.toInt(), cy.toInt()))
+            val bitmap: Bitmap? = drawable?.apply { setTint(Color.BLACK) }?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(
                     bitmap,
@@ -330,12 +337,15 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     fun drawMenuButton(canvas:Canvas, opened:Boolean=false){
         canvas.apply {
             val ccy = (size-detectSize-padding)
-            drawCircle(cx, ccy, detectSize, circle_paint)
+
+            drawCircleBitmapButton(canvas, cx, ccy, detectSize, (if (opened) collapse_icon else expand_icon), null)
+
+            /*drawCircle(cx, ccy, detectSize, circle_paint)
             drawCircle(cx, ccy, detectSize, circle_border_paint)
             val bitmap: Bitmap? = (if (opened) collapse_icon else expand_icon)?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(bitmap, null, Rect((cx - detectSize / 2).toInt(), (ccy - detectSize/ 2).toInt(), (cx + detectSize/2).toInt(), (ccy + detectSize / 2).toInt()), thick_paint)
-            }
+            }*/
         }
     }
 
@@ -344,12 +354,14 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             val ccy = (global_height-padding-editDetectSize)
             var counter = 0
             val offset = (edit_texts.size*editDetectSize*2+((edit_texts.size-1)*padding))/2
+
             for(edit_text in edit_texts) {
                 val offset_n = counter*editDetectSize*2+counter*padding+editDetectSize
-                drawCircle(cx-offset+offset_n, ccy, editDetectSize, if(selectedId == -1 && counter != edit_texts.size-1) hover_circle_paint else circle_paint)
+                drawCircleBitmapButton(canvas, cx-offset+offset_n, ccy, editDetectSize, edit_drawables[counter], edit_points, (selectedId == -1 && counter != edit_texts.size-1))
+                /*drawCircle(cx-offset+offset_n, ccy, editDetectSize, if(selectedId == -1 && counter != edit_texts.size-1) hover_circle_paint else circle_paint)
                 drawCircle(cx-offset+offset_n, ccy, editDetectSize, circle_border_paint)
                 drawText(edit_text, cx-offset+offset_n, ccy + text_paint.textSize/2, text_paint)
-                edit_points.add(Point((cx-offset+offset_n).toInt(), ccy.toInt()))
+                edit_points.add(Point((cx-offset+offset_n).toInt(), ccy.toInt()))*/
                 counter++
             }
         }
@@ -377,7 +389,11 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             if(!small_screen) {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     if (rect.contains(search_button_cx.toInt(), search_button_cy.toInt())) {
-                        buttonsState = BUTTONS_SHOWN
+                        if(buttonsState == BUTTONS_SHOWN){
+                            buttonsState = BUTTONS_HIDDEN
+                        } else if(buttonsState == BUTTONS_HIDDEN){
+                            buttonsState = BUTTONS_SHOWN
+                        }
                         consumed = true
                         invalidate()
                     }
@@ -387,7 +403,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                     var found = false
                     for (text_point in text_points) {
                         if (rect.contains(text_point)) {
-                            Log.d("ingo", counter.toString())
+                            Log.d("ingo", "" + counter.toString())
                             //if(counter >= no_draw_position) counter++
                             //mEventListener?.onEventOccurred(event, counter, no_draw_position)
                             found = true
@@ -402,15 +418,18 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                     }
                     if (!found && hovered_over != -1) {
                         hovered_over = -1
+                        Log.d("ingo", "hovered over to -1")
                         invalidate()
                     }
                     if (event.action == MotionEvent.ACTION_UP && hovered_over != -1) {
                         mEventListener?.onEventOccurred(event, counter)
+                        buttonsState = BUTTONS_HIDDEN
+                        invalidate()
                     }
                 }
                 if (event.action == MotionEvent.ACTION_UP) {
-                    buttonsState = BUTTONS_HIDDEN
-                    invalidate()
+                    //buttonsState = BUTTONS_HIDDEN
+                    //invalidate()
                 }
             } else {
                 // small_screen true

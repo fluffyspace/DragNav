@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.*
 import android.content.res.Resources
 import android.database.Cursor
-import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -32,6 +31,7 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -40,8 +40,6 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import androidx.room.Room
-import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.window.layout.WindowMetricsCalculator
 import com.example.dragnav.R
@@ -53,13 +51,13 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 import com.ingokodba.dragnav.modeli.MessageEvent
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.*
+import java.nio.channels.FileChannel
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
@@ -77,6 +75,7 @@ class MainActivity : AppCompatActivity(),
         val ACTION_ADD = -3
         val ACTION_HOME = -4
         val ACTION_ADD_APP = -5
+        val ACTION_APPINFO = "appinfo"
         val MENU_UNDEFINED = -1
         val MENU_APPLICATION_OR_FOLDER = 0
         val MENU_SHORTCUT = 1
@@ -275,6 +274,7 @@ class MainActivity : AppCompatActivity(),
                 mainFragment.goToPocetna()
                 mainFragment.updateStuff();
                 mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
+
                 //Toast.makeText(c, "App list loaded", Toast.LENGTH_SHORT).show()
             }
         }
@@ -389,16 +389,71 @@ class MainActivity : AppCompatActivity(),
             c.moveToNext()
         }
     }
-
     fun importDatabase(outputPath: Uri?){
         if(outputPath == null) return
+        // Close the SQLiteOpenHelper so it will commit the created empty
+        // database to internal storage.
+        // Close the SQLiteOpenHelper so it will commit the created empty
+        // database to internal storage.
+        var currentDBPath2 = getDatabasePath("database-name").absolutePath
+        val currentDB = File(currentDBPath2)
+        AppDatabase.getInstance(this).openHelper.close()
         try {
-            val of = File(outputPath.path)
+            val newDb = File(outputPath.path)
+            val oldDb = File(currentDBPath2)
+            if (oldDb.canWrite()) {
+                /*FileUtils.copy(FileInputStream(newDb), FileOutputStream(oldDb))
+                // Access the copied database so SQLiteHelper will cache it and mark
+                // it as created.
+                AppDatabase.getInstance(this).openHelper.writableDatabase.close()*/
+                //getWritableDatabase().close()
+                //val src: FileChannel = FileInputStream(newDb).channel
+                contentResolver.openFileDescriptor(outputPath, "r")?.use { pfd ->
+                    FileOutputStream(pfd.fileDescriptor).use { src ->
+                        val dst = FileInputStream(currentDBPath2)
+                        dst.channel.transferFrom(src.channel, 0, src.channel.size())
+                        dst.close()
+                    }
+                }
+            } else {
+                Log.d("ingo", "can't write")
+            }
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
+
+        /*try {
+
             val con = this
             lifecycleScope.launch(Dispatchers.IO) {
                 Log.d("bingo", "start IMpoRTed?")
                 //AppDatabase.getInstance(con).close()
-                Room.databaseBuilder(con, AppDatabase::class.java, "database-name")
+                var currentDBPath2 = getDatabasePath("database-name").absolutePath
+                //val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
+                Log.d("ingo", currentDBPath2.toString())
+
+                try {
+                    val of = File(outputPath.path)
+                    of.
+                    val src = FileInputStream(of).channel
+                    contentResolver.openFileDescriptor(currentDBPath2.toUri(), "w")?.use { pfd ->
+                        FileOutputStream(pfd.fileDescriptor).use {
+                            it.channel.transferFrom(src, 0, src.size())
+                        }
+                    }
+                    src.close()
+                } catch (e: FileNotFoundException) {
+                    e.printStackTrace()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+
+
+
+                /*Room.databaseBuilder(con, AppDatabase::class.java, "database-name")
                     .createFromFile(of)
                     .addCallback(
                         object :  RoomDatabase.Callback() {
@@ -413,7 +468,7 @@ class MainActivity : AppCompatActivity(),
                         }
                     )
                     .fallbackToDestructiveMigration()
-                    .build()
+                    .build()*/
                 /*withContext(Dispatchers.Main){
                     startActivity(Intent.makeRestartActivityTask(con.intent?.component));
                 }*/
@@ -423,7 +478,60 @@ class MainActivity : AppCompatActivity(),
         } catch (e: IOException) {
             e.printStackTrace()
         }
+*/
+    }
 
+    fun dropDatabase(){
+        val con = this
+        lifecycleScope.launch(Dispatchers.IO) {
+            AppDatabase.getInstance(con).clearAllTables()
+        }
+        startActivity(Intent.makeRestartActivityTask(this.intent?.component));
+    }
+
+    fun exportDatabase(outputPath: Uri?){
+        if(outputPath == null) return
+
+        var currentDBPath2 = getDatabasePath("database-name").absolutePath
+        val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
+        Log.d("ingo", currentDBPath2.toString())
+
+        val currentDB = File(currentDBPath2)
+        if (currentDB.exists()) {
+            try {
+                val src = FileInputStream(currentDB).channel
+                contentResolver.openFileDescriptor(outputPath, "w")?.use { pfd ->
+                    FileOutputStream(pfd.fileDescriptor).use {
+                        it.channel.transferFrom(src, 0, src.size())
+                    }
+                }
+                src.close()
+            } catch (e: FileNotFoundException) {
+                e.printStackTrace()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+
+
+
+        //val os = contentResolver.openOutputStream(outputPath);
+
+        /*val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
+        val backupDBPath = "mydb.sqlite"      //you can modify the file type you need to export
+        val currentDB = File(currentDBPath)
+        val backupDB = File(outputPath)
+        if (currentDB.exists()) {
+            try {
+                val src = FileInputStream(currentDB).channel
+                val dst = FileOutputStream(backupDB).channel
+                dst.transferFrom(src, 0, src.size())
+                src.close()
+
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }*/
     }
 
     // Request code for selecting a PDF document.
@@ -469,46 +577,9 @@ class MainActivity : AppCompatActivity(),
         Log.d("ingo", "onActivityResult " + requestCode + " " + resultCode + " " + data.toString())
     }
 
-    fun exportDatabase(outputPath: Uri?){
-        if(outputPath == null) return
-        val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
-        val currentDB = File(currentDBPath)
-        if (currentDB.exists()) {
-            try {
-                val src = FileInputStream(currentDB).channel
-                contentResolver.openFileDescriptor(outputPath, "w")?.use { pfd ->
-                    FileOutputStream(pfd.fileDescriptor).use {
-                        it.channel.transferFrom(src, 0, src.size())
-                    }
-                }
-                src.close()
-            } catch (e: FileNotFoundException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
 
 
 
-        //val os = contentResolver.openOutputStream(outputPath);
-
-        /*val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
-        val backupDBPath = "mydb.sqlite"      //you can modify the file type you need to export
-        val currentDB = File(currentDBPath)
-        val backupDB = File(outputPath)
-        if (currentDB.exists()) {
-            try {
-                val src = FileInputStream(currentDB).channel
-                val dst = FileOutputStream(backupDB).channel
-                dst.transferFrom(src, 0, src.size())
-                src.close()
-
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }*/
-    }
 
     fun startShortcut(shortcut: MeniJednoPolje){
         val launcherApps: LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps

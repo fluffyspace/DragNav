@@ -1,5 +1,6 @@
 package com.ingokodba.dragnav
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -38,8 +39,10 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
     //Our menu view
     class MenuViewHolder(view: View) : RecyclerView.ViewHolder(view){
         var infobutton:ImageView
+        var addappbutton:ImageView
         init{
             infobutton = view.findViewById(R.id.appinfobutton);
+            addappbutton = view.findViewById(R.id.addappbutton)
         }
 
     }
@@ -107,6 +110,11 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
         }
     }
 
+    fun dragAndDropApp(pos:Int, context: Context){
+        Toast.makeText(context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
+        EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color, draganddrop = true))
+    }
+
     /**
      * Replaces the contents of a view (invoked by the layout manager)
      */
@@ -116,8 +124,7 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
             holder.bind(appInfo, viewMoo)
             if(viewMoo.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewMoo.appsList.value!![pos].color.toInt())
             holder.itemView.setOnLongClickListener{ v ->
-                Toast.makeText(v.context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
-                EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color, draganddrop = true))
+                showMenu(pos)
                 /*Toast.makeText(v.context, "Loading app info...", Toast.LENGTH_SHORT).show()
                 val intent = Intent()
                 intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -144,6 +151,14 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
 
         if (holder is MenuViewHolder) {
             //Menu Actions
+            holder.addappbutton.setOnClickListener { dragAndDropApp(pos, it.context) }
+            holder.infobutton.setOnClickListener {
+                val intent = Intent()
+                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                val uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)
+                intent.data = uri
+                it.context.startActivity(intent)
+            }
         }
     }
 

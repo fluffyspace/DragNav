@@ -30,6 +30,7 @@ class ColorPickerActivity : AppCompatActivity() {
             editor.putString("ui_color", gcolor.toString())
             editor.apply()
             displaySetColor()
+            finish()
         }
     }
 

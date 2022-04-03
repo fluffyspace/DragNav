@@ -11,4 +11,11 @@
         android:padding="10dp"
         android:layout_weight="1"
         android:src="@drawable/ic_outline_info_75" />
+    <ImageView
+        android:id="@+id/addappbutton"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:padding="10dp"
+        android:layout_weight="1"
+        android:src="@drawable/ic_baseline_add_circle_50" />
 </LinearLayout>

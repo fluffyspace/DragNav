@@ -79,7 +79,7 @@ android:orientation="vertical">
                 android:layout_marginTop="10dp"
                 android:textSize="20sp"
                 android:gravity="center"
-                style="@style/Widget.Shrine.Button"/>
+                style="@style/MojButton"/>
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>

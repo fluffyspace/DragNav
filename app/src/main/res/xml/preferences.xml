@@ -8,7 +8,7 @@
 
         <SwitchPreference
             app:key="ui_language_toggle"
-            app:title="English/hrvatski"
+            app:title="English/Croatian"
             app:defaultValue="false"/>
 
         <SwitchPreference
@@ -49,7 +49,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+    <!--<PreferenceCategory
         app:key="export_category"
         app:title="@string/settings_im_ex">
 
@@ -63,11 +63,19 @@
             app:summary="@string/export_summary"
             app:title="@string/export_title"/>
 
-    </PreferenceCategory>
+    </PreferenceCategory>-->
 
     <PreferenceCategory
         app:key="help_category"
         app:title="@string/help">
+
+        <Preference
+            app:key="restart"
+            app:title="Restart application"/>
+
+        <Preference
+            app:key="drop_database"
+            app:title="Drop database"/>
 
         <Preference
             app:key="feedback"

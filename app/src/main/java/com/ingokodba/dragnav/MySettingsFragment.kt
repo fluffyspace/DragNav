@@ -26,6 +26,8 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val IMPORT = "import"
         val EXPORT = "export"
         val FEEDBACK = "feedback"
+        val RESTART = "restart"
+        val DROP_DATABASE = "drop_database"
     }
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
@@ -35,6 +37,12 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val colorPick: Preference? = findPreference(UI_COLOR)
         colorPick?.setOnPreferenceClickListener  {
             mactivity.startColorpicker()
+            return@setOnPreferenceClickListener true
+        }
+
+        val drop_database: Preference? = findPreference(DROP_DATABASE)
+        drop_database?.setOnPreferenceClickListener  {
+            mactivity.dropDatabase()
             return@setOnPreferenceClickListener true
         }
 
@@ -60,7 +68,11 @@ class MySettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceClickListener true
         }
 
-
+        val restart: Preference? = findPreference(RESTART)
+        restart?.setOnPreferenceClickListener  {
+            startActivity(Intent.makeRestartActivityTask(activity?.intent?.component));
+            return@setOnPreferenceClickListener true
+        }
 
         val languageSwitch: SwitchPreference? = findPreference(UI_LANGUAGE_TOGGLE)
         languageSwitch?.setOnPreferenceChangeListener { preference, newValue ->
@@ -96,7 +108,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
         val backButtonSwitch: SwitchPreference? = findPreference(UI_BACKBUTTON)
         backButtonSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            mactivity.loadOnBackButtonPreference()
+            mactivity.backButtonAction = newValue.toString().toBoolean()
             return@setOnPreferenceChangeListener true
         }
 

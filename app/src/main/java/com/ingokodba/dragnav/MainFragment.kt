@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -86,8 +88,11 @@ class MainFragment : Fragment() {
         view.findViewById<LinearLayout>(R.id.relativelayout).updateLayoutParams<ViewGroup.MarginLayoutParams> {
             setMargins(0, 0, 0, (bottomMenuView.detectSize*2+bottomMenuView.padding*3).toInt())
         }
-
+        view.findViewById<LinearLayout>(R.id.relativelayout).setOnClickListener { bottomMenuView.collapse()
+        Log.d("ingo", "collapse?")}
     }
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -119,6 +124,7 @@ class MainFragment : Fragment() {
 
     fun touched(event:MotionEvent, counter:Int, no_draw_position:Int){
         Log.d("ingo", "touched " + event.action.toString() + " " + counter)
+        bottomMenuView.collapse()
         //Log.d("ingo", "pozvalo me")
         var sublist_counter = counter
         // counter govori koji po redu je oznacen, a sublist_counter govori koji textview je oznacen
@@ -226,7 +232,7 @@ class MainFragment : Fragment() {
             }
             mactivity.shortcutPopup?.dismiss()
             mactivity.recycle_view_label.visibility = View.VISIBLE
-            changeeditMode()
+            //changeeditMode()
             //toggleAppMenu()
         }
         view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
@@ -241,7 +247,17 @@ class MainFragment : Fragment() {
             Log.d("ingo", "launchLastEntered app_or_folder " + viewModel.lastEnteredIntent.toString())
             val launchIntent: Intent? =
                 viewModel.lastEnteredIntent?.let { requireContext().packageManager.getLaunchIntentForPackage(it.nextIntent) }
-            if(launchIntent != null) startActivity(launchIntent)
+            if(launchIntent != null) {
+                startActivity(launchIntent)
+            } else {
+                if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_APPINFO){
+                    val intent = Intent()
+                    intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    val uri = Uri.fromParts("package", viewModel.lastEnteredIntent!!.nextId, null)
+                    intent.data = uri
+                    startActivity(intent)
+                }
+            }
         } else {
             Log.d("ingo", "launchLastEntered shortcut " + viewModel.lastEnteredIntent.toString())
             viewModel.lastEnteredIntent?.let { mactivity.startShortcut(it) }
@@ -261,8 +277,8 @@ class MainFragment : Fragment() {
     fun touched2(event:MotionEvent, counter:Int) {
         if(counter >= 0) {
             when (counter) {
-                0 -> goToPocetna()
-                1 -> mactivity.toggleAppMenu()
+                0 -> addNew()
+                1 -> mactivity.showLayout(MainActivity.LAYOUT_ACTIVITIES)
                 2 -> changeeditMode()
                 3 -> {
                     mactivity.showLayout(MainActivity.LAYOUT_SEARCH)//initializeSearch()
@@ -349,9 +365,10 @@ class MainFragment : Fragment() {
     }
     fun prikaziPrecace(prosiriId: Int, selected:Int){
         var precaci:MutableList<MeniJednoPolje> = mutableListOf()
+        val trenutnoPolje = getPolje(prosiriId)
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         if(launcherApps.hasShortcutHostPermission()){
-            val precaci_info = getPolje(prosiriId)?.let {
+            val precaci_info = trenutnoPolje?.let {
                 mactivity.getShortcutFromPackage(
                     it.nextIntent
                 )
@@ -368,6 +385,9 @@ class MainFragment : Fragment() {
         }
         Log.d("ingo", "prikazi prečace " + precaci.map{ it.text + "->" + it.nextIntent + "->" + it.nextId }.toString())
         var polja = getSubPolja(prosiriId)
+        if(trenutnoPolje?.nextIntent != "" ) {
+            precaci.add(MeniJednoPolje(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
+        }
         viewModel.currentSubmenuList = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
         circleView.setTextList(viewModel.currentSubmenuList)

@@ -3,24 +3,29 @@ package com.ingokodba.dragnav
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Browser
+import android.provider.Settings
 import android.util.Log
-import androidx.fragment.app.Fragment
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
+import android.widget.*
+import androidx.appcompat.widget.ListPopupWindow
 import androidx.core.widget.addTextChangedListener
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.dragnav.R
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
+import org.greenrobot.eventbus.EventBus
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -124,12 +129,59 @@ class SearchFragment : Fragment() {
                         imm.hideSoftInputFromWindow(windowToken, 0)
                         //startActivity(launchIntent)
                     }
+                    chip.setOnLongClickListener{
+                        val contentView = createMenu(app.second)
+                        val shortcutPopup = PopupWindow(contentView,
+                            ListPopupWindow.WRAP_CONTENT,
+                            ListPopupWindow.WRAP_CONTENT, true)
+                        //shortcutPopup?.animationStyle = R.style.PopupAnimation
+                        val location = locateView(chip)
+                        shortcutPopup?.showAtLocation(view, Gravity.TOP or Gravity.LEFT, location!!.left, location!!.bottom)
+                        return@setOnLongClickListener true
+                    }
                     //chips.add(chip)
                     chipGroup.addView(chip)
                 }
 
             }
         }
+    }
+
+    fun locateView(v: View?): Rect? {
+        val loc_int = IntArray(2)
+        if (v == null) return null
+        try {
+            v.getLocationOnScreen(loc_int)
+        } catch (npe: NullPointerException) {
+            //Happens when the view doesn't exist on screen anymore.
+            return null
+        }
+        val location = Rect()
+        location.left = loc_int[0]
+        location.top = loc_int[1]
+        location.right = location.left + v.width
+        location.bottom = location.top + v.height
+        return location
+    }
+
+    fun createMenu(app:AppInfo):View{
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.popup_app_info_or_add, null)
+        view.findViewById<LinearLayout>(R.id.open_appinfo).setOnClickListener{
+            val intent = Intent()
+            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            val uri = Uri.fromParts("package", app.packageName, null)
+            intent.data = uri
+            it.context.startActivity(intent)
+        }
+        view.findViewById<LinearLayout>(R.id.start_adding).setOnClickListener{
+            Toast.makeText(context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
+            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, draganddrop = true))
+        }
+        return view
+    }
+
+    fun dragAndDropApp(pos:Int, context: Context){
+
     }
 
     fun initializeSearch(){

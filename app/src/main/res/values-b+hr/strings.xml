@@ -13,7 +13,7 @@
     <string name="home">Početna</string>
     <string name="enter">Uđi</string>
     <string name="delete">Obriši</string>
-    <string name="rename">Uredi</string>
+    <string name="rename">Preimenuj</string>
     <string name="action">Akcija</string>
     <string name="app">Aplikacija</string>
     <string name="folder">Mapa</string>
@@ -22,7 +22,8 @@
     <string name="zavr_i">Završi</string>
     <string name="edit_link">Uredi poveznicu</string>
     <string name="loading">Učitavanje…</string>
-    <string name="intro_message">Pozdrav moji testeri. Probajte koristiti aplikaciju tijekom par dana, sprobajte sve mogućnosti i na kraju recite što vam smeta, kako da poboljšam aplikaciju za vaš ukus. Slobodno mi se javite ako hoćete da dodam nekoga na mailing listu za testiranje. Sretno navigiranje!</string>
+    <string name="intro_message">Pozdrav, korisniče. Ova aplikacija je još u izradi, pa nemoj biti pregrub kod ocjenjivanja. Ako želiš, možeš ostaviti opširan i privatan feedabck preko emaila. Sretno navigiranje!</string>
+    <!-- Probaj koristiti aplikaciju tijekom par dana, isprobaj sve mogućnosti i na kraju reci što vam smeta, kako da poboljšam aplikaciju za vaš ukus. Slobodno mi se javite ako hoćete da dodam nekoga na mailing listu za testiranje. Sretno navigiranje! -->
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="ui_design">Dizajn</string>
@@ -33,7 +34,7 @@
     <string name="icons">Prikaži ikone aplikacija</string>
     <string name="settings_im_ex">Uvoz/izvoz postavki</string>
     <string name="feedback_summary">Prijavi poteškoće ili predloži nove značajke</string>
-    <string name="feedback_title">Pošalji povratnu informaciju</string>
+    <string name="feedback_title">Pošalji povratnu informaciju emailom</string>
     <string name="help">Pomoć</string>
     <string name="export_title">Izvoz postavki</string>
     <string name="export_summary">Izvezi svoje trenutne postavke</string>
@@ -46,4 +47,6 @@
     <string name="backbutton_title">Što se dogodi pritiskom tipke "natrag"</string>
     <string name="backbutton_summary">Lista aplikacija vs tražilica</string>
     <string name="border_width_summary">Tvorničke postavke - 4</string>
+    <string name="pick">Odaberi</string>
+    <string name="what_would_you_like_to_add">Što biste željeli dodati?</string>
 </resources>

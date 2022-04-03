@@ -40,12 +40,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var closeInsideColor = Color.parseColor("#aaff0000")
     // View size in pixels
     private var size = 320
+    private var size_width = 320
     private var step_size:Double = Math.PI*0.25
     private var app_list:List<MeniJednoPolje> = listOf()
     private var color_list:List<String> = listOf()
     private var no_draw_position:Int = -1
     private var text_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
+    val infodrawable = context.getDrawable(R.drawable.ic_outline_info_75)
     //lateinit var radapter:RAdapter
 
     var gcolor = Color.parseColor("#FBB8AC")
@@ -90,7 +92,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         yellow = -1
         amIHome(amIHomeVar)
         if(editMode){
-            changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
+            //changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
         } else if(amIHomeVar) {
             changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
         } else {
@@ -152,9 +154,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         // 1
         size = Math.min(measuredWidth, measuredHeight)
+        if(size < measuredWidth){
+            size_width = measuredWidth
+        } else {
+            size_width = size
+        }
         detectSize = (size / 10).toInt()
         // 2
-        setMeasuredDimension(size, size)
+        setMeasuredDimension(size_width, size)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -179,7 +186,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         drawTexts(canvas)
         when(middleButtonState){
-            MIDDLE_BUTTON_EDIT -> drawEditButton(canvas)
+            //MIDDLE_BUTTON_EDIT -> drawEditButton(canvas)
             MIDDLE_BUTTON_CLOSE -> drawCloseButton(canvas)
             MIDDLE_BUTTON_CLOSE_INSIDE -> drawCloseButton(canvas, true)
             MIDDLE_BUTTON_HOME -> drawHomeButton(canvas)
@@ -204,7 +211,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         amIHomeVar=ami
         if(!addAppMode) {
             if (editMode) {
-                changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
+                //changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
             } else if (ami) {
                 changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
             } else {
@@ -222,6 +229,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         val rect = Rect((event.x-detectSize).toInt(), (event.y-detectSize).toInt(), (event.x+detectSize).toInt(), (event.y+detectSize).toInt())
         var counter = 0
         var found = false
+        var processed = false
         for(text_point in text_points){
             if(rect.contains(text_point)){
                 //if(counter >= no_draw_position) counter++
@@ -236,7 +244,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             counter++
         }
         var sredina = false
-        if (rect.contains(size / 2, size / 2)) {
+        if (rect.contains(size_width / 2, size / 2)) {
             sredina = true
         }
         if(!found || event.action == MotionEvent.ACTION_UP) {
@@ -254,25 +262,29 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         }*/
         if (sredina) {
             if(editMode) {
-                mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
+                //mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
                 //Log.d("ingo", "editmode sredina yes")
             }
             if(addAppMode){
                 mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD_APP, no_draw_position)
+                processed = true
             }
             if(middleButtonState == MIDDLE_BUTTON_HOME){
                 mEventListener?.onEventOccurred(event, MainActivity.ACTION_HOME, no_draw_position)
+                processed = true
             }
         }
         if(event.action == MotionEvent.ACTION_MOVE && !addAppMode) {
             if (sredina) {
-                if (middleButtonState == MIDDLE_BUTTON_CLOSE) changeMiddleButtonState(
-                    MIDDLE_BUTTON_CLOSE_INSIDE
-                )
+                if (middleButtonState == MIDDLE_BUTTON_CLOSE) {
+                    changeMiddleButtonState(MIDDLE_BUTTON_CLOSE_INSIDE)
+                    processed = true
+                }
             } else {
-                if (middleButtonState == MIDDLE_BUTTON_CLOSE_INSIDE) changeMiddleButtonState(
-                    MIDDLE_BUTTON_CLOSE
-                )
+                if (middleButtonState == MIDDLE_BUTTON_CLOSE_INSIDE) {
+                    changeMiddleButtonState(MIDDLE_BUTTON_CLOSE)
+                    processed = true
+                }
             }
         }
         if(!editMode && !addAppMode){
@@ -305,7 +317,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 }
             }
         }*/
-        return true
+        return (found || processed)
     }
 
     fun changeMiddleButtonState(state:Int){
@@ -345,16 +357,16 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private fun drawCheckButton(canvas: Canvas) {
         canvas.apply {
-            drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+            drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
             val drawable: Drawable? = context.getDrawable(R.drawable.ic_baseline_check_50)
             drawable?.setTint(Color.WHITE)
             val bitmap: Bitmap? = drawable?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(
                     bitmap, null, Rect(
+                        (size_width / 2f - detectSize / 2).toInt(),
                         (size / 2f - detectSize / 2).toInt(),
-                        (size / 2f - detectSize / 2).toInt(),
-                        (size / 2f + detectSize / 2).toInt(),
+                        (size_width / 2f + detectSize / 2).toInt(),
                         (size / 2f + detectSize / 2).toInt()
                     ), thick_paint
                 )
@@ -364,7 +376,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private fun drawHomeButton(canvas: Canvas){
         canvas.apply {
-            drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+            drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
             val drawable: Drawable? = context.getDrawable(R.drawable.ic_baseline_home_100)
             drawable?.setTint(Color.WHITE)
             val bitmap: Bitmap? = drawable?.toBitmap()
@@ -399,8 +411,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private fun drawEditButton(canvas: Canvas){
         canvas.apply {
-            drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
-            var plus_margin = detectSize/5
+            drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+            var plus_margin = detectSize/2
             thick_paint.strokeWidth = 15f
             var center = (size / 2f)
             drawLine(center, center+(-detectSize+plus_margin).toFloat(), center, center+(detectSize-plus_margin).toFloat(), thick_paint)
@@ -411,16 +423,16 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private fun drawCloseButton(canvas: Canvas, inside: Boolean = false){
         canvas.apply {
             if(inside){
-                drawCircle(size / 2f, size / 2f, detectSize.toFloat(), close_inside_paint)
-                drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+                drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), close_inside_paint)
+                drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
             } else {
-                drawCircle(size / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
+                drawCircle(size_width / 2f, size / 2f, detectSize.toFloat(), empty_circle_paint)
             }
-            var plus_margin = detectSize/5
+            var plus_margin = detectSize/2
             thick_paint.strokeWidth = 15f
             var center = (size / 2f)
-            drawLine(center+(-detectSize+plus_margin).toFloat(), center+(-detectSize+plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), thick_paint)
-            drawLine(center+(-detectSize+plus_margin).toFloat(), center+(+detectSize-plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), center-(detectSize-plus_margin).toFloat(), thick_paint)
+            drawLine((size_width/2f)+(-detectSize+plus_margin).toFloat(), center+(-detectSize+plus_margin).toFloat(), (size_width/2f)+(detectSize-plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), thick_paint)
+            drawLine((size_width/2f)+(-detectSize+plus_margin).toFloat(), center+(+detectSize-plus_margin).toFloat(), (size_width/2f)+(detectSize-plus_margin).toFloat(), center-(detectSize-plus_margin).toFloat(), thick_paint)
         }
     }
 
@@ -431,7 +443,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
             val radius = size / 3f
             var current:Double = 0.0
-            val cx = size/2f
+            val cx = size_width/2f
             val cy = size/2f
             drawCircle(cx, cy, radius, empty_circle_paint)
             var counter = 0
@@ -454,13 +466,18 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     text = app_list[counter].text
                     circle_paint.color = Color.parseColor("#55000000")
                     if(app_list[counter].nextIntent != "") {
-                        //Log.d("ingo", "pokusavam boju " + color_list[counter])
-                        try {
-                            circle_paint.color = color_list[counter].toInt()
-                        } catch (e: NumberFormatException) {
-                            e.printStackTrace()
+                        var bitmap: Bitmap?
+                        if(app_list[counter].nextIntent == MainActivity.ACTION_APPINFO){
+                            bitmap = infodrawable?.toBitmap()
+                        } else {
+                            //Log.d("ingo", "pokusavam boju " + color_list[counter])
+                            try {
+                                circle_paint.color = color_list[counter].toInt()
+                            } catch (e: NumberFormatException) {
+                                e.printStackTrace()
+                            }
+                            bitmap = icons[app_list[counter].nextIntent]?.toBitmap()
                         }
-                        val bitmap: Bitmap? = icons[app_list[counter].nextIntent]?.toBitmap()//Bitmap.createBitmap(5, 5, Bitmap.Config.RGB_565)
                             //radapter.icons[app_list[counter].nextIntent]?.toBitmap()
                         if (draw_icons && bitmap != null) {
                             drawBitmap(
