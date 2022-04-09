@@ -29,6 +29,17 @@
             android:visibility="gone"
             android:layout_gravity="center_horizontal"
             android:textSize="35sp"/>
+        <EditText
+            android:id="@+id/search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/meni_jedno_polje_obrub"
+            android:textSize="23sp"
+            android:padding="10dp"
+            tools:text="Kako nahraniti papigu"
+            android:inputType="text"
+            android:hint="@string/search_to_scroll"
+            android:imeOptions="actionGo" />
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"

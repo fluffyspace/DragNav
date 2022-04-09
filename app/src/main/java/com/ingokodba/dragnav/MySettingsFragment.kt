@@ -50,7 +50,6 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         import?.setOnPreferenceClickListener  {
             Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
             mactivity.import_export_action = MainActivity.ACTION_IMPORT
-            mactivity.openFile()
             return@setOnPreferenceClickListener true
         }
 
@@ -58,7 +57,6 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         export?.setOnPreferenceClickListener  {
             Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
             mactivity.import_export_action = MainActivity.ACTION_EXPORT
-            mactivity.createFile()
             return@setOnPreferenceClickListener true
         }
 

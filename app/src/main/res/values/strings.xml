@@ -48,4 +48,6 @@
     <string name="border_width_summary">Default is 4</string>
     <string name="pick">Pick</string>
     <string name="what_would_you_like_to_add">What would you like to add?</string>
+    <string name="search_to_scroll">Search to scroll</string>
+    <string name="drag_and_drop_app">Drag and drop app!</string>
 </resources>

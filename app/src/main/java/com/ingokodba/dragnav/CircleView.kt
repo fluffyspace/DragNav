@@ -468,6 +468,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     if(app_list[counter].nextIntent != "") {
                         var bitmap: Bitmap?
                         if(app_list[counter].nextIntent == MainActivity.ACTION_APPINFO){
+                            drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
                             bitmap = infodrawable?.toBitmap()
                         } else {
                             //Log.d("ingo", "pokusavam boju " + color_list[counter])

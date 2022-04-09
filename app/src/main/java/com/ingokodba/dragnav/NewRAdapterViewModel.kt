@@ -44,5 +44,7 @@ class NewRAdapterViewModel  : ViewModel() {
         _popis_aplikacija.sortBy { it.label.lowercase() }
     }
 
-
+    fun removeApp(app: AppInfo){
+        _popis_aplikacija.remove(app)
+    }
 }

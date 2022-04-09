@@ -40,7 +40,9 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
     class MenuViewHolder(view: View) : RecyclerView.ViewHolder(view){
         var infobutton:ImageView
         var addappbutton:ImageView
+        var backbutton:ImageView
         init{
+            backbutton = view.findViewById(R.id.backbutton);
             infobutton = view.findViewById(R.id.appinfobutton);
             addappbutton = view.findViewById(R.id.addappbutton)
         }
@@ -151,8 +153,12 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
 
         if (holder is MenuViewHolder) {
             //Menu Actions
+            holder.backbutton.setOnClickListener{
+                closeMenu()
+            }
             holder.addappbutton.setOnClickListener { dragAndDropApp(pos, it.context) }
             holder.infobutton.setOnClickListener {
+                closeMenu()
                 val intent = Intent()
                 intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                 val uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)

@@ -173,7 +173,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                 radius = global_height / 2
             } else {
                 detectSize = (global_width / 15).toFloat()
-                editDetectSize = detectSize
+                editDetectSize = detectSize*1.2f
                 global_height = (detectSize*2+padding*2).toInt()
             }
             updateOverridens()
@@ -217,35 +217,6 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         // call the super method to keep any drawing from the parent side.
         super.onDraw(canvas)
 
-        val density = resources.displayMetrics.density
-        //drawTexts(canvas)
-
-        // s ovim se skalira veličina widgeta. sada treba izračunati dužinu widgeta i ako je veća, zaustavi porast.
-        // ako je manja od neke veličine, stavi u small screen
-        /*if(!overriden) {
-            if (small_screen) {
-
-            } else {
-
-                //detectSize = (global_height * (1 / 3f))/density
-                //radius = ((global_height - 2 * padding - 2 * detectSize)*1.5/density).toInt()
-                //Log.d("ingo", "prva" + detectSize + " " + global_height + " " + (global_height * (1 / 4f)) + " " + density)
-                /*if(global_height < global_width) {
-                    detectSize = (global_height * (1 / 7f)).toFloat()
-                    radius = (global_height - 2 * padding - 2 * detectSize).toInt()
-                    Log.d("ingo", "prva" + detectSize + " " + global_height + " " + (global_height * (1 / 4f)))
-                } else {
-                    detectSize = (global_width / 9.8).toFloat()
-                    radius = (global_width / 3.5).toInt()
-                    Log.d("ingo", "druga")
-                }*/
-
-                //detectSize = (global_width / 9.8).toFloat()
-                //radius = (global_width / 3.5).toInt()
-            }
-            Log.d("ingo", "-- global_height " + global_height + " global_width " + global_width)
-            Log.d("ingo", "radius " + radius + " detectSize " + detectSize)
-        }*/
         val ccy = (size-detectSize-padding)
         search_button_cx = cx
         search_button_cy = ccy
@@ -265,8 +236,6 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             }
             Log.d("ingo", "bottommenuview crta " + buttonsState)
         }
-        //drawEditButton(canvas)
-        //drawCloseButton(canvas)
     }
 
     fun drawAllButtons(canvas:Canvas){
@@ -296,7 +265,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                 val width = (drawables.size*detectSize*2+((drawables.size-1)*padding))/2
                 for(drawable in drawables) {
                     val offset_n = counter*detectSize*2+counter*padding
-                    val draw_pointF = PointF(cx-width+detectSize+offset_n, ccy)
+                    val draw_pointF = PointF(cx+width-detectSize-offset_n, ccy)
                     drawCircleBitmapButton(canvas, draw_pointF.x, draw_pointF.y, detectSize, drawable, text_points)
                     counter++
                 }

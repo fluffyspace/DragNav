@@ -220,8 +220,9 @@ class MainFragment : Fragment() {
         }
         view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
             //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
+            mactivity.toggleAppMenu()
             mactivity.selectAppMenuOpened = true
-            global_view.findViewById<TextView>(R.id.notification).apply{
+            /*global_view.findViewById<TextView>(R.id.notification).apply{
                 text = "Choose an app from app list or search. Click here to cancel."
                 setOnClickListener {
                     mactivity.selectAppMenuOpened = false
@@ -229,7 +230,7 @@ class MainFragment : Fragment() {
                     mactivity.recycle_view_label.visibility = View.GONE
                 }
                 visibility = View.VISIBLE
-            }
+            }*/
             mactivity.shortcutPopup?.dismiss()
             mactivity.recycle_view_label.visibility = View.VISIBLE
             //changeeditMode()

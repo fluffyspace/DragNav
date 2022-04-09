@@ -7,13 +7,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.*
 import android.content.res.Resources
-import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.DisplayMetrics
@@ -31,7 +29,7 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import androidx.core.net.toUri
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -39,8 +37,10 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.recyclerview.widget.RecyclerView.SmoothScroller
 import androidx.window.layout.WindowMetricsCalculator
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -56,8 +56,6 @@ import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
-import java.io.*
-import java.nio.channels.FileChannel
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
@@ -95,6 +93,8 @@ class MainActivity : AppCompatActivity(),
     var shortcutPopup:PopupWindow? = null
 
     lateinit var recycle_view_label:TextView
+    lateinit var search_bar:EditText
+    lateinit var recycler_view:RecyclerView
 
     var appListOpened:Boolean = false
     val cache_apps:Boolean = true
@@ -195,12 +195,49 @@ class MainActivity : AppCompatActivity(),
         loadFragments()
         showMainFragment()
         //loadMainFragment()
+
+        val smoothScroller: SmoothScroller =
+            object : LinearSmoothScroller(this.applicationContext) {
+                override fun getVerticalSnapPreference(): Int {
+                    return SNAP_TO_START
+                }
+            }
         recycle_view_label = findViewById<TextView>(R.id.recycle_view_label)
+        search_bar = findViewById<EditText>(R.id.search_bar)
+        search_bar.apply {
+            addTextChangedListener {
+                Log.d("ingo", "text changed to " + search_bar.text.toString())
+                // find apps
+                if (search_bar.text.toString().length == 0) {
+
+
+                    return@addTextChangedListener
+                } else {
+                    val search_lista_aplikacija =
+                        searchFragment.getAppsByQuery(search_bar.text.toString())
+                    if (search_lista_aplikacija.size > 0) {
+                        for (i in 0..viewModel.appsList.value!!.size) {
+                            if (viewModel.appsList.value!![i] == search_lista_aplikacija[0].second) {
+                                //recycler_view.scrollToPosition(i)
+                                smoothScroller.targetPosition = i
+                                (recycler_view.layoutManager)?.startSmoothScroll(smoothScroller)
+                                Log.d(
+                                    "ingo",
+                                    "scrolling for " + viewModel.appsList.value!![i].label
+                                )
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
         /*findViewById<Button>(R.id.pocetna_button).setOnClickListener{
             goToPocetna()
         }*/
         radapter = NewRAdapter(viewModel)
-        findViewById<RecyclerView>(R.id.recycler_view).adapter = radapter
+        recycler_view = findViewById<RecyclerView>(R.id.recycler_view)
+        recycler_view.adapter = radapter
 
         val touchHelperCallback: ItemTouchHelper.SimpleCallback =
             object : ItemTouchHelper.SimpleCallback(0,(ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)) {
@@ -331,6 +368,8 @@ class MainActivity : AppCompatActivity(),
     fun showLayout(id:Int){
         Log.d("ingo", "show layout " + id.toString())
         findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
+        radapter.closeMenu()
+        search_bar.setText("")
         when(id){
             LAYOUT_ACTIVITIES -> {
                 findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
@@ -360,127 +399,6 @@ class MainActivity : AppCompatActivity(),
         startActivity(intent)
     }
 
-    fun getDatabaseStructure(db: SupportSQLiteDatabase) {
-        val c: Cursor = db.query(
-            "SELECT name FROM sqlite_master WHERE type='table'", null
-        )
-        val result = ArrayList<Array<String?>>()
-        var i = 0
-        result.add(c.getColumnNames())
-        c.moveToFirst()
-        while (!c.isAfterLast()) {
-            val temp = arrayOfNulls<String>(c.getColumnCount())
-            i = 0
-            while (i < temp.size) {
-                temp[i] = c.getString(i)
-                Log.d("ingo", "TABLE - " + temp[i])
-                val c1: Cursor = db.query(
-                    "SELECT * FROM " + temp[i], null
-                )
-                c1.moveToFirst()
-                val COLUMNS: Array<String> = c1.getColumnNames()
-                for (j in COLUMNS.indices) {
-                    c1.move(j)
-                    Log.d("ingo", "    COLUMN - " + COLUMNS[j])
-                }
-                i++
-            }
-            result.add(temp)
-            c.moveToNext()
-        }
-    }
-    fun importDatabase(outputPath: Uri?){
-        if(outputPath == null) return
-        // Close the SQLiteOpenHelper so it will commit the created empty
-        // database to internal storage.
-        // Close the SQLiteOpenHelper so it will commit the created empty
-        // database to internal storage.
-        var currentDBPath2 = getDatabasePath("database-name").absolutePath
-        val currentDB = File(currentDBPath2)
-        AppDatabase.getInstance(this).openHelper.close()
-        try {
-            val newDb = File(outputPath.path)
-            val oldDb = File(currentDBPath2)
-            if (oldDb.canWrite()) {
-                /*FileUtils.copy(FileInputStream(newDb), FileOutputStream(oldDb))
-                // Access the copied database so SQLiteHelper will cache it and mark
-                // it as created.
-                AppDatabase.getInstance(this).openHelper.writableDatabase.close()*/
-                //getWritableDatabase().close()
-                //val src: FileChannel = FileInputStream(newDb).channel
-                contentResolver.openFileDescriptor(outputPath, "r")?.use { pfd ->
-                    FileOutputStream(pfd.fileDescriptor).use { src ->
-                        val dst = FileInputStream(currentDBPath2)
-                        dst.channel.transferFrom(src.channel, 0, src.channel.size())
-                        dst.close()
-                    }
-                }
-            } else {
-                Log.d("ingo", "can't write")
-            }
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-
-
-        /*try {
-
-            val con = this
-            lifecycleScope.launch(Dispatchers.IO) {
-                Log.d("bingo", "start IMpoRTed?")
-                //AppDatabase.getInstance(con).close()
-                var currentDBPath2 = getDatabasePath("database-name").absolutePath
-                //val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
-                Log.d("ingo", currentDBPath2.toString())
-
-                try {
-                    val of = File(outputPath.path)
-                    of.
-                    val src = FileInputStream(of).channel
-                    contentResolver.openFileDescriptor(currentDBPath2.toUri(), "w")?.use { pfd ->
-                        FileOutputStream(pfd.fileDescriptor).use {
-                            it.channel.transferFrom(src, 0, src.size())
-                        }
-                    }
-                    src.close()
-                } catch (e: FileNotFoundException) {
-                    e.printStackTrace()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-
-
-
-                /*Room.databaseBuilder(con, AppDatabase::class.java, "database-name")
-                    .createFromFile(of)
-                    .addCallback(
-                        object :  RoomDatabase.Callback() {
-                            override fun onOpen(db: SupportSQLiteDatabase) {
-                                Log.d("bingo", "IMpoRTed?")
-                                getDatabaseStructure(db)
-                                super.onCreate(db)
-                            }
-                            /*init {
-                                Log.d("ingo", "imported " + newDb.meniJednoPoljeDao().getAll().map{it.text}.toString())
-                            }*/
-                        }
-                    )
-                    .fallbackToDestructiveMigration()
-                    .build()*/
-                /*withContext(Dispatchers.Main){
-                    startActivity(Intent.makeRestartActivityTask(con.intent?.component));
-                }*/
-            }
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-*/
-    }
-
     fun dropDatabase(){
         val con = this
         lifecycleScope.launch(Dispatchers.IO) {
@@ -489,97 +407,19 @@ class MainActivity : AppCompatActivity(),
         startActivity(Intent.makeRestartActivityTask(this.intent?.component));
     }
 
-    fun exportDatabase(outputPath: Uri?){
-        if(outputPath == null) return
-
-        var currentDBPath2 = getDatabasePath("database-name").absolutePath
-        val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
-        Log.d("ingo", currentDBPath2.toString())
-
-        val currentDB = File(currentDBPath2)
-        if (currentDB.exists()) {
-            try {
-                val src = FileInputStream(currentDB).channel
-                contentResolver.openFileDescriptor(outputPath, "w")?.use { pfd ->
-                    FileOutputStream(pfd.fileDescriptor).use {
-                        it.channel.transferFrom(src, 0, src.size())
-                    }
-                }
-                src.close()
-            } catch (e: FileNotFoundException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-
-
-
-        //val os = contentResolver.openOutputStream(outputPath);
-
-        /*val currentDBPath = AppDatabase.getInstance(this).openHelper.readableDatabase.path
-        val backupDBPath = "mydb.sqlite"      //you can modify the file type you need to export
-        val currentDB = File(currentDBPath)
-        val backupDB = File(outputPath)
-        if (currentDB.exists()) {
-            try {
-                val src = FileInputStream(currentDB).channel
-                val dst = FileOutputStream(backupDB).channel
-                dst.transferFrom(src, 0, src.size())
-                src.close()
-
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }*/
-    }
-
-    // Request code for selecting a PDF document.
-    val PICK_PDF_FILE = 2
-
-    fun openFile() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-        }
-
-        startActivityForResult(intent, PICK_PDF_FILE)
-    }
-
-    // Request code for creating a PDF document.
-    val CREATE_FILE = 1
-
-    fun createFile() {
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/room"
-            putExtra(Intent.EXTRA_TITLE, "draglauncher_export.db")
-
-
-            // Optionally, specify a URI for the directory that should be opened in
-            // the system file picker before your app creates the document.
-            //putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
-        }
-        startActivityForResult(intent, CREATE_FILE)
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when(import_export_action){
             ACTION_IMPORT -> {
-                importDatabase(data?.data)
+                //importDatabase(data?.data)
             }
             ACTION_EXPORT -> {
-                exportDatabase(data?.data)
+                //exportDatabase(data?.data)
             }
         }
         import_export_action = 0
         Log.d("ingo", "onActivityResult " + requestCode + " " + resultCode + " " + data.toString())
     }
-
-
-
-
 
     fun startShortcut(shortcut: MeniJednoPolje){
         val launcherApps: LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
@@ -714,15 +554,7 @@ class MainActivity : AppCompatActivity(),
         val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
         var meniPolja:List<MeniJednoPolje> = recDao.getAll()
         if(meniPolja.size == 0){
-            /*for(polje in defaultMenus){
-                polje.id = 0
-                //recDao.insertAll(polje)
-            }*/
             viewModel.pocetnaId = databaseAddNewPolje(pocetna).id
-            Log.d("ingo", "poccc " + viewModel.pocetnaId.toString())
-            meniPolja = recDao.getAll()
-            Log.d("ingo", "initializeRoom initialized, total=" + meniPolja.size)
-            // uvod
             withContext(Dispatchers.Main) {
                 showIntroPopup()
             }
@@ -730,27 +562,54 @@ class MainActivity : AppCompatActivity(),
             viewModel.listaMenija += meniPolja
             viewModel.pocetnaId = meniPolja.first().id
         }
-        Log.d("ingo", "viewModel.pocetnaId = " + viewModel.pocetnaId)
         for(meni in viewModel.listaMenija){
             if(meni.id > viewModel.highestId) viewModel.highestId = meni.id
         }
         val appDao: AppInfoDao = db.appInfoDao()
         Log.d("ingo", "initializeRoom before cache")
         if(cache_apps) {
-            val apps = appDao.getAll() as MutableList<AppInfo>
-            withContext(Dispatchers.Main) {
-                viewModel.addApps(apps)
+            val cached_apps = appDao.getAll() as MutableList<AppInfo>
+            for(app in cached_apps){
+                app.installed = false
             }
-
+            withContext(Dispatchers.Main) {
+                viewModel.addApps(cached_apps)
+            }
             Log.d("ingo", "loaded " + (viewModel.appsList.value?.size ?: 0) + " cached apps")
         }
+
+
         Log.d("ingo", "initializeRoom before loadnewapps")
         val newApps = loadNewApps()
+
+        // potrebno izbaciti aplikacije koje su deinstalirane
+        for( i in (viewModel.appsList.value!!.size-1) downTo 0){
+            val pn = viewModel.appsList.value!![i].packageName
+            Log.d("ingo", "check for remove " + pn)
+            if(!viewModel.appsList.value!![i].installed){
+                appDao.delete(viewModel.appsList.value!![i])
+                withContext(Dispatchers.Main) {
+                    viewModel.removeApp(viewModel.appsList.value!![i])
+                }
+                Log.d("ingo", "removed " + pn)
+                for(polje in meniPolja.reversed()){
+                    if(polje.nextIntent == pn){
+                        recDao.delete(polje)
+                        viewModel.listaMenija.remove(polje)
+                    }
+                }
+            }
+        }
+
         Log.d("ingo", "initializeRoom before insertall")
         if(cache_apps && newApps.isNotEmpty()){
             for(app in newApps){
                 Log.d("ingo", "new app " + app.label)
-                appDao.insertAll(app)
+                try {
+                    appDao.insertAll(app)
+                } catch (e:android.database.sqlite.SQLiteConstraintException) {
+                    Log.d("ingo", "caught exception with inserting app " + app.packageName)
+                }
             }
         }
         if(circleViewLoadIcons) {
@@ -865,8 +724,8 @@ class MainActivity : AppCompatActivity(),
         return pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
     }
 
-    fun isAppLoaded(p:String): Boolean{
-        return viewModel.appsList.value!!.map{ it.packageName }.contains(p)
+    fun isAppLoaded(guid:Int): Boolean{
+        return viewModel.appsList.value!!.find{ it.id == guid } != null
     }
 
     fun getBestPrimaryColor(icon:Drawable): Int{
@@ -891,37 +750,43 @@ class MainActivity : AppCompatActivity(),
 
     @SuppressWarnings("ResourceType")
     suspend fun loadNewApps(): MutableList<AppInfo>{
-        var pixels = Array<Int>(9){0}
         var newApps: MutableList<AppInfo> = mutableListOf()
+
         val packs = packageManager.getInstalledPackages(0)
         var colorPrimary: Int = 0
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
-                if(isAppLoaded(p.packageName)) {
-                    Log.d("ingo", "already loaded " + p.packageName)
+                if(isAppLoaded(p.applicationInfo.uid)) {
+                    val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
+                    Log.d("ingo", "isAppLoaded " + p.packageName)
+                    if(app != null) {
+                        app.installed = true
+                        Log.d("ingo", "installed true " + app.packageName)
+                    }
                     continue
                 }
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
                 Log.d("ingo", "loading new app " + appName)
-                var icon:Drawable? = null
                 val res: Resources = packageManager.getResourcesForApplication(p.applicationInfo)
 
                 if(loadIconBool){
-
-                    icon = res.getDrawableForDensity(
+                    val icon = res.getDrawableForDensity(
                         p.applicationInfo.icon,
                         DisplayMetrics.DENSITY_LOW,
                         null
                     )
+                    if(icon != null) {
+                        colorPrimary = getBestPrimaryColor(icon)
+                    }
                     viewModel.icons.value!![p.applicationInfo.packageName] = icon
-                    //icon = p.applicationInfo.loadIcon(packageManager)
                 } else {
                     colorPrimary = 0
                 }
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
-                    newApps.add(AppInfo(0, appName, packageName, colorPrimary.toString()))
+
+                    newApps.add(AppInfo(p.applicationInfo.uid, appName, packageName, colorPrimary.toString(), installed = true))
                 }
             }
         }
@@ -930,9 +795,13 @@ class MainActivity : AppCompatActivity(),
         i.addCategory(Intent.CATEGORY_LAUNCHER)
         val allApps = packageManager.queryIntentActivities(i, 0)
         for (ri in allApps) {
-            if(isAppLoaded(ri.activityInfo.packageName) || newApps.map{it.packageName}.contains(ri.activityInfo.packageName)) continue
+            val uid = packageManager.getPackageUid(ri.activityInfo.packageName, 0)
+            Log.d("ingo", "uid " + uid)
+            if(isAppLoaded(uid) || newApps.map{it.id}.contains(uid)) {
+                viewModel.appsList.value?.find { it.id == uid }?.installed = true
+                continue
+            }
             Log.d("ingo", ri.activityInfo.packageName)
-            //val res: Resources = packageManager.getResourcesForApplication(ri.activityInfo.packageName)
             if(loadIconBool){
                 val icon = ri.loadIcon(packageManager)
                 viewModel.icons.value!![ri.activityInfo.packageName] = icon
@@ -942,16 +811,7 @@ class MainActivity : AppCompatActivity(),
             } else {
                 colorPrimary = 0
             }
-            val app: AppInfo = AppInfo(0, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString())
-            //Log.d("ingo", app.label.toString() + " " + app.packageName)
-            //Log.d("ingo", app.label.toString() + " " + app.packageName.toString() + " loaded")
-            //appsList.add(app)
-            //radapter.appsList.add(app)
-            newApps.add(app)
-            /*if(!radapter.appsList.map { it.packageName.toString() }.contains(app.packageName.toString())) {
-                Log.d("ingo", app.label.toString())
-                radapter.appsList.add(app)
-            }*/
+            newApps.add(AppInfo(uid, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString(), installed = true))
         }
         return newApps
     }
@@ -996,6 +856,8 @@ class MainActivity : AppCompatActivity(),
 
     fun toggleAppMenu(open:Int=-1){
         mainFragment.updateStuff()
+        selectAppMenuOpened = false
+        recycle_view_label.visibility = View.GONE
         when(open){
             -1 -> appListOpened = !appListOpened
             0 -> appListOpened = false

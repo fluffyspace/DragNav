@@ -12,8 +12,8 @@ android {
         applicationId "com.ingokodba.dragnav"
         minSdk 26
         targetSdk 31
-        versionCode 4
-        versionName "0.4"
+        versionCode 5
+        versionName "0.5"
         resConfigs("en", "hr")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -174,7 +174,7 @@ class SearchFragment : Fragment() {
             it.context.startActivity(intent)
         }
         view.findViewById<LinearLayout>(R.id.start_adding).setOnClickListener{
-            Toast.makeText(context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
             EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, draganddrop = true))
         }
         return view
