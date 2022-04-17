@@ -9,9 +9,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -21,31 +21,20 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
 import org.greenrobot.eventbus.EventBus
 
-
 class NewRAdapter(viewModel: NewRAdapterViewModel) :
     ListAdapter<AppInfo, RecyclerView.ViewHolder>(DiffCallback) {
 
-    lateinit var viewMoo: NewRAdapterViewModel
+    var viewModel: NewRAdapterViewModel = viewModel
     var idOtvorenogMenija:Int = -1
 
     private val SHOW_MENU = 1
     private val HIDE_MENU = 2
 
-    // initializer block
-    init {
-        viewMoo = viewModel
-    }
-
     //Our menu view
     class MenuViewHolder(view: View) : RecyclerView.ViewHolder(view){
-        var infobutton:ImageView
-        var addappbutton:ImageView
-        var backbutton:ImageView
-        init{
-            backbutton = view.findViewById(R.id.backbutton);
-            infobutton = view.findViewById(R.id.appinfobutton);
-            addappbutton = view.findViewById(R.id.addappbutton)
-        }
+        var infobutton:LinearLayout = view.findViewById(R.id.appinfobutton)
+        var addappbutton:LinearLayout = view.findViewById(R.id.addappbutton)
+        var backbutton:LinearLayout = view.findViewById(R.id.backbutton)
 
     }
 
@@ -114,7 +103,7 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
 
     fun dragAndDropApp(pos:Int, context: Context){
         Toast.makeText(context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
-        EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color, draganddrop = true))
+        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, draganddrop = true))
     }
 
     /**
@@ -123,30 +112,23 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
         val appInfo: AppInfo = getItem(pos)
         if (holder is MarsPhotosViewHolder) {
-            holder.bind(appInfo, viewMoo)
-            if(viewMoo.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewMoo.appsList.value!![pos].color.toInt())
+            holder.bind(appInfo, viewModel)
+            if(viewModel.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewModel.appsList.value!![pos].color.toInt())
             holder.itemView.setOnLongClickListener{ v ->
                 showMenu(pos)
-                /*Toast.makeText(v.context, "Loading app info...", Toast.LENGTH_SHORT).show()
-                val intent = Intent()
-                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                val uri: Uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)
-                intent.data = uri
-                startActivity(v.context, intent, null)*/
-
                 return@setOnLongClickListener true
             }
             holder.itemView.setOnClickListener { v ->
                 val context = v.context
                 val launchIntent: Intent? =
-                    context.packageManager.getLaunchIntentForPackage(viewMoo.appsList.value!![pos].packageName)
+                    context.packageManager.getLaunchIntentForPackage(viewModel.appsList.value!![pos].packageName)
                 if(launchIntent != null) {
-                    EventBus.getDefault().post(MessageEvent(viewMoo.appsList.value!![pos].label, pos, viewMoo.appsList.value!![pos].packageName, viewMoo.appsList.value!![pos].color))
+                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color))
                 } else {
                     Log.d("ingo", "No launch intent")
                 }
                 //context.startActivity(launchIntent)
-                Toast.makeText(v.context, viewMoo.appsList.value!![pos].label, Toast.LENGTH_SHORT).show()
+                Toast.makeText(v.context, viewModel.appsList.value!![pos].label, Toast.LENGTH_SHORT).show()
                 Log.d("ingo", "id grr rv klika je " + appInfo.id.toString())
             }
         }
@@ -161,13 +143,17 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
                 closeMenu()
                 val intent = Intent()
                 intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                val uri = Uri.fromParts("package", viewMoo.appsList.value!![pos].packageName, null)
+                val uri = Uri.fromParts("package", viewModel.appsList.value!![pos].packageName, null)
                 intent.data = uri
                 it.context.startActivity(intent)
             }
         }
     }
 
+    // return the size of languageList
+    override fun getItemCount(): Int {
+        return viewModel.appsList.value!!.size
+    }
 
     fun showMenu(position: Int) {
         idOtvorenogMenija = position

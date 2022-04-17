@@ -51,5 +51,6 @@
     <string name="what_would_you_like_to_add">Što biste željeli dodati?</string>
     <string name="search_to_scroll">Traži da pronađeš</string>
     <string name="drag_and_drop_app">Odaberi kvačicu za dodavanje.</string>
+    <string name="dark_mode">Dark mode</string>
 
 </resources>

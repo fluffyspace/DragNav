@@ -41,7 +41,6 @@ class SearchFragment : Fragment() {
 
     private val viewModel: NewRAdapterViewModel by activityViewModels()
     lateinit var search_bar: EditText
-    lateinit var search_lista_aplikacija: MutableList<Pair<Int, AppInfo>>
     lateinit var imm: InputMethodManager
     lateinit var chipGroup: ChipGroup
     lateinit var mactivity:MainActivity
@@ -80,7 +79,7 @@ class SearchFragment : Fragment() {
                     intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.packageName)
                     //intent.setPackage("com.android.chrome");
                     startActivity(intent)
-                    mactivity.showLayout(MainActivity.LAYOUT_MAIN)
+                    mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_MAIN)
                     search_bar.setText("")
                     return@setOnEditorActionListener true
                 }
@@ -93,7 +92,7 @@ class SearchFragment : Fragment() {
                     chipGroup.removeAllViews()
                     return@addTextChangedListener
                 }
-                search_lista_aplikacija = getAppsByQuery(search_bar.text.toString())
+                val search_lista_aplikacija = getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
 
                 /*chipGroup.setOnClickListener{
                     val chip = it as Chip
@@ -145,6 +144,7 @@ class SearchFragment : Fragment() {
 
             }
         }
+        initializeSearch()
     }
 
     fun locateView(v: View?): Rect? {
@@ -185,8 +185,10 @@ class SearchFragment : Fragment() {
     }
 
     fun initializeSearch(){
-        search_bar.setText("")
-        search_bar.requestFocus()
+        if(::search_bar.isInitialized) {
+            search_bar.setText("")
+            search_bar.requestFocus()
+        }
         imm.showSoftInput(search_bar, InputMethodManager.SHOW_IMPLICIT)
     }
 
@@ -208,87 +210,91 @@ class SearchFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
-    }
 
-    fun getAppsByQuery(query:String):MutableList<Pair<Int, AppInfo>>{
-        search_lista_aplikacija = mutableListOf()
-        //var slova_search = query.map{ it }
-        val slova_search_lowercase = query.map{ it.lowercaseChar() }
-        for(app in viewModel.appsList.value!!) {
-            var counter = 0
+        fun getAppsByQuery(apps: List<AppInfo>, query:String):MutableList<Pair<Int, AppInfo>>{
+            var search_lista_aplikacija: MutableList<Pair<Int, AppInfo>> = mutableListOf()
+            //var slova_search = query.map{ it }
+            val slova_search_lowercase = query.map{ it.lowercaseChar() }
+            for(app in apps) {
+                var counter = 0
+                var index_counter = 0
+                // provjerava ako je svako koje je u query prisutno u labeli aplikacije. ako nije, preskače se aplikacija
+                for(slovo in app.label.lowercase()){
+                    if(slovo == query[index_counter].lowercaseChar()){
+                        index_counter++
+                        if(index_counter == query.length) break
+                    }
+                }
+                if(index_counter != query.length){
+                    continue
+                }
+                if(app.label.first().lowercaseChar() == slova_search_lowercase[0]){
+                    counter += 5
+                    if(query.length == 2) {
+                        // prvo i zadnje slovo
+                        if (app.label.last().lowercaseChar() == slova_search_lowercase[1]) {
+                            counter += 10
+                            Log.d("ingo", app.label + " ako počinje s prvim slovom i završava s drugim " + query)
+                        }
+                        // prva slova riječi odvojene razmakom
+                        val splitano = app.label.split(" ")
+                        if (splitano.size > 1 && splitano[1].first().lowercaseChar() == slova_search_lowercase[1]) {
+                            counter += 5
+                            Log.d("ingo", app.label + " ako je prvo slovo prva riječ, drugo slovo druga riječ " + query)
+                        }
+                    }
+                    if(app.label.lowercase().startsWith(query.lowercase())){
+                        counter += 5*query.length
+                        Log.d("ingo", app.label + " startsWith " + query)
+                    }
+                }
+                // velika slova
+                var counter2 = 0
+                for ((index, slovo) in app.label.iterator().withIndex()) {
+                    //if (index == 0) continue
+                    counter2 = 0
+                    if (slovo.isUpperCase() && slova_search_lowercase.contains(slovo.lowercaseChar())) {
+                        counter2++
+                        Log.d("ingo", app.label + " upper case contains " + query)
+                    }
+                    if(counter2 == query.length) counter += 10
+                }
+                if(query.length > 1) {
+                    val matches = countMatches(app.label.lowercase(), query.lowercase())
+                    if (matches == query.length) {
+                        counter += matches * 7
+                        Log.d(
+                            "ingo",
+                            "matches " + app.label.toString() + " " + query + " " + matches
+                        )
+                    }
+                }
+                if(counter > 0) search_lista_aplikacija.add(Pair(counter, app))
+            }
+            search_lista_aplikacija.sortByDescending { it.first }
+            return search_lista_aplikacija
+        }
+
+        fun countMatches(string: String, pattern: String): Int {
+            var max_match = 0
+            var match_counter = 0
             var index_counter = 0
-            // provjerava ako je svako koje je u query prisutno u labeli aplikacije. ako nije, preskače se aplikacija
-            for(slovo in app.label.lowercase()){
-                if(slovo == query[index_counter].lowercaseChar()){
+            for(i in string){
+                if(i == pattern[index_counter]){
                     index_counter++
-                    if(index_counter == query.length) break
+                    match_counter++
+                    if(match_counter > max_match) max_match = match_counter
+                    if(index_counter >= pattern.length) break
+                } else {
+                    index_counter = 0
+                    match_counter = 0
                 }
             }
-            if(index_counter != query.length){
-                continue
-            }
-            if(app.label.first().lowercaseChar() == slova_search_lowercase[0]){
-                counter += 5
-                if(query.length == 2) {
-                    // prvo i zadnje slovo
-                    if (app.label.last().lowercaseChar() == slova_search_lowercase[1]) {
-                        counter += 10
-                        Log.d("ingo", app.label + " ako počinje s prvim slovom i završava s drugim " + query)
-                    }
-                    // prva slova riječi odvojene razmakom
-                    val splitano = app.label.split(" ")
-                    if (splitano.size > 1 && splitano[1].first().lowercaseChar() == slova_search_lowercase[1]) {
-                        counter += 5
-                        Log.d("ingo", app.label + " ako je prvo slovo prva riječ, drugo slovo druga riječ " + query)
-                    }
-                }
-                if(app.label.lowercase().startsWith(query.lowercase())){
-                    counter += 5*query.length
-                    Log.d("ingo", app.label + " startsWith " + query)
-                }
-            }
-            // velika slova
-            var counter2 = 0
-            for ((index, slovo) in app.label.iterator().withIndex()) {
-                //if (index == 0) continue
-                counter2 = 0
-                if (slovo.isUpperCase() && slova_search_lowercase.contains(slovo.lowercaseChar())) {
-                    counter2++
-                    Log.d("ingo", app.label + " upper case contains " + query)
-                }
-                if(counter2 == query.length) counter += 10
-            }
-            if(query.length > 1) {
-                val matches = countMatches(app.label.lowercase(), query.lowercase())
-                if (matches == query.length) {
-                    counter += matches * 7
-                    Log.d(
-                        "ingo",
-                        "matches " + app.label.toString() + " " + query + " " + matches
-                    )
-                }
-            }
-            if(counter > 0) search_lista_aplikacija.add(Pair(counter, app))
+            return max_match
         }
-        search_lista_aplikacija.sortByDescending { it.first }
-        return search_lista_aplikacija
     }
 
-    fun countMatches(string: String, pattern: String): Int {
-        var max_match = 0
-        var match_counter = 0
-        var index_counter = 0
-        for(i in string){
-            if(i == pattern[index_counter]){
-                index_counter++
-                match_counter++
-                if(match_counter > max_match) max_match = match_counter
-                if(index_counter >= pattern.length) break
-            } else {
-                index_counter = 0
-                match_counter = 0
-            }
-        }
-        return max_match
-    }
+
+
+
 }

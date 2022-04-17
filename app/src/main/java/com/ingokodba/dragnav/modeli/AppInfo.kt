@@ -10,5 +10,6 @@ data class AppInfo (
     val label:String,
     val packageName:String,
     var color:String = "",
-    var installed: Boolean = false
+    var installed: Boolean = false,
+    var frequency: Int = 0,
 )

@@ -148,12 +148,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
 
+
+
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         // 1
-        size = Math.min(measuredWidth, measuredHeight)
+        size = measuredWidth
         if(size < measuredWidth){
             size_width = measuredWidth
         } else {
@@ -329,19 +331,13 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         val gcolor = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_COLOR, "-1")
         if (gcolor != null) {
             setColor(gcolor)
-            Log.d("ingo", "config setcolor to " + gcolor)
-        } else {
-            Log.d("ingo", "config no color")
         }
         val circles = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_CIRCLES_TOGGLE, true)
         draw_circles = circles
-        Log.d("ingo", "config draw_circles to " + circles)
         val icons = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
         draw_icons = icons
-        Log.d("ingo", "config draw_icons to " + icons)
         val shadow = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHADOW_TOGGLE, true)
         shadow_toggle = shadow
-        Log.d("ingo", "config shadow_toggle to " + shadow)
         val border_width1 = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_BORDER_WIDTH, "4")
         try {
             if (border_width1 != null) {
@@ -351,8 +347,6 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             border_width = 4f
             e.printStackTrace()
         }
-
-        Log.d("ingo", "config border_width to " + border_width)
     }
 
     private fun drawCheckButton(canvas: Canvas) {

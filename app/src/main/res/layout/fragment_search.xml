@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#BBFFFFFF"
+        android:background="?attr/colorSurface"
         android:padding="20dp">
         <EditText
             android:id="@+id/search_bar"
@@ -32,11 +32,12 @@
                 android:layout_height="wrap_content"
                 android:text="@string/applications"
                 android:textSize="18sp"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="10dp"
+                android:textColor="?attr/colorOnSurface"/>
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#555"/>
+                android:background="?attr/colorOnSurface"/>
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chipgroup_aplikacije"
                 android:layout_width="match_parent"

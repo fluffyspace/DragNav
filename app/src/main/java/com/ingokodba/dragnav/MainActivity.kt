@@ -2,15 +2,14 @@ package com.ingokodba.dragnav
 
 //import com.example.dragnav.databinding.ActivityMainBinding
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.*
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +20,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.Window
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -29,18 +29,10 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.LinearSmoothScroller
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.SmoothScroller
 import androidx.window.layout.WindowMetricsCalculator
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -61,13 +53,13 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(),
-    PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
+class MainActivity : AppCompatActivity(){
     val viewModel: NewRAdapterViewModel by viewModels()
-    lateinit var resources2:Resources
+
 
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
+        lateinit var resources2:Resources
         val ACTION_CANCEL = -1
         val ACTION_LAUNCH = -2
         val ACTION_ADD = -3
@@ -78,10 +70,9 @@ class MainActivity : AppCompatActivity(),
         val MENU_APPLICATION_OR_FOLDER = 0
         val MENU_SHORTCUT = 1
         val MENU_ACTION = 2
-        val LAYOUT_MAIN = 0
-        val LAYOUT_SEARCH = 1
-        val LAYOUT_ACTIVITIES = 2
-        val LAYOUT_SETTINGS = 3
+        enum class Layouts {
+            LAYOUT_MAIN, LAYOUT_SEARCH, LAYOUT_ACTIVITIES, LAYOUT_SETTINGS
+        }
         val ACTION_IMPORT = 1
         val ACTION_EXPORT = 2
     }
@@ -92,14 +83,10 @@ class MainActivity : AppCompatActivity(),
 
     var shortcutPopup:PopupWindow? = null
 
-    lateinit var recycle_view_label:TextView
-    lateinit var search_bar:EditText
-    lateinit var recycler_view:RecyclerView
-
     var appListOpened:Boolean = false
     val cache_apps:Boolean = true
     var selectAppMenuOpened:Boolean = false
-    var currentLayout:Int = LAYOUT_MAIN
+    var currentLayout:Layouts = Layouts.LAYOUT_MAIN
     var colorpicker:Boolean = false
     var addingNewApp:MessageEvent? = null
 
@@ -124,12 +111,12 @@ class MainActivity : AppCompatActivity(),
 
     var backButtonAction:Boolean = false
 
-    lateinit var radapter: NewRAdapter
+
     var import_export_action:Int = 0
 
     lateinit var mainFragment:MainFragment
     lateinit var searchFragment:SearchFragment
-    lateinit var settingsFragment:MySettingsFragment
+    lateinit var activitiesFragment:ActivitiesFragment
 
     fun changeLocale(c:Context){
         val config = c.resources.configuration
@@ -193,210 +180,145 @@ class MainActivity : AppCompatActivity(),
         }*/
         supportFragmentManager.commit { setReorderingAllowed(true) }
         loadFragments()
-        showMainFragment()
         //loadMainFragment()
 
-        val smoothScroller: SmoothScroller =
-            object : LinearSmoothScroller(this.applicationContext) {
-                override fun getVerticalSnapPreference(): Int {
-                    return SNAP_TO_START
-                }
-            }
-        recycle_view_label = findViewById<TextView>(R.id.recycle_view_label)
-        search_bar = findViewById<EditText>(R.id.search_bar)
-        search_bar.apply {
-            addTextChangedListener {
-                Log.d("ingo", "text changed to " + search_bar.text.toString())
-                // find apps
-                if (search_bar.text.toString().length == 0) {
 
-
-                    return@addTextChangedListener
-                } else {
-                    val search_lista_aplikacija =
-                        searchFragment.getAppsByQuery(search_bar.text.toString())
-                    if (search_lista_aplikacija.size > 0) {
-                        for (i in 0..viewModel.appsList.value!!.size) {
-                            if (viewModel.appsList.value!![i] == search_lista_aplikacija[0].second) {
-                                //recycler_view.scrollToPosition(i)
-                                smoothScroller.targetPosition = i
-                                (recycler_view.layoutManager)?.startSmoothScroll(smoothScroller)
-                                Log.d(
-                                    "ingo",
-                                    "scrolling for " + viewModel.appsList.value!![i].label
-                                )
-                                break
-                            }
-                        }
-                    }
-                }
-            }
-        }
         /*findViewById<Button>(R.id.pocetna_button).setOnClickListener{
             goToPocetna()
         }*/
-        radapter = NewRAdapter(viewModel)
-        recycler_view = findViewById<RecyclerView>(R.id.recycler_view)
-        recycler_view.adapter = radapter
 
-        val touchHelperCallback: ItemTouchHelper.SimpleCallback =
-            object : ItemTouchHelper.SimpleCallback(0,(ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)) {
-                private val background = ColorDrawable(resources.getColor(R.color.colorPrimary))
-                override fun onMove(
-                    recyclerView: RecyclerView,
-                    viewHolder: RecyclerView.ViewHolder,
-                    target: RecyclerView.ViewHolder
-                ): Boolean {
-                    return false
-                }
 
-                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                    radapter.showMenu(viewHolder.adapterPosition)
-                }
 
-                override fun onChildDraw(
-                    c: Canvas,
-                    recyclerView: RecyclerView,
-                    viewHolder: RecyclerView.ViewHolder,
-                    dX: Float,
-                    dY: Float,
-                    actionState: Int,
-                    isCurrentlyActive: Boolean
-                ) {
-                    super.onChildDraw(
-                        c,
-                        recyclerView,
-                        viewHolder,
-                        dX,
-                        dY,
-                        actionState,
-                        isCurrentlyActive
-                    )
-                    val itemView = viewHolder.itemView
-                    if (dX > 0) {
-                        background.setBounds(
-                            itemView.left,
-                            itemView.top,
-                            itemView.left + dX.toInt(),
-                            itemView.bottom
-                        )
-                    } else if (dX < 0) {
-                        background.setBounds(
-                            itemView.right + dX.toInt(),
-                            itemView.top,
-                            itemView.right,
-                            itemView.bottom
-                        )
-                    } else {
-                        background.setBounds(0, 0, 0, 0)
-                    }
-                    background.draw(c)
-                }
-            }
-        val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
-        itemTouchHelper.attachToRecyclerView(findViewById<RecyclerView>(R.id.recycler_view))
+
 
         //binding.recyclerView.adapter = radapter
         //findViewById<RecyclerView>(R.id.recycler_view).adapter = radapter
         //Toast.makeText(this, "App list loading", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch(Dispatchers.IO) {
             initializeRoom()
-            withContext(Dispatchers.Main){
-
+            withContext(Dispatchers.Main) {
+                mainFragment.circleView.icons = viewModel.icons.value!!
+                mainFragment.goToPocetna()
+                mainFragment.updateStuff();
+                mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
             }
             if(circleViewLoadIcons) loadIcons()
             Log.d("ingo", "initializeRoom after loadicons")
             withContext(Dispatchers.Main) {
                 Log.d("ingo", "vm.pocetna ima id " + viewModel.pocetnaId.toString())
-                mainFragment.goToPocetna()
-                mainFragment.updateStuff();
                 mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
+                mainFragment.circleView.icons = viewModel.icons.value!!
 
                 //Toast.makeText(c, "App list loaded", Toast.LENGTH_SHORT).show()
             }
         }
-
-
         //findViewById<ImageButton>(R.id.plus_button).setOnClickListener { openAddMenu(it) }
     }
 
     fun loadFragments(){
         mainFragment = MainFragment()
         searchFragment = SearchFragment()
-        settingsFragment = MySettingsFragment()
+        activitiesFragment = ActivitiesFragment()
         supportFragmentManager
             .beginTransaction()
-            .add(R.id.settings_container, mainFragment, "main")
-            .add(R.id.settings_container, searchFragment, "search")
-            .add(R.id.settings_container, settingsFragment, "settings")
-            .commitNow()
-        mainFragment = supportFragmentManager.findFragmentByTag("main") as MainFragment
+            .replace(R.id.settings_container, mainFragment, "main")
+            .setReorderingAllowed(true)
+            .commit()
     }
 
     fun showMainFragment(){
-        supportFragmentManager
-            .beginTransaction()
-            .show(mainFragment)
-            .hide(searchFragment)
-            .hide(settingsFragment)
-            .commit()
-        //mainFragment = supportFragmentManager.findFragmentByTag("main") as MainFragment
+        supportFragmentManager.popBackStack()
+    }
+
+    fun showActivitiesFragment(){
+        supportFragmentManager.commit {
+            setCustomAnimations(
+                R.anim.slideup,
+                R.anim.fadeout,
+                R.anim.fadein,
+                R.anim.slidedown
+            )
+            replace(R.id.settings_container, activitiesFragment, "activities")
+            setReorderingAllowed(true)
+            addToBackStack(null)
+        }
     }
 
     fun showSearchFragment(){
-        supportFragmentManager
-            .beginTransaction()
-            .show(searchFragment)
-            .hide(mainFragment)
-            .hide(settingsFragment)
-            .commit()
-        searchFragment.initializeSearch()
-        //searchFragment = supportFragmentManager.findFragmentByTag("search") as SearchFragment
-        //searchFragment = supportFragmentManager.findFragmentByTag("search") as SearchFragment
+        supportFragmentManager.commit {
+            setCustomAnimations(
+                R.anim.slidein,
+                R.anim.fadeout,
+                R.anim.fadein,
+                R.anim.slideout
+            )
+            replace(R.id.settings_container, searchFragment, "search")
+            setReorderingAllowed(true)
+            addToBackStack(null)
+        }
     }
 
-    fun showSettingsFragment(){
-        supportFragmentManager
-            .beginTransaction()
-            .show(settingsFragment)
-            .hide(searchFragment)
-            .hide(mainFragment)
-            .commit()
-        //mainFragment = supportFragmentManager.findFragmentByTag("main") as MainFragment
-    }
+    fun showLayout(id:Layouts){
+        Log.d("ingo", "show layout " + id.name)
+        //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
 
-    fun showLayout(id:Int){
-        Log.d("ingo", "show layout " + id.toString())
-        findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
-        radapter.closeMenu()
-        search_bar.setText("")
+        var changeId = true
+        if(currentLayout == id) return
         when(id){
-            LAYOUT_ACTIVITIES -> {
-                findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
+            Layouts.LAYOUT_ACTIVITIES -> {
+                //findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
+                showActivitiesFragment()
+                Log.d("ingo", "showActivitiesFragment")
             }
-            LAYOUT_SEARCH -> {
-                findViewById<View>(R.id.recycle_container).visibility = View.INVISIBLE
+            Layouts.LAYOUT_SEARCH -> {
+                //findViewById<View>(R.id.recycle_container).visibility = View.GONE
                 showSearchFragment()
             }
-            LAYOUT_MAIN -> {
-                findViewById<View>(R.id.recycle_container).visibility = View.INVISIBLE
+            Layouts.LAYOUT_MAIN -> {
                 showMainFragment()
                 mainFragment.circleView.updateDesign()
                 mainFragment.circleView.invalidate()
             }
-            LAYOUT_SETTINGS -> {
-                findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.WHITE)
-                findViewById<View>(R.id.recycle_container).visibility = View.INVISIBLE
-                showSettingsFragment()
+            Layouts.LAYOUT_SETTINGS -> {
+                //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.WHITE)
+                //findViewById<View>(R.id.recycle_container).visibility = View.GONE
+                //showSettingsFragment()
+                val intent = Intent(this, SettingsActivity::class.java)
+                resultLauncher.launch(intent)
+                changeId = false
             }
         }
-        currentLayout = id
+        if(changeId){
+            currentLayout = id
+        }
         return
     }
 
-    fun startColorpicker(){
-        val intent = Intent(this, ColorPickerActivity::class.java)
-        startActivity(intent)
+    var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // There are no request codes
+            val data: Intent? = result.data
+            Log.d("ingo", "registerForActivityResult")
+            if(data != null){
+                if(data.hasExtra("refresh"))
+                {
+                    mainFragment.bottomMenuView.requestLayout()
+                    mainFragment.bottomMenuView.invalidate()
+                }
+                if(data.hasExtra("backButtonAction"))
+                {
+                    backButtonAction = data.getBooleanExtra("backButtonAction", false)
+                }
+                if(data.hasExtra("restart"))
+                {
+                    startActivity(Intent.makeRestartActivityTask(intent?.component));
+                }
+                if(data.hasExtra("dropDatabase"))
+                {
+                    dropDatabase()
+                }
+            }
+        }
     }
 
     fun dropDatabase(){
@@ -462,7 +384,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 withContext(Dispatchers.Main) {
                     toggleAppMenu(0)
-                    showLayout(LAYOUT_MAIN)
+                    showLayout(Layouts.LAYOUT_MAIN)
                     mainFragment.refreshCurrentMenu()
                 }
             }
@@ -578,7 +500,6 @@ class MainActivity : AppCompatActivity(),
             Log.d("ingo", "loaded " + (viewModel.appsList.value?.size ?: 0) + " cached apps")
         }
 
-
         Log.d("ingo", "initializeRoom before loadnewapps")
         val newApps = loadNewApps()
 
@@ -620,7 +541,7 @@ class MainActivity : AppCompatActivity(),
         Log.d("ingo", "initializeRoom before addall")
         withContext(Dispatchers.Main) {
             viewModel.addApps(newApps)
-            mainFragment.circleView.icons = viewModel.icons.value!!
+            //mainFragment.circleView.icons = viewModel.icons.value!!
         }
         //radapter.appsList.sortBy { it.label.toString().lowercase() }
         //if(cache_apps){
@@ -641,6 +562,7 @@ class MainActivity : AppCompatActivity(),
                 )
                 viewModel.icons.value!![pname] = icon
                 if(icon != null) {
+
                     viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(icon).toString()
                 }
             } catch (e: Resources.NotFoundException){}
@@ -753,7 +675,7 @@ class MainActivity : AppCompatActivity(),
         var newApps: MutableList<AppInfo> = mutableListOf()
 
         val packs = packageManager.getInstalledPackages(0)
-        var colorPrimary: Int = 0
+        var colorPrimary: Int = Color.BLACK
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
@@ -781,7 +703,7 @@ class MainActivity : AppCompatActivity(),
                     }
                     viewModel.icons.value!![p.applicationInfo.packageName] = icon
                 } else {
-                    colorPrimary = 0
+                    colorPrimary = Color.BLACK
                 }
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
@@ -816,9 +738,9 @@ class MainActivity : AppCompatActivity(),
         return newApps
     }
 
-    fun circleViewToggleAddAppMode(yesno:Int = -1){
-        if(yesno != -1) {
-            viewModel.addNewAppMode = yesno != 0
+    fun circleViewToggleAddAppMode(yesOrNo:Int = -1){
+        if(yesOrNo != -1) {
+            viewModel.addNewAppMode = yesOrNo != 0
         } else {
             viewModel.addNewAppMode = !viewModel.addNewAppMode
         }
@@ -834,10 +756,12 @@ class MainActivity : AppCompatActivity(),
     fun onMessageEvent(event: MessageEvent?) {
         // Do something
         if (event != null) {
+            Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
             if(event.draganddrop){
-                showLayout(LAYOUT_MAIN)
+                showLayout(Layouts.LAYOUT_MAIN)
                 addingNewApp = event
                 circleViewToggleAddAppMode(1)
+                Log.d("ingo", "it's dragndrop")
                 return
             }
             if(selectAppMenuOpened){
@@ -850,39 +774,38 @@ class MainActivity : AppCompatActivity(),
                 val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(event.launchIntent)
                 startActivity(launchIntent)
             }
-            Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
+
         }
     }
 
     fun toggleAppMenu(open:Int=-1){
         mainFragment.updateStuff()
         selectAppMenuOpened = false
-        recycle_view_label.visibility = View.GONE
         when(open){
             -1 -> appListOpened = !appListOpened
             0 -> appListOpened = false
             1 -> appListOpened = true
         }
         if(appListOpened){
-            showLayout(LAYOUT_ACTIVITIES)
+            showLayout(Layouts.LAYOUT_ACTIVITIES)
         } else {
-            showLayout(LAYOUT_MAIN)
+            showLayout(Layouts.LAYOUT_MAIN)
         }
     }
 
     override fun onBackPressed() {
         if(colorpicker){
-            showLayout(LAYOUT_SETTINGS)
+            showLayout(Layouts.LAYOUT_SETTINGS)
             colorpicker = false
             return
         }
-        if(currentLayout != LAYOUT_MAIN){
-            showLayout(LAYOUT_MAIN)
+        if(currentLayout != Layouts.LAYOUT_MAIN){
+            showLayout(Layouts.LAYOUT_MAIN)
         } else {
             if(backButtonAction) {
-                showLayout(LAYOUT_SEARCH)
+                showLayout(Layouts.LAYOUT_SEARCH)
             } else {
-                showLayout(LAYOUT_ACTIVITIES)
+                showLayout(Layouts.LAYOUT_ACTIVITIES)
             }
             mainFragment.updateStuff()
         }
@@ -1005,24 +928,7 @@ class MainActivity : AppCompatActivity(),
         return listOf()
     }
 
-    override fun onPreferenceStartFragment(
-        caller: PreferenceFragmentCompat,
-        pref: Preference
-    ): Boolean {
-        // Instantiate the new Fragment
-        val args = pref.extras
-        val fragment = supportFragmentManager.fragmentFactory.instantiate(
-            classLoader,
-            pref.fragment)
-        fragment.arguments = args
-        fragment.setTargetFragment(caller, 0)
-        // Replace the existing Fragment with the new Fragment
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.settings_container, fragment)
-            /*.addToBackStack(null)*/
-            .commit()
-        return true
-    }
+
 
 
 

@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="bottom">
+        android:gravity="top">
         <TextView
             android:id="@+id/notification"
             android:layout_width="match_parent"
@@ -43,6 +43,6 @@
         android:id="@+id/bottomMenuView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="bottom" />
+        android:layout_gravity="bottom"/>
 
 </FrameLayout>

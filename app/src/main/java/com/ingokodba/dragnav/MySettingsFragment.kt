@@ -1,5 +1,6 @@
 package com.ingokodba.dragnav
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -13,7 +14,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 class MySettingsFragment : PreferenceFragmentCompat() {
-    lateinit var mactivity:MainActivity
+    lateinit var mactivity:SettingsActivity
     companion object{
         val UI_COLOR = "ui_color"
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
@@ -29,10 +30,13 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val RESTART = "restart"
         val DROP_DATABASE = "drop_database"
     }
+
+    val data:Intent = Intent()
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
         view?.setBackgroundColor(Color.BLACK)
-        mactivity = (activity as MainActivity)
+        mactivity = (activity as SettingsActivity)
 
         val colorPick: Preference? = findPreference(UI_COLOR)
         colorPick?.setOnPreferenceClickListener  {
@@ -42,21 +46,23 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
         val drop_database: Preference? = findPreference(DROP_DATABASE)
         drop_database?.setOnPreferenceClickListener  {
-            mactivity.dropDatabase()
+            data.putExtra("dropDatabase", true);
+            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+            (activity as SettingsActivity).finish()
             return@setOnPreferenceClickListener true
         }
 
         val import: Preference? = findPreference(IMPORT)
         import?.setOnPreferenceClickListener  {
             Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
-            mactivity.import_export_action = MainActivity.ACTION_IMPORT
+            //mactivity.import_export_action = MainActivity.ACTION_IMPORT
             return@setOnPreferenceClickListener true
         }
 
         val export: Preference? = findPreference(EXPORT)
         export?.setOnPreferenceClickListener  {
             Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
-            mactivity.import_export_action = MainActivity.ACTION_EXPORT
+            //mactivity.import_export_action = MainActivity.ACTION_EXPORT
             return@setOnPreferenceClickListener true
         }
 
@@ -68,7 +74,9 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
         val restart: Preference? = findPreference(RESTART)
         restart?.setOnPreferenceClickListener  {
-            startActivity(Intent.makeRestartActivityTask(activity?.intent?.component));
+            data.putExtra("restart", true);
+            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+            (activity as SettingsActivity).finish()
             return@setOnPreferenceClickListener true
         }
 
@@ -76,17 +84,14 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         languageSwitch?.setOnPreferenceChangeListener { preference, newValue ->
             MaterialAlertDialogBuilder(requireContext(),
                 androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
-                .setMessage(mactivity.resources2.getString(R.string.restart_required))
-                .setNegativeButton(mactivity.resources2.getString(R.string.cancel)) { dialog, which ->
+                .setMessage(MainActivity.resources2.getString(R.string.restart_required))
+                .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
                     // Respond to negative button press
                 }
-                .setPositiveButton(mactivity.resources2.getString(R.string.restart)) { dialog, which ->
-                    // Respond to negative button press
-                    mactivity.showLayout(MainActivity.LAYOUT_MAIN)
-                    //mactivity.recreate()
-                    startActivity(Intent.makeRestartActivityTask(activity?.intent?.component));
-
-
+                .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
+                    data.putExtra("restart", true);
+                    (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+                    (activity as SettingsActivity).finish()
                 }
                 .show()
             return@setOnPreferenceChangeListener true
@@ -99,14 +104,15 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
         val onelineSwitch: SwitchPreference? = findPreference(UI_ONELINE)
         onelineSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            mactivity.mainFragment.bottomMenuView.requestLayout()
-            mactivity.mainFragment.bottomMenuView.invalidate()
+            data.putExtra("refresh", true);
+            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
             return@setOnPreferenceChangeListener true
         }
 
         val backButtonSwitch: SwitchPreference? = findPreference(UI_BACKBUTTON)
         backButtonSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            mactivity.backButtonAction = newValue.toString().toBoolean()
+            data.putExtra("backButtonAction", newValue.toString().toBoolean());
+            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
             return@setOnPreferenceChangeListener true
         }
 
@@ -124,7 +130,5 @@ class MySettingsFragment : PreferenceFragmentCompat() {
             startActivity(intent)
         }
     }
-
-
 
 }

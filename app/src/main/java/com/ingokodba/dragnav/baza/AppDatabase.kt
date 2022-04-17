@@ -1,15 +1,12 @@
 package com.ingokodba.dragnav.baza
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
+import androidx.room.*
 import com.ingokodba.dragnav.AppListener
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 
-@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 1)
+@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 1, autoMigrations = [AutoMigration (from = 1, to = 2)])
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun meniJednoPoljeDao(): MeniJednoPoljeDao

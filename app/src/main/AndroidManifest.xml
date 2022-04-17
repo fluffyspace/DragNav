@@ -5,14 +5,15 @@
     <permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
     <permission android:name="com.android.launcher.permission" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <supports-screens
-        android:smallScreens="true"
-        android:normalScreens="true"
+        android:anyDensity="true"
         android:largeScreens="true"
-        android:xlargeScreens="true"
-        android:anyDensity="true" />
+        android:normalScreens="true"
+        android:smallScreens="true"
+        android:xlargeScreens="true" />
 
     <queries>
         <intent>
@@ -27,28 +28,37 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Shrine">
-        <receiver android:name="com.ingokodba.dragnav.AppListener"
-            android:exported="false">
-            <intent-filter android:priority="999">
-                <action android:name="android.intent.action.PACKAGE_ADDED"/>
-                <action android:name="android.intent.action.PACKAGE_REMOVED"/>
-                <data android:scheme="package"/>
+        <activity
+            android:name="com.ingokodba.dragnav.SettingsActivity"
+            android:exported="false"
+            android:parentActivityName="com.ingokodba.dragnav.MainActivity"/>
+
+        <receiver
+            android:name="com.ingokodba.dragnav.AppListener"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
             </intent-filter>
         </receiver>
+
         <activity
             android:name="com.ingokodba.dragnav.ColorPickerActivity"
             android:exported="false" />
         <activity
             android:name="com.ingokodba.dragnav.MainActivity2"
-            android:exported="true"></activity>
+            android:exported="true" />
         <activity
             android:name="com.ingokodba.dragnav.MainActivity"
-            android:windowSoftInputMode="adjustNothing"
             android:alwaysRetainTaskState="true"
             android:excludeFromRecents="false"
             android:exported="true"
             android:launchMode="singleInstance"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustNothing">
 
             <!--  -->
             <intent-filter>

@@ -74,6 +74,7 @@ class MainFragment : Fragment() {
         circleView.setEventListener(object :
             CircleView.IMyEventListener {
             override fun onEventOccurred(event: MotionEvent, counter: Int, current: Int) {
+                Log.d("ingo", "onEventOccurred")
                 touched(event, counter, current)
             }
         })
@@ -85,14 +86,25 @@ class MainFragment : Fragment() {
         })
         selected_text = view.findViewById(R.id.selected_text)
         global_view = view
-        view.findViewById<LinearLayout>(R.id.relativelayout).updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        /*view.findViewById<LinearLayout>(R.id.relativelayout).updateLayoutParams<ViewGroup.MarginLayoutParams> {
             setMargins(0, 0, 0, (bottomMenuView.detectSize*2+bottomMenuView.padding*3).toInt())
-        }
+        }*/
         view.findViewById<LinearLayout>(R.id.relativelayout).setOnClickListener { bottomMenuView.collapse()
         Log.d("ingo", "collapse?")}
+        if(viewModel.icons.value != null){
+            circleView.icons = viewModel.icons.value!!
+            Log.d("ingo", "icons who??")
+        }
+        if(viewModel.addNewAppMode){
+            circleView.addAppMode = viewModel.addNewAppMode
+            if(viewModel.addNewAppMode) {
+                circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_CHECK)
+            } else {
+                circleView.amIHome()
+            }
+        }
+        goToPocetna()
     }
-
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -136,6 +148,7 @@ class MainFragment : Fragment() {
             mactivity.addNewApp(mactivity.addingNewApp)
             mactivity.addingNewApp = null
             mactivity.circleViewToggleAddAppMode(0)
+            Log.d("ingo", "trebalo je cancelat")
             return
         }
         if(counter == MainActivity.ACTION_CANCEL){
@@ -232,7 +245,7 @@ class MainFragment : Fragment() {
                 visibility = View.VISIBLE
             }*/
             mactivity.shortcutPopup?.dismiss()
-            mactivity.recycle_view_label.visibility = View.VISIBLE
+            mactivity.showActivitiesFragment()
             //changeeditMode()
             //toggleAppMenu()
         }
@@ -279,10 +292,10 @@ class MainFragment : Fragment() {
         if(counter >= 0) {
             when (counter) {
                 0 -> addNew()
-                1 -> mactivity.showLayout(MainActivity.LAYOUT_ACTIVITIES)
+                1 -> mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
                 2 -> changeeditMode()
                 3 -> {
-                    mactivity.showLayout(MainActivity.LAYOUT_SEARCH)//initializeSearch()
+                    mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SEARCH)//initializeSearch()
                 }
                 4 -> settings()
                 5 -> collapseMenu()
@@ -309,7 +322,7 @@ class MainFragment : Fragment() {
 
     fun settings(){
         //startActivity(Intent(android.provider.Settings.ACTION_SETTINGS), null);
-        mactivity.showLayout(MainActivity.LAYOUT_SETTINGS)
+        mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SETTINGS)
 
     }
 
@@ -329,8 +342,8 @@ class MainFragment : Fragment() {
     fun updateStuff() {
         //findViewById<RecyclerView>(R.id.recycler_view).adapter?.notifyDataSetChanged()
         //mactivity.radapter.notifyItemInserted(mactivity.radapter.getItemCount() - 1)
-        mactivity.radapter.submitList(viewModel.appsList.value)
-        mactivity.radapter.notifyDataSetChanged()
+        //mactivity.radapter.submitList(viewModel.appsList.value)
+        //mactivity.radapter.notifyDataSetChanged()
     }
     fun deYellowAll(){
         circleView.deyellowAll()
@@ -339,7 +352,6 @@ class MainFragment : Fragment() {
         bottomMenuView.invalidate()
     }
     fun prebaciMeni(id:Int, counter:Int, nostack:Boolean=false, precaci:Boolean=false): MeniJednoPolje? {
-
         val polje = getPolje(id)
         Log.d("ingo", "prebaciMeni " + id)
         if(polje != null){
@@ -421,7 +433,7 @@ class MainFragment : Fragment() {
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni(viewModel.pocetnaId, -1)
-        selected_text.setText(mactivity.resources2.getString(R.string.home))
+        selected_text.setText(MainActivity.resources2.getString(R.string.home))
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }

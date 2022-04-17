@@ -10,8 +10,7 @@
         android:layout_height="60dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:padding="10dp"
-        android:textSize="10sp" />
+        android:padding="10dp" />
     <TextView
         android:id="@+id/text"
         android:layout_width="0dp"

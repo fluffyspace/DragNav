@@ -16,6 +16,11 @@
             app:title="@string/show_circles"
             app:defaultValue="true"/>
 
+        <SwitchPreference
+            app:key="ui_dark_mode"
+            app:title="@string/dark_mode"
+            app:defaultValue="false"/>
+
         <Preference
             app:key="ui_color"
             app:title="@string/primary_color"/>

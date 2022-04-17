@@ -1,9 +1,11 @@
 package com.ingokodba.dragnav
 
+import android.content.Context
 import android.graphics.drawable.Drawable
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 
@@ -35,7 +37,7 @@ class NewRAdapterViewModel  : ViewModel() {
      * Call getMarsPhotos() on init so we can display status immediately.
      */
     init {
-        _icons.value = mutableMapOf()
+        _icons.postValue(mutableMapOf())
         _popis_aplikacija.clear()
     }
 
