@@ -8,22 +8,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.*
 import android.content.res.Resources
+import android.database.Cursor
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.Window
+import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.ListPopupWindow
 import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
@@ -48,6 +49,8 @@ import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
@@ -66,6 +69,7 @@ class MainActivity : AppCompatActivity(){
         val ACTION_HOME = -4
         val ACTION_ADD_APP = -5
         val ACTION_APPINFO = "appinfo"
+        val ACTION_ADD_PRECAC = "add_shortcut"
         val MENU_UNDEFINED = -1
         val MENU_APPLICATION_OR_FOLDER = 0
         val MENU_SHORTCUT = 1
@@ -84,11 +88,10 @@ class MainActivity : AppCompatActivity(){
     var shortcutPopup:PopupWindow? = null
 
     var appListOpened:Boolean = false
-    val cache_apps:Boolean = true
+    val cache_apps:Boolean = false
     var selectAppMenuOpened:Boolean = false
     var currentLayout:Layouts = Layouts.LAYOUT_MAIN
-    var colorpicker:Boolean = false
-    var addingNewApp:MessageEvent? = null
+    var addingNewAppEvent:MessageEvent? = null
 
     var roomMeniPolja:List<MeniJednoPolje>? = null
     lateinit var pocetna: MeniJednoPolje
@@ -150,6 +153,19 @@ class MainActivity : AppCompatActivity(){
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val darkModeString = getString(R.string.dark_mode)
+        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
+        val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
+        when (darkModePreference) {
+            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
+            else -> {}
+        }
+
+        viewModel.initialize()
         changeLocale(this)
         pocetna = MeniJednoPolje(0, resources2.getString(R.string.home))
         loadOnBackButtonPreference()
@@ -259,7 +275,7 @@ class MainActivity : AppCompatActivity(){
     }
 
     fun showLayout(id:Layouts){
-        Log.d("ingo", "show layout " + id.name)
+        Log.d("ingo", "show layout " + id.name + " currently " + currentLayout)
         //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
 
         var changeId = true
@@ -294,6 +310,24 @@ class MainActivity : AppCompatActivity(){
         return
     }
 
+    fun getLastImage(){
+        val projection = arrayOf(
+            MediaStore.Images.ImageColumns._ID,
+            MediaStore.Images.ImageColumns.DATA,
+            MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+            MediaStore.Images.ImageColumns.DATE_TAKEN,
+            MediaStore.Images.ImageColumns.MIME_TYPE
+        )
+        val cursor: Cursor? = contentResolver
+            .query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
+                null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC"
+            )
+        if (cursor?.moveToFirst() == true) {
+            val imageLocation: String = cursor.getString(1)
+        }
+    }
+
     var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             // There are no request codes
@@ -315,6 +349,7 @@ class MainActivity : AppCompatActivity(){
                 }
                 if(data.hasExtra("dropDatabase"))
                 {
+                    Log.d("ingo", "dropDatabase")
                     dropDatabase()
                 }
             }
@@ -394,7 +429,9 @@ class MainActivity : AppCompatActivity(){
     override fun onResume() {
         super.onResume()
         //recreate()
+        mainFragment.circleView.updateDesign()
         mainFragment.circleView.invalidate()
+        Log.d("ingo", "invalidated")
     }
 
     override fun onStart() {
@@ -465,11 +502,22 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
-    suspend fun initializeRoom(){
+    suspend fun addFrequency(application: AppInfo){
+        val db = AppDatabase.getInstance(this)
+        val appDao: AppInfoDao = db.appInfoDao()
+        application.frequency++// = application.frequency!! + 1
+        application.lastLaunched = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+        appDao.update(application)
+        val lol = appDao.getAll()
+        Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
+    }
+
+    private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
         if(!loadAppsBool){
             viewModel.listaMenija += pocetna
             viewModel.pocetnaId = pocetna.id
+            viewModel.currentMenuId = pocetna.id
             return
         }
         val db = AppDatabase.getInstance(this)
@@ -481,15 +529,17 @@ class MainActivity : AppCompatActivity(){
                 showIntroPopup()
             }
         } else {
-            viewModel.listaMenija += meniPolja
-            viewModel.pocetnaId = meniPolja.first().id
+            withContext(Dispatchers.Main) {
+                viewModel.listaMenija += meniPolja
+                viewModel.pocetnaId = meniPolja.first().id
+            }
         }
         for(meni in viewModel.listaMenija){
             if(meni.id > viewModel.highestId) viewModel.highestId = meni.id
         }
         val appDao: AppInfoDao = db.appInfoDao()
         Log.d("ingo", "initializeRoom before cache")
-        if(cache_apps) {
+        if(false) {
             val cached_apps = appDao.getAll() as MutableList<AppInfo>
             for(app in cached_apps){
                 app.installed = false
@@ -497,34 +547,40 @@ class MainActivity : AppCompatActivity(){
             withContext(Dispatchers.Main) {
                 viewModel.addApps(cached_apps)
             }
-            Log.d("ingo", "loaded " + (viewModel.appsList.value?.size ?: 0) + " cached apps")
+            Log.d("ingo", "loadedaa " + cached_apps.map{it.label}.toString() + " cached apps in mainactivity")
+            Log.d("ingo", "loaded " + (viewModel.appsList.value?.size ?: 0) + " cached apps to viewmodel")
         }
 
         Log.d("ingo", "initializeRoom before loadnewapps")
-        val newApps = loadNewApps()
+        val newAppsInitialize = loadNewApps()
+        Log.d("ingo", "grgr " + newAppsInitialize.map{it.label}.toString())
+
 
         // potrebno izbaciti aplikacije koje su deinstalirane
-        for( i in (viewModel.appsList.value!!.size-1) downTo 0){
-            val pn = viewModel.appsList.value!![i].packageName
-            Log.d("ingo", "check for remove " + pn)
-            if(!viewModel.appsList.value!![i].installed){
-                appDao.delete(viewModel.appsList.value!![i])
-                withContext(Dispatchers.Main) {
-                    viewModel.removeApp(viewModel.appsList.value!![i])
-                }
-                Log.d("ingo", "removed " + pn)
-                for(polje in meniPolja.reversed()){
-                    if(polje.nextIntent == pn){
-                        recDao.delete(polje)
-                        viewModel.listaMenija.remove(polje)
+        val remove_duplicates = true
+        if(remove_duplicates) {
+            for (i in (viewModel.appsList.value!!.size - 1) downTo 0) {
+                val pn = viewModel.appsList.value!![i].packageName
+                //Log.d("ingo", "check for remove " + pn)
+                if (!viewModel.appsList.value!![i].installed) {
+                    appDao.delete(viewModel.appsList.value!![i])
+                    withContext(Dispatchers.Main) {
+                        viewModel.removeApp(viewModel.appsList.value!![i])
+                    }
+                    Log.d("ingo", "removed " + pn)
+                    for (polje in meniPolja.reversed()) {
+                        if (polje.nextIntent == pn) {
+                            recDao.delete(polje)
+                            viewModel.listaMenija.remove(polje)
+                        }
                     }
                 }
             }
         }
 
         Log.d("ingo", "initializeRoom before insertall")
-        if(cache_apps && newApps.isNotEmpty()){
-            for(app in newApps){
+        if(cache_apps && newAppsInitialize.isNotEmpty()){
+            for(app in newAppsInitialize){
                 Log.d("ingo", "new app " + app.label)
                 try {
                     appDao.insertAll(app)
@@ -540,14 +596,13 @@ class MainActivity : AppCompatActivity(){
         }
         Log.d("ingo", "initializeRoom before addall")
         withContext(Dispatchers.Main) {
-            viewModel.addApps(newApps)
+            viewModel.addApps(newAppsInitialize)
             //mainFragment.circleView.icons = viewModel.icons.value!!
         }
         //radapter.appsList.sortBy { it.label.toString().lowercase() }
         //if(cache_apps){
         Log.d("ingo", "initializeRoom before loadicons")
     }
-
     fun loadIcon(pname: String, quality:Boolean=true){
         if (pname == "" || viewModel.icons.value!!.containsKey(pname)) return
         try {
@@ -562,7 +617,6 @@ class MainActivity : AppCompatActivity(){
                 )
                 viewModel.icons.value!![pname] = icon
                 if(icon != null) {
-
                     viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(icon).toString()
                 }
             } catch (e: Resources.NotFoundException){}
@@ -671,20 +725,20 @@ class MainActivity : AppCompatActivity(){
     }
 
     @SuppressWarnings("ResourceType")
-    suspend fun loadNewApps(): MutableList<AppInfo>{
+    fun loadNewApps(): MutableList<AppInfo>{
         var newApps: MutableList<AppInfo> = mutableListOf()
 
-        val packs = packageManager.getInstalledPackages(0)
         var colorPrimary: Int = Color.BLACK
+        val packs = packageManager.getInstalledPackages(0)
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
                 if(isAppLoaded(p.applicationInfo.uid)) {
                     val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
-                    Log.d("ingo", "isAppLoaded " + p.packageName)
+                    //Log.d("ingo", "isAppLoaded " + p.packageName)
                     if(app != null) {
                         app.installed = true
-                        Log.d("ingo", "installed true " + app.packageName)
+                        //Log.d("ingo", "installed true " + app.packageName)
                     }
                     continue
                 }
@@ -718,7 +772,7 @@ class MainActivity : AppCompatActivity(){
         val allApps = packageManager.queryIntentActivities(i, 0)
         for (ri in allApps) {
             val uid = packageManager.getPackageUid(ri.activityInfo.packageName, 0)
-            Log.d("ingo", "uid " + uid)
+            //Log.d("ingo", "uid " + uid)
             if(isAppLoaded(uid) || newApps.map{it.id}.contains(uid)) {
                 viewModel.appsList.value?.find { it.id == uid }?.installed = true
                 continue
@@ -747,8 +801,12 @@ class MainActivity : AppCompatActivity(){
         mainFragment.circleView.addAppMode = viewModel.addNewAppMode
         if(viewModel.addNewAppMode) {
             mainFragment.circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_CHECK)
+            mainFragment.bottomMenuView.visibility = View.GONE
+            mainFragment.addingMenuCancelOk.visibility = View.VISIBLE
         } else {
             mainFragment.circleView.amIHome()
+            mainFragment.addingMenuCancelOk.visibility = View.GONE
+            mainFragment.bottomMenuView.visibility = View.VISIBLE
         }
     }
 
@@ -759,18 +817,24 @@ class MainActivity : AppCompatActivity(){
             Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
             if(event.draganddrop){
                 showLayout(Layouts.LAYOUT_MAIN)
-                addingNewApp = event
+                addingNewAppEvent = event
                 circleViewToggleAddAppMode(1)
                 Log.d("ingo", "it's dragndrop")
                 return
             }
+            // kad se dodaje aplikacija pomoću bottom viewa
             if(selectAppMenuOpened){
                 // izaberi ovu aplikaciju
+                showLayout(Layouts.LAYOUT_MAIN)
+                Toast.makeText(this, "Adding " + event.text, Toast.LENGTH_SHORT).show()
                 addNewApp(event)
                 //selectAppMenuOpened = false
                 //findViewById<TextView>(R.id.notification).visibility = View.INVISIBLE
             } else {
                 // otvori ovu aplikaciju
+                lifecycleScope.launch(Dispatchers.IO) {
+                    addFrequency(event.app)
+                }
                 val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(event.launchIntent)
                 startActivity(launchIntent)
             }
@@ -794,15 +858,12 @@ class MainActivity : AppCompatActivity(){
     }
 
     override fun onBackPressed() {
-        if(colorpicker){
-            showLayout(Layouts.LAYOUT_SETTINGS)
-            colorpicker = false
-            return
-        }
         if(currentLayout != Layouts.LAYOUT_MAIN){
             showLayout(Layouts.LAYOUT_MAIN)
         } else {
-            if(backButtonAction) {
+            if(viewModel.editMode){
+                mainFragment.changeeditMode()
+            } else if(backButtonAction) {
                 showLayout(Layouts.LAYOUT_SEARCH)
             } else {
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
@@ -828,6 +889,16 @@ class MainActivity : AppCompatActivity(){
         MaterialAlertDialogBuilder(this,
             androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
             .setMessage(resources.getString(R.string.intro_message))
+            .setNegativeButton(resources2.getString(R.string.close)) { dialog, which ->
+                // Respond to negative button press
+            }
+            .show()
+    }
+
+    fun showActionsTodoPopup(){
+        MaterialAlertDialogBuilder(this,
+            androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
+            .setMessage(resources.getString(R.string.actions_todo_message))
             .setNegativeButton(resources2.getString(R.string.close)) { dialog, which ->
                 // Respond to negative button press
             }

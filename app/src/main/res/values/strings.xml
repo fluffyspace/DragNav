@@ -2,6 +2,7 @@
     <string name="app_name">DragLauncher</string>
     <string name="folder_name">Folder name</string>
     <string name="cancel">Cancel</string>
+    <string name="add">Add</string>
     <string name="close">Close</string>
     <string name="add_folder">Add folder</string>
     <string name="applications">Applications</string>
@@ -23,9 +24,10 @@
     <string name="edit_link">Edit link</string>
     <string name="loading">Loading…</string>
     <string name="intro_message">Hi, user. This app is still in development, so don\'t be cruel on reviews. Share your feedback with me via email if you want and happy navigating! \n\nEmail: ingokodba@gmail.com</string>
+    <string name="actions_todo_message">This feature is not yet implemented. It will be possible to </string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="ui_design">UI design</string>
+    <string name="ui_design">UI</string>
     <string name="show_circles">Show circles</string>
     <string name="primary_color">Primary color</string>
     <string name="shadow">Show shadow</string>
@@ -49,6 +51,8 @@
     <string name="pick">Pick</string>
     <string name="what_would_you_like_to_add">What would you like to add?</string>
     <string name="search_to_scroll">Search to scroll</string>
-    <string name="drag_and_drop_app">Drag and drop app!</string>
-    <string name="dark_mode">Dark mode</string>
+    <string name="drag_and_drop_app">Adding new app shortcut</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
+    <string name="open_default_apps">Open default apps</string>
 </resources>

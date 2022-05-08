@@ -5,5 +5,6 @@ data class MessageEvent(
     val pos:Int,
     val launchIntent: String,
     val color: String = "",
-    val draganddrop: Boolean = false
+    val draganddrop: Boolean = false,
+    val app: AppInfo
 )

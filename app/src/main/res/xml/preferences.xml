@@ -16,10 +16,12 @@
             app:title="@string/show_circles"
             app:defaultValue="true"/>
 
-        <SwitchPreference
-            app:key="ui_dark_mode"
-            app:title="@string/dark_mode"
-            app:defaultValue="false"/>
+        <ListPreference
+            app:defaultValue="@string/dark_mode_def_value"
+            app:entries="@array/dark_mode_entries"
+            app:entryValues="@array/dark_mode_values"
+            app:key="@string/dark_mode"
+            app:title="@string/dark_mode" />
 
         <Preference
             app:key="ui_color"
@@ -73,6 +75,11 @@
     <PreferenceCategory
         app:key="help_category"
         app:title="@string/help">
+
+        <Preference
+            app:key="default_apps"
+            app:title="@string/open_default_apps"
+            app:summary="Set this launcher as default to get more shortcuts"/>
 
         <Preference
             app:key="restart"

@@ -3,6 +3,7 @@
     <string name="folder_name">Ime mape</string>
     <string name="cancel">Odustani</string>
     <string name="close">Zatvori</string>
+    <string name="add">Dodaj</string>
     <string name="add_folder">Dodaj mapu</string>
     <string name="applications">Aplikacije</string>
     <string name="search_apps_or_surf_internet">Traži aplikacije ili surfaj</string>
@@ -26,7 +27,7 @@
     <!-- Probaj koristiti aplikaciju tijekom par dana, isprobaj sve mogućnosti i na kraju reci što vam smeta, kako da poboljšam aplikaciju za vaš ukus. Slobodno mi se javite ako hoćete da dodam nekoga na mailing listu za testiranje. Sretno navigiranje! -->
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="ui_design">Dizajn</string>
+    <string name="ui_design">Korisničko sučelje</string>
     <string name="show_circles">Prikaži krugove</string>
     <string name="primary_color">Primarna boja</string>
     <string name="shadow">Prikaži sjene</string>
@@ -52,5 +53,6 @@
     <string name="search_to_scroll">Traži da pronađeš</string>
     <string name="drag_and_drop_app">Odaberi kvačicu za dodavanje.</string>
     <string name="dark_mode">Dark mode</string>
-
+    <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
+    <string name="open_default_apps">Otvori zadane aplikacije</string>
 </resources>

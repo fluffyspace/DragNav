@@ -44,6 +44,7 @@ class SearchFragment : Fragment() {
     lateinit var imm: InputMethodManager
     lateinit var chipGroup: ChipGroup
     lateinit var mactivity:MainActivity
+    lateinit var shortcutPopup: PopupWindow
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -88,11 +89,17 @@ class SearchFragment : Fragment() {
             addTextChangedListener {
                 Log.d("ingo", "text changed to " + search_bar.text.toString())
                 // find apps
+                val search_lista_aplikacija: MutableList<Pair<Int, AppInfo>>
                 if(search_bar.text.toString().length == 0) {
-                    chipGroup.removeAllViews()
-                    return@addTextChangedListener
+                    //val search_lista_aplikacija: MutableList<AppInfo> = mutableListOf()
+                    val sortirano = viewModel.appsList.value!!.filter{ it.frequency > 0 }.sortedByDescending { it.lastLaunched }
+                    val max = if (sortirano.size > 5) 5 else sortirano.size
+                    search_lista_aplikacija = (0 until max)
+                        .map { Pair(it, sortirano[it]) }.toMutableList()
+                } else {
+                    search_lista_aplikacija =
+                        getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
                 }
-                val search_lista_aplikacija = getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
 
                 /*chipGroup.setOnClickListener{
                     val chip = it as Chip
@@ -123,14 +130,14 @@ class SearchFragment : Fragment() {
                         // otvori ovu aplikaciju
                         val launchIntent: Intent? = requireContext().packageManager.getLaunchIntentForPackage(app.second.packageName.toString())
                         if(launchIntent != null) {
-                            mactivity.onMessageEvent(MessageEvent(search_lista_aplikacija[chip.id].second.label, 0, search_lista_aplikacija[chip.id].second.packageName, search_lista_aplikacija[chip.id].second.color))
+                            mactivity.onMessageEvent(MessageEvent(search_lista_aplikacija[chip.id].second.label, 0, search_lista_aplikacija[chip.id].second.packageName, search_lista_aplikacija[chip.id].second.color, app=search_lista_aplikacija[chip.id].second))
                         }
                         imm.hideSoftInputFromWindow(windowToken, 0)
                         //startActivity(launchIntent)
                     }
                     chip.setOnLongClickListener{
                         val contentView = createMenu(app.second)
-                        val shortcutPopup = PopupWindow(contentView,
+                        shortcutPopup = PopupWindow(contentView,
                             ListPopupWindow.WRAP_CONTENT,
                             ListPopupWindow.WRAP_CONTENT, true)
                         //shortcutPopup?.animationStyle = R.style.PopupAnimation
@@ -172,10 +179,12 @@ class SearchFragment : Fragment() {
             val uri = Uri.fromParts("package", app.packageName, null)
             intent.data = uri
             it.context.startActivity(intent)
+            shortcutPopup.dismiss()
         }
         view.findViewById<LinearLayout>(R.id.start_adding).setOnClickListener{
-            Toast.makeText(context, getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
-            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, draganddrop = true))
+            //Toast.makeText(context, getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
+            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, draganddrop = true, app = app))
+            shortcutPopup.dismiss()
         }
         return view
     }

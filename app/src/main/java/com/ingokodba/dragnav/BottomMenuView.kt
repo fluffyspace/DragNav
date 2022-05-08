@@ -1,12 +1,14 @@
 package com.ingokodba.dragnav
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import androidx.annotation.ColorInt
 import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
@@ -94,6 +96,8 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         invalidate()
     }
 
+    var darkMode: Boolean = false
+
     init {
         context.theme.obtainStyledAttributes(
             attrs,
@@ -119,13 +123,39 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         semi_transparent_paint.style = Paint.Style.FILL
         semi_transparent_paint.strokeWidth = borderWidth
 
-        circle_paint.color = Color.parseColor("#ffffff")
-        circle_paint.style = Paint.Style.FILL
-        circle_paint.strokeWidth = borderWidth
-
-        hover_circle_paint.color = Color.parseColor("#cccccc")
         hover_circle_paint.style = Paint.Style.FILL
         hover_circle_paint.strokeWidth = borderWidth
+
+        var circle_paint_color: Int
+        var hover_circle_paint_color: Int
+        var icon_tint: Int
+        when (context.resources?.configuration?.uiMode?.and(Configuration.UI_MODE_NIGHT_MASK)) {
+            Configuration.UI_MODE_NIGHT_YES -> {
+                icon_tint = Color.WHITE
+                circle_paint_color = Color.parseColor("#222222")
+                hover_circle_paint_color = Color.parseColor("#555555")
+                darkMode = true
+            }
+            else -> {
+                icon_tint = Color.parseColor("#222222")
+                circle_paint_color = Color.WHITE
+                hover_circle_paint_color = Color.parseColor("#cccccc")
+            }
+        }
+
+        circle_paint.color = circle_paint_color
+        for(drawable in drawables){
+            drawable?.setTint(icon_tint)
+        }
+        for(drawable in edit_drawables){
+            drawable?.setTint(icon_tint)
+        }
+        collapse_icon?.setTint(icon_tint)
+        expand_icon?.setTint(icon_tint)
+        hover_circle_paint.color = hover_circle_paint_color
+
+        circle_paint.style = Paint.Style.FILL
+        circle_paint.strokeWidth = borderWidth
 
         circle_border_paint.color = Color.parseColor("#BB000000")
         circle_border_paint.style = Paint.Style.STROKE
@@ -152,16 +182,16 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         cx = measuredWidth/2f
         cy = global_height/2f
         if(!overriden) {
-            Log.d(
+            /*Log.d(
                 "ingo",
                 "small_screen " + small_screen + " global_height " + global_height + " global_width " + global_width
-            )
+            )*/
             //small_screen = measuredWidth/measuredHeight > 1.7
             var duzina_visina_omjer: Float = global_width / global_height.toFloat()
-            Log.d(
+            /*Log.d(
                 "ingo",
                 "duzina_visina_omjer " + duzina_visina_omjer + " global_height " + global_height + " (global_width/1.434f).toInt() " + (global_width / 1.434f).toInt()
-            )
+            )*/
             if (duzina_visina_omjer < 1.434f) global_height = (global_width / 1.434f).toInt()
             duzina_visina_omjer = global_width / global_height.toFloat()
             //if(overriden && )
@@ -282,7 +312,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             }
             drawCircle(cx, cy, radius, circle_border_paint)
             points?.add(Point(cx.toInt(), cy.toInt()))
-            val bitmap: Bitmap? = drawable?.apply { setTint(Color.BLACK) }?.toBitmap()
+            val bitmap: Bitmap? = drawable?.apply { /*setTint(Color.BLACK)*/ }?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(
                     bitmap,

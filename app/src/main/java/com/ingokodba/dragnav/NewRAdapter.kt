@@ -102,8 +102,8 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
     }
 
     fun dragAndDropApp(pos:Int, context: Context){
-        Toast.makeText(context, "Drag and drop app!", Toast.LENGTH_SHORT).show()
-        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, draganddrop = true))
+        //Toast.makeText(context, context.getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
+        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, draganddrop = true, app = viewModel.appsList.value!![pos]))
     }
 
     /**
@@ -123,12 +123,12 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
                 val launchIntent: Intent? =
                     context.packageManager.getLaunchIntentForPackage(viewModel.appsList.value!![pos].packageName)
                 if(launchIntent != null) {
-                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color))
+                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, app=viewModel.appsList.value!![pos]))
                 } else {
                     Log.d("ingo", "No launch intent")
                 }
                 //context.startActivity(launchIntent)
-                Toast.makeText(v.context, viewModel.appsList.value!![pos].label, Toast.LENGTH_SHORT).show()
+
                 Log.d("ingo", "id grr rv klika je " + appInfo.id.toString())
             }
         }

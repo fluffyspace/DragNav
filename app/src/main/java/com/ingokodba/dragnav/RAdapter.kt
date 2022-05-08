@@ -44,7 +44,7 @@ class RAdapter(c: Context) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
             val launchIntent: Intent? =
                 context.packageManager.getLaunchIntentForPackage(appsList[pos].packageName)
             if(launchIntent != null) {
-                EventBus.getDefault().post(MessageEvent(appsList[pos].label, pos, appsList[pos].packageName, appsList[pos].color))
+                EventBus.getDefault().post(MessageEvent(appsList[pos].label, pos, appsList[pos].packageName, appsList[pos].color, app=appsList[pos]))
             } else {
                 Log.d("ingo", "No launch intent")
             }

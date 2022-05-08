@@ -2,19 +2,18 @@ package com.ingokodba.dragnav
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.text.InputType
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.*
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 class MySettingsFragment : PreferenceFragmentCompat() {
-    lateinit var mactivity:SettingsActivity
+    lateinit var settingsActivity:SettingsActivity
     companion object{
         val UI_COLOR = "ui_color"
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
@@ -29,18 +28,41 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val FEEDBACK = "feedback"
         val RESTART = "restart"
         val DROP_DATABASE = "drop_database"
+        val DEFAULT_APPS = "default_apps"
     }
 
     val data:Intent = Intent()
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
-        view?.setBackgroundColor(Color.BLACK)
-        mactivity = (activity as SettingsActivity)
+        settingsActivity = (activity as SettingsActivity)
+
+        val darkModeString = getString(R.string.dark_mode)
+        val darkMode: ListPreference? = findPreference(darkModeString)
+        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
+        darkMode?.summary = PreferenceManager.getDefaultSharedPreferences(context).getString(darkModeString, darkModeValues[3])
+        darkMode?.setOnPreferenceChangeListener { preference, newValue ->
+            when (newValue) {
+                darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
+                else -> {}
+            }
+            darkMode?.summary = newValue as CharSequence
+            return@setOnPreferenceChangeListener true
+        }
 
         val colorPick: Preference? = findPreference(UI_COLOR)
         colorPick?.setOnPreferenceClickListener  {
-            mactivity.startColorpicker()
+            settingsActivity.startColorpicker()
+            return@setOnPreferenceClickListener true
+        }
+
+
+        val defaultApps: Preference? = findPreference(DEFAULT_APPS)
+        defaultApps?.setOnPreferenceClickListener  {
+            settingsActivity.openDefaultApps()
             return@setOnPreferenceClickListener true
         }
 
@@ -126,7 +148,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         intent.data = Uri.parse("mailto:") // only email apps should handle this
         intent.putExtra(Intent.EXTRA_EMAIL, addresses)
         intent.putExtra(Intent.EXTRA_SUBJECT, subject)
-        if (intent.resolveActivity(mactivity.packageManager) != null) {
+        if (intent.resolveActivity(settingsActivity.packageManager) != null) {
             startActivity(intent)
         }
     }

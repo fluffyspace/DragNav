@@ -31,6 +31,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private val circle_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val empty_circle_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val close_inside_paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    val clear_boja = Paint(Paint.ANTI_ALIAS_FLAG)
     //private val yellow_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val thick_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val semi_transparent_paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -48,6 +49,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var text_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
     val infodrawable = context.getDrawable(R.drawable.ic_outline_info_75)
+    val adddrawable = context.getDrawable(R.drawable.ic_baseline_add_50)
     //lateinit var radapter:RAdapter
 
     var gcolor = Color.parseColor("#FBB8AC")
@@ -148,7 +150,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
 
-
+        clear_boja.setXfermode(PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
 
     }
 
@@ -235,8 +237,12 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         for(text_point in text_points){
             if(rect.contains(text_point)){
                 //if(counter >= no_draw_position) counter++
-                mEventListener?.onEventOccurred(event, counter, no_draw_position)
-                found = true
+                    if(counter == app_list.size){
+                        mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
+                    } else {
+                        mEventListener?.onEventOccurred(event, counter, no_draw_position)
+                        found = true
+                    }
                 /*if(hovered_over != counter) {
                     hovered_over = counter
                     invalidate()
@@ -453,9 +459,36 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 val draw_pointF = PointF( ((cx+x).toFloat()), ((cy+y).toFloat()) )
                 val draw_point = Point( draw_pointF.x.toInt(), draw_pointF.y.toInt() )
                 var text:String
+                if((counter >= app_list.size && draw_circles) || counter < app_list.size ) {
+                    drawCircle(
+                        draw_pointF.x,
+                        draw_pointF.y,
+                        detectSize.toFloat(), clear_boja
+                    )
+                }
                 if(counter >= app_list.size){
+                    /*if(counter == app_list.size && app_list.size <= 7){
+                        drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
+                        adddrawable?.setTint(Color.WHITE)
+                        val bitmap: Bitmap? = adddrawable?.toBitmap()
+                        drawBitmap(
+                            bitmap!!, null, Rect(
+                                (draw_pointF.x - detectSize*2/3).toInt(),
+                                (draw_pointF.y - detectSize*2/3).toInt(),
+                                (draw_pointF.x + detectSize*2/3).toInt(),
+                                (draw_pointF.y + detectSize*2/3).toInt()
+                            ), null
+                        )
+                        text_points.add(draw_point)
+                    }*/
                     text = ""
-                    if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
+                    if (draw_circles) drawCircle(
+                        draw_pointF.x,
+                        draw_pointF.y,
+                        detectSize.toFloat(),
+                        empty_circle_paint
+                    )
+
                 } else {
                     text = app_list[counter].text
                     circle_paint.color = Color.parseColor("#55000000")
@@ -464,6 +497,9 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                         if(app_list[counter].nextIntent == MainActivity.ACTION_APPINFO){
                             drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
                             bitmap = infodrawable?.toBitmap()
+                        } else if(app_list[counter].nextIntent == MainActivity.ACTION_ADD_PRECAC){
+                            drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
+                            bitmap = adddrawable?.apply { setTint(Color.WHITE) }?.toBitmap()
                         } else {
                             //Log.d("ingo", "pokusavam boju " + color_list[counter])
                             try {
@@ -472,6 +508,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                                 e.printStackTrace()
                             }
                             bitmap = icons[app_list[counter].nextIntent]?.toBitmap()
+                            Log.d("ingo", "applist[" + counter + "].nextIntent = " + app_list[counter].nextIntent )
                         }
                             //radapter.icons[app_list[counter].nextIntent]?.toBitmap()
                         if (draw_icons && bitmap != null) {

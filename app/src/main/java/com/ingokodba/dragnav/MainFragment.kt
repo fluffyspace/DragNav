@@ -13,20 +13,13 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.view.marginBottom
-import androidx.core.view.updateLayoutParams
-import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.activityViewModels
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
-import androidx.fragment.app.viewModels
-import androidx.preference.PreferenceManager
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -46,6 +39,9 @@ class MainFragment : Fragment() {
     lateinit var mactivity:MainActivity
     lateinit var selected_text: TextView
     lateinit var global_view:View
+    lateinit var addingMenuCancelOk:LinearLayout
+    lateinit var cancelAddingApp:Button
+    lateinit var addApp: Button
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -65,6 +61,18 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
         bottomMenuView = view.findViewById(R.id.bottomMenuView)
+        addingMenuCancelOk = view.findViewById(R.id.addingMenuCancelOk)
+        cancelAddingApp = view.findViewById(R.id.cancelAddingApp)
+        addApp = view.findViewById(R.id.addApp)
+
+        cancelAddingApp.setOnClickListener {
+            cancelAddingAppHandler()
+        }
+
+        addApp.setOnClickListener {
+            addNewAppHandler()
+        }
+
         /*viewModel.icons.observe(this) {
             circleView.icons = it
             circleView.lala()
@@ -99,11 +107,19 @@ class MainFragment : Fragment() {
             circleView.addAppMode = viewModel.addNewAppMode
             if(viewModel.addNewAppMode) {
                 circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_CHECK)
+                bottomMenuView.visibility = View.GONE
+                addingMenuCancelOk.visibility = View.VISIBLE
             } else {
                 circleView.amIHome()
+                addingMenuCancelOk.visibility = View.GONE
+                bottomMenuView.visibility = View.VISIBLE
             }
         }
-        goToPocetna()
+            goToPocetna()
+        /*if(viewModel.currentMenuId == -1){
+        } else {
+            refreshCurrentMenu()
+        }*/
     }
 
     override fun onCreateView(
@@ -134,6 +150,17 @@ class MainFragment : Fragment() {
             }
     }
 
+    fun cancelAddingAppHandler(){
+        mactivity.addingNewAppEvent = null
+        mactivity.circleViewToggleAddAppMode(0)
+    }
+
+    fun addNewAppHandler(){
+        mactivity.addNewApp(mactivity.addingNewAppEvent)
+        cancelAddingAppHandler()
+        Log.d("ingo", "trebalo je cancelat")
+    }
+
     fun touched(event:MotionEvent, counter:Int, no_draw_position:Int){
         Log.d("ingo", "touched " + event.action.toString() + " " + counter)
         bottomMenuView.collapse()
@@ -145,10 +172,11 @@ class MainFragment : Fragment() {
         //if(counter+1 > viewModel.lastTextViewEnteredCounter) sublist_counter = counter+1
         //Toast.makeText(this, lista[counter], Toast.LENGTH_SHORT).show()
         if(counter == MainActivity.ACTION_ADD_APP){
-            mactivity.addNewApp(mactivity.addingNewApp)
-            mactivity.addingNewApp = null
-            mactivity.circleViewToggleAddAppMode(0)
-            Log.d("ingo", "trebalo je cancelat")
+            addNewAppHandler()
+            return
+        }
+        if(counter == MainActivity.ACTION_ADD){
+            addNew()
             return
         }
         if(counter == MainActivity.ACTION_CANCEL){
@@ -219,9 +247,6 @@ class MainFragment : Fragment() {
                     }
                 }
             }
-            if(counter == MainActivity.ACTION_ADD){
-                addNew()
-            }
         }
     }
 
@@ -245,7 +270,7 @@ class MainFragment : Fragment() {
                 visibility = View.VISIBLE
             }*/
             mactivity.shortcutPopup?.dismiss()
-            mactivity.showActivitiesFragment()
+            mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
             //changeeditMode()
             //toggleAppMenu()
         }
@@ -270,6 +295,8 @@ class MainFragment : Fragment() {
                     val uri = Uri.fromParts("package", viewModel.lastEnteredIntent!!.nextId, null)
                     intent.data = uri
                     startActivity(intent)
+                } else if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_ADD_PRECAC){
+                    addNew()
                 }
             }
         } else {
@@ -326,9 +353,13 @@ class MainFragment : Fragment() {
 
     }
 
+    fun maxElementsPresent(): Boolean{
+        return (circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 8) || (!circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 7)
+    }
+
     fun addNew(){
         Log.d("ingo", "it's add")
-        if((circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 8) || (!circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 7)) {
+        if(maxElementsPresent()) {
             Toast.makeText(requireContext(), "Max. elements present. ", Toast.LENGTH_SHORT).show()
         } else {
             Log.d("ingo", "openaddmenu")
@@ -336,7 +367,7 @@ class MainFragment : Fragment() {
         }
     }
     fun refreshCurrentMenu(){
-        prebaciMeni(viewModel.currentMenu.id, viewModel.selected_global)
+        prebaciMeni(viewModel.currentMenuId, viewModel.selected_global)
         Log.d("ingo", "current menu refreshed")
     }
     fun updateStuff() {
@@ -356,12 +387,8 @@ class MainFragment : Fragment() {
         Log.d("ingo", "prebaciMeni " + id)
         if(polje != null){
             viewModel.currentMenu = polje
+            viewModel.currentMenuId = id
             prikaziPrecace(polje.id, counter)
-            /*if(!precaci) {
-                prikazi(polje.id, counter)
-            } else {
-
-            }*/
 
             selected_text.text = polje.text
             if(!nostack){
@@ -400,10 +427,14 @@ class MainFragment : Fragment() {
         var polja = getSubPolja(prosiriId)
         if(trenutnoPolje?.nextIntent != "" ) {
             precaci.add(MeniJednoPolje(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
+        } else {
+            if(!(circleView.amIHomeVar && precaci.size+polja.size >= 8) && !(!circleView.amIHomeVar && precaci.size+polja.size >= 7))
+                polja.add(MeniJednoPolje(id=0, text= "Add app", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
         }
         viewModel.currentSubmenuList = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
         circleView.setTextList(viewModel.currentSubmenuList)
+        Log.d("ingo", "currentSubmenuList " + viewModel.currentSubmenuList.map{it.text}.toString())
         circleView.setPosDontDraw(selected)
         viewModel.selected_global = selected
         viewModel.max_subcounter = (viewModel.currentSubmenuList).size
@@ -437,7 +468,7 @@ class MainFragment : Fragment() {
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }
-    fun getSubPolja(id:Int):List<MeniJednoPolje>{
+    fun getSubPolja(id:Int):MutableList<MeniJednoPolje>{
         var lista:MutableList<MeniJednoPolje> = mutableListOf()
         var polje1 = getPolje(id)
         if(polje1 != null) {
@@ -450,7 +481,7 @@ class MainFragment : Fragment() {
             Log.d("ingo", "getSubPolja od " + id + " je " + lista.map{ it.text }.toString())
             return lista
         }
-        return listOf()
+        return mutableListOf()
     }
 
 }

@@ -45,4 +45,32 @@
         android:layout_height="match_parent"
         android:layout_gravity="bottom"/>
 
+    <LinearLayout
+        android:id="@+id/addingMenuCancelOk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="bottom"
+        android:visibility="gone"
+        android:padding="30dp">
+        <Button
+            android:id="@+id/cancelAddingApp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/cancel"
+            android:padding="30dp"
+            android:layout_marginRight="15dp"
+            style="@style/MojButton"/>
+        <Button
+            android:id="@+id/addApp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/app"
+            android:padding="30dp"
+            android:layout_marginLeft="15dp"
+            style="@style/MojButton"/>
+    </LinearLayout>
+
 </FrameLayout>

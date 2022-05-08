@@ -2,25 +2,29 @@ package com.ingokodba.dragnav
 
 import android.content.Context
 import android.graphics.drawable.Drawable
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class NewRAdapterViewModel  : ViewModel() {
+class NewRAdapterViewModel : ViewModel() {
 
     // The internal MutableLiveData that stores the status of the most recent request
-    private val _popis_aplikacija = MutableListLiveData<AppInfo>()
+    private val _popis_aplikacija = MutableLiveData<MutableList<AppInfo>>()
     private var _icons = MutableLiveData<MutableMap<String, Drawable?>>()
 
     // The external immutable LiveData for the request status
-    val appsList: LiveData<List<AppInfo>> = _popis_aplikacija
+    val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
 
     var lastTextViewEnteredCounter:Int = -1
     lateinit var currentMenu: MeniJednoPolje
+    var currentMenuId: Int = -1
     var currentSubmenuList: List<MeniJednoPolje> = listOf()
     var max_subcounter:Int = -1
     var stack:MutableList<Pair<Int,Int>> = mutableListOf()
@@ -33,20 +37,29 @@ class NewRAdapterViewModel  : ViewModel() {
     var pocetnaId:Int = -1
     var listaMenija:MutableList<MeniJednoPolje> = mutableListOf()
 
+    fun initialize(){
+        _icons.postValue(mutableMapOf())
+        _popis_aplikacija.postValue(mutableListOf())
+        currentSubmenuList = listOf()
+        listaMenija = mutableListOf()
+        currentMenuId = -1
+    }
+
     /**
      * Call getMarsPhotos() on init so we can display status immediately.
      */
     init {
-        _icons.postValue(mutableMapOf())
-        _popis_aplikacija.clear()
+        initialize()
     }
 
     fun addApps(apps: MutableList<AppInfo>){
-        _popis_aplikacija.addAll(apps)
-        _popis_aplikacija.sortBy { it.label.lowercase() }
+        var concatenated: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
+        concatenated.sortBy { it.label.lowercase() }
+        _popis_aplikacija.postValue(concatenated)
+        Log.d("ingo", "added " + concatenated.map{it.label}.toString())
     }
 
     fun removeApp(app: AppInfo){
-        _popis_aplikacija.remove(app)
+        _popis_aplikacija.value!!.remove(app)
     }
 }
