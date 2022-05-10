@@ -2,27 +2,27 @@ package com.ingokodba.dragnav.baza
 
 import androidx.room.*
 import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 @Dao
-interface MeniJednoPoljeDao {
-    @Query("SELECT * FROM MeniJednoPolje")
-    fun getAll(): List<MeniJednoPolje>
+interface KrugSAplikacijamaDao {
+    @Query("SELECT * FROM KrugSAplikacijama")
+    fun getAll(): List<KrugSAplikacijama>
 
-    @Query("SELECT * FROM MeniJednoPolje WHERE id = :id")
-    fun findById(id: Int): List<MeniJednoPolje>
+    @Query("SELECT * FROM KrugSAplikacijama WHERE id = :id")
+    fun findById(id: Int): List<KrugSAplikacijama>
 
     @Insert
-    fun insertAll(vararg polja: MeniJednoPolje): List<Long>
+    fun insertAll(vararg polja: KrugSAplikacijama): List<Long>
 
     @Update
-    fun update(polje: MeniJednoPolje)
+    fun update(polje: KrugSAplikacijama)
 
-    @Query("SELECT * FROM MeniJednoPolje WHERE rowid = :rowId")
-    fun findByRowId(rowId: Long): List<MeniJednoPolje>
+    @Query("SELECT * FROM KrugSAplikacijama WHERE rowid = :rowId")
+    fun findByRowId(rowId: Long): List<KrugSAplikacijama>
 
     @Delete
-    fun delete(polje: MeniJednoPolje)
+    fun delete(polje: KrugSAplikacijama)
 }
 
 @Dao

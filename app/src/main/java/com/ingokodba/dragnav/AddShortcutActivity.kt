@@ -13,8 +13,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.ingokodba.dragnav.baza.AppDatabase
-import com.ingokodba.dragnav.baza.MeniJednoPoljeDao
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,9 +26,9 @@ import org.greenrobot.eventbus.ThreadMode
 class AddShortcutActivity : AppCompatActivity() {
     // ova aktivnost se pokreće kada netko iz druge aplikacije koristi mogućnost dodavanja prečaca na launcher
     var pocetnaId = 0
-    var meniPolja:List<MeniJednoPolje> = listOf()
+    var meniPolja:List<KrugSAplikacijama> = listOf()
     var pinItemRequest:LauncherApps.PinItemRequest? = null
-    lateinit var shortcut_as_meni: MeniJednoPolje
+    lateinit var shortcut_as_meni: KrugSAplikacijama
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +43,7 @@ class AddShortcutActivity : AppCompatActivity() {
         pinItemRequest = launcherApps.getPinItemRequest( this.getIntent() );
         if(pinItemRequest != null) {
             val shortcut = pinItemRequest!!.shortcutInfo
-            shortcut_as_meni = MeniJednoPolje(
+            shortcut_as_meni = KrugSAplikacijama(
                 0,
                 shortcut?.shortLabel.toString(),
                 nextIntent = shortcut?.`package`.toString(),
@@ -109,25 +109,25 @@ class AddShortcutActivity : AppCompatActivity() {
         }
     }
 
-    fun databaseUpdateItem(polje: MeniJednoPolje){
+    fun databaseUpdateItem(polje: KrugSAplikacijama){
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         recDao.update(polje)
         Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
     }
 
-    fun databaseAddNewPolje(polje: MeniJednoPolje): MeniJednoPolje {
+    fun databaseAddNewPolje(polje: KrugSAplikacijama): KrugSAplikacijama {
         polje.id = 0
         Log.d("ingo", "databaseAddNewPolje(" + polje.text + ")")
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         val rowid = recDao.insertAll(polje)
         return databaseGetItemByRowId(rowid.first())
     }
 
-    fun databaseGetItemByRowId(id:Long): MeniJednoPolje {
+    fun databaseGetItemByRowId(id:Long): KrugSAplikacijama {
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         Log.d("ingo", "databaseGetItemByRowId " + id)
         return recDao.findByRowId(id).first()
     }
@@ -135,7 +135,7 @@ class AddShortcutActivity : AppCompatActivity() {
     suspend fun initializeRoom():Boolean{
         Log.d("ingo", "initializeRoom start")
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         meniPolja = recDao.getAll()
         if(meniPolja.size == 0) return false
         Log.d("ingo", meniPolja.map{it.text}.toString())

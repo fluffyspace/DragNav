@@ -2,15 +2,16 @@ package com.ingokodba.dragnav.baza
 
 import android.content.Context
 import androidx.room.*
-import com.ingokodba.dragnav.AppListener
+import androidx.room.migration.AutoMigrationSpec
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MIGRATION_1_2
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
-@Database(entities = arrayOf(MeniJednoPolje::class, AppInfo::class/*, MeniPolja::class*/), version = 2, exportSchema = true, autoMigrations = [AutoMigration (from = 1, to = 2)])
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 2, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun meniJednoPoljeDao(): MeniJednoPoljeDao
+
+    abstract fun krugSAplikacijamaDao(): KrugSAplikacijamaDao
     abstract fun appInfoDao(): AppInfoDao
     //abstract fun meniPoljaDao(): MeniPoljaDao
 
@@ -34,7 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
         // Create and pre-populate the database. See this article for more details:
         // https://medium.com/google-developers/7-pro-tips-for-room-fbadea4bfbd1#4785
         private fun buildDatabase(context: Context): AppDatabase {
-            return Room.databaseBuilder(context, AppDatabase::class.java, "database-name").addMigrations(MIGRATION_1_2)
+            return Room.databaseBuilder(context, AppDatabase::class.java, "database-name")
                     /*.addCallback(
                             object : RoomDatabase.Callback() {
                                 override fun onCreate(db: SupportSQLiteDatabase) {

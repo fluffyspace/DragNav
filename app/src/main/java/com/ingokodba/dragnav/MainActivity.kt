@@ -39,10 +39,10 @@ import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
-import com.ingokodba.dragnav.baza.MeniJednoPoljeDao
+import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
 import com.ingokodba.dragnav.modeli.Action
 import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MessageEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -96,7 +96,7 @@ class MainActivity : AppCompatActivity(){
 
     var loadIconBool:Boolean = true
     var circleViewLoadIcons:Boolean = true
-    var loadAppsBool:Boolean = true
+    var dontLoadApps:Boolean = false
     var appListOpened:Boolean = false
     val cache_apps:Boolean = true
     var selectAppMenuOpened:Boolean = false
@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity(){
     var addingNewAppEvent:MessageEvent? = null
 
     var shortcutPopup:PopupWindow? = null
-    lateinit var pocetna: MeniJednoPolje
+    lateinit var pocetna: KrugSAplikacijama
 
     var backButtonAction:Boolean = false
 
@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity(){
 
         viewModel.initialize()
         changeLocale(this)
-        pocetna = MeniJednoPolje(0, resources2.getString(R.string.home))
+        pocetna = KrugSAplikacijama(0, resources2.getString(R.string.home))
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
 
@@ -392,7 +392,7 @@ class MainActivity : AppCompatActivity(){
         startActivity(Intent.makeRestartActivityTask(this.intent?.component));
     }
 
-    fun startShortcut(shortcut: MeniJednoPolje){
+    fun startShortcut(shortcut: KrugSAplikacijama){
         val launcherApps: LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         Log.d("ingo", "startshortcut " + shortcut.nextIntent + "->" + shortcut.nextId)
         /*sendIntent.setAction(Intent.ACTION_SEND)
@@ -420,7 +420,7 @@ class MainActivity : AppCompatActivity(){
             val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
             lifecycleScope.launch(Dispatchers.IO) {
                 val dodanoPolje = databaseAddNewPolje(
-                    MeniJednoPolje(
+                    KrugSAplikacijama(
                         id = 0,
                         text = event.text,
                         nextIntent = event.launchIntent,
@@ -543,15 +543,15 @@ class MainActivity : AppCompatActivity(){
 
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
-        if(!loadAppsBool){
+        if(dontLoadApps){
             viewModel.listaMenija += pocetna
             viewModel.pocetnaId = pocetna.id
             viewModel.currentMenuId = pocetna.id
             return
         }
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
-        var meniPolja:List<MeniJednoPolje> = recDao.getAll()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        var meniPolja:List<KrugSAplikacijama> = recDao.getAll()
         if(meniPolja.size == 0){
             viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
@@ -657,11 +657,11 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
-    fun databaseGetMeniPolja(ids:List<Int>?): List<MeniJednoPolje>{
+    fun databaseGetMeniPolja(ids:List<Int>?): List<KrugSAplikacijama>{
         if(ids == null) return listOf()
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
-        val meniPolja:MutableList<MeniJednoPolje> = mutableListOf()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        val meniPolja:MutableList<KrugSAplikacijama> = mutableListOf()
         for(id in ids){
             meniPolja += recDao.findById(id)
         }
@@ -919,7 +919,7 @@ class MainActivity : AppCompatActivity(){
                 Log.d("ingo", "usli")
                 // create folder
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val dodanoPolje = databaseAddNewPolje(MeniJednoPolje(id=0, text=ime))
+                    val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime))
                     val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
                     if(trenutnoPolje != null && dodanoPolje != null){
                         trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
@@ -937,18 +937,18 @@ class MainActivity : AppCompatActivity(){
         return view
     }
 
-    fun databaseUpdateItem(polje: MeniJednoPolje){
+    fun databaseUpdateItem(polje: KrugSAplikacijama){
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         recDao.update(polje)
         var staro_polje = mainFragment.getPolje(polje.id)
         staro_polje = polje
         Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
     }
 
-    fun databaseGetItemByRowId(id:Long): MeniJednoPolje {
+    fun databaseGetItemByRowId(id:Long): KrugSAplikacijama {
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         Log.d("ingo", "databaseGetItemByRowId " + id)
         return recDao.findByRowId(id).first()
     }
@@ -966,7 +966,7 @@ class MainActivity : AppCompatActivity(){
 
     fun databaseDeleteById(id: Int){
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         mainFragment.getPolje(id)?.let {
             recDao.delete(it)
             viewModel.currentMenu.polja = viewModel.currentMenu.polja.filter { it != id }
@@ -977,11 +977,11 @@ class MainActivity : AppCompatActivity(){
         Log.d("ingo", "deleted- " + id)
     }
 
-    fun databaseAddNewPolje(polje: MeniJednoPolje): MeniJednoPolje? {
+    fun databaseAddNewPolje(polje: KrugSAplikacijama): KrugSAplikacijama? {
         polje.id = 0
         Log.d("ingo", "databaseAddNewPolje(" + polje.text + ")")
         val db = AppDatabase.getInstance(this)
-        val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
+        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         try {
             val rowid = recDao.insertAll(polje)
             val polje = databaseGetItemByRowId(rowid.first())

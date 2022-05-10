@@ -10,12 +10,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import org.greenrobot.eventbus.EventBus
 
 
-class FoldersAdapter(c: Context, meniPolja: List<MeniJednoPolje>) : RecyclerView.Adapter<FoldersAdapter.ViewHolder>() {
-    var folders: List<MeniJednoPolje>
+class FoldersAdapter(c: Context, meniPolja: List<KrugSAplikacijama>) : RecyclerView.Adapter<FoldersAdapter.ViewHolder>() {
+    var folders: List<KrugSAplikacijama>
     var context:Context
     init {
         context = c

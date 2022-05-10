@@ -2,10 +2,10 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "6f48cb74b46d87862e79cc09d162f40f",
+    "identityHash": "24698b7dae7e017e0912cbffa49ae88a",
     "entities": [
       {
-        "tableName": "MeniJednoPolje",
+        "tableName": "KrugSAplikacijama",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `text` TEXT NOT NULL, `nextId` TEXT NOT NULL, `nextIntent` TEXT NOT NULL, `polja` TEXT NOT NULL, `shortcut` INTEGER NOT NULL, `color` TEXT NOT NULL)",
         "fields": [
           {
@@ -52,10 +52,10 @@
           }
         ],
         "primaryKey": {
+          "autoGenerate": true,
           "columnNames": [
             "id"
-          ],
-          "autoGenerate": true
+          ]
         },
         "indices": [],
         "foreignKeys": []
@@ -110,10 +110,10 @@
           }
         ],
         "primaryKey": {
+          "autoGenerate": true,
           "columnNames": [
             "id"
-          ],
-          "autoGenerate": true
+          ]
         },
         "indices": [],
         "foreignKeys": []
@@ -122,7 +122,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6f48cb74b46d87862e79cc09d162f40f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '24698b7dae7e017e0912cbffa49ae88a')"
     ]
   }
 }

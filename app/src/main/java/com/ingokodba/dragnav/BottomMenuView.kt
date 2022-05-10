@@ -8,12 +8,11 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import androidx.annotation.ColorInt
 import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 
 class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attrs){
@@ -41,7 +40,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     // View size in pixels
     private var size = 320
     private var step_size:Double = Math.PI*0.25
-    private var app_list:List<MeniJednoPolje> = listOf()
+    private var app_list:List<KrugSAplikacijama> = listOf()
     private var color_list:List<String> = listOf()
     private var no_draw_position:Int = -1
     private var text_points:MutableList<Point> = mutableListOf()

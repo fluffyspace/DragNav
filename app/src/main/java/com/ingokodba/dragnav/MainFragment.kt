@@ -19,7 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import com.example.dragnav.R
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -385,7 +385,7 @@ class MainFragment : Fragment() {
         bottomMenuView.selectedId = -1
         bottomMenuView.invalidate()
     }
-    fun prebaciMeni(id:Int, counter:Int, nostack:Boolean=false, precaci:Boolean=false): MeniJednoPolje? {
+    fun prebaciMeni(id:Int, counter:Int, nostack:Boolean=false, precaci:Boolean=false): KrugSAplikacijama? {
         val polje = getPolje(id)
         Log.d("ingo", "prebaciMeni " + id)
         if(polje != null){
@@ -407,7 +407,7 @@ class MainFragment : Fragment() {
         return null
     }
     fun prikaziPrecace(prosiriId: Int, selected:Int){
-        var precaci:MutableList<MeniJednoPolje> = mutableListOf()
+        var precaci:MutableList<KrugSAplikacijama> = mutableListOf()
         val trenutnoPolje = getPolje(prosiriId)
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         if(launcherApps.hasShortcutHostPermission()){
@@ -418,8 +418,8 @@ class MainFragment : Fragment() {
             }
             //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
             precaci = precaci_info?.map{
-                MeniJednoPolje(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
-            } as MutableList<MeniJednoPolje>
+                KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
+            } as MutableList<KrugSAplikacijama>
         }
         if(prosiriId == viewModel.pocetnaId){
             circleView.amIHome(true)
@@ -429,10 +429,10 @@ class MainFragment : Fragment() {
         Log.d("ingo", "prikazi prečace " + precaci.map{ it.text + "->" + it.nextIntent + "->" + it.nextId }.toString())
         var polja = getSubPolja(prosiriId)
         if(trenutnoPolje?.nextIntent != "" ) {
-            precaci.add(MeniJednoPolje(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
+            precaci.add(KrugSAplikacijama(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
         } else {
             if(!(circleView.amIHomeVar && precaci.size+polja.size >= 8) && !(!circleView.amIHomeVar && precaci.size+polja.size >= 7))
-                polja.add(MeniJednoPolje(id=0, text= "Add app", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
+                polja.add(KrugSAplikacijama(id=0, text= "Add app", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
         }
         viewModel.currentSubmenuList = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
@@ -442,7 +442,7 @@ class MainFragment : Fragment() {
         viewModel.selected_global = selected
         viewModel.max_subcounter = (viewModel.currentSubmenuList).size
     }
-    fun getPolje(id:Int): MeniJednoPolje?{
+    fun getPolje(id:Int): KrugSAplikacijama?{
         for(polje in viewModel.listaMenija){
             if(polje.id == id) return polje
         }
@@ -471,8 +471,8 @@ class MainFragment : Fragment() {
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }
-    fun getSubPolja(id:Int):MutableList<MeniJednoPolje>{
-        var lista:MutableList<MeniJednoPolje> = mutableListOf()
+    fun getSubPolja(id:Int):MutableList<KrugSAplikacijama>{
+        var lista:MutableList<KrugSAplikacijama> = mutableListOf()
         var polje1 = getPolje(id)
         if(polje1 != null) {
             for (polje2 in viewModel.listaMenija) {

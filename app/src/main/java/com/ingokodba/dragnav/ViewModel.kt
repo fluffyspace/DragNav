@@ -1,16 +1,12 @@
 package com.ingokodba.dragnav
 
-import android.content.Context
 import android.graphics.drawable.Drawable
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 class ViewModel : ViewModel() {
 
@@ -23,19 +19,19 @@ class ViewModel : ViewModel() {
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
 
     var lastTextViewEnteredCounter:Int = -1
-    lateinit var currentMenu: MeniJednoPolje
+    lateinit var currentMenu: KrugSAplikacijama
     var currentMenuId: Int = -1
-    var currentSubmenuList: List<MeniJednoPolje> = listOf()
+    var currentSubmenuList: List<KrugSAplikacijama> = listOf()
     var max_subcounter:Int = -1
     var stack:MutableList<Pair<Int,Int>> = mutableListOf()
     var highestId = -1
     var selected_global:Int = -1
-    var lastEnteredIntent: MeniJednoPolje? = null
+    var lastEnteredIntent: KrugSAplikacijama? = null
     var editMode:Boolean = false
     var addNewAppMode:Boolean = false
     var editSelected:Int = -1
     var pocetnaId:Int = -1
-    var listaMenija:MutableList<MeniJednoPolje> = mutableListOf()
+    var listaMenija:MutableList<KrugSAplikacijama> = mutableListOf()
 
     fun initialize(){
         _icons.postValue(mutableMapOf())

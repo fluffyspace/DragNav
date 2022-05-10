@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
-import com.example.dragnav.databinding.RowBindingBinding
+import com.example.dragnav.databinding.ApplicationRowBindingBinding
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
 import org.greenrobot.eventbus.EventBus
@@ -42,7 +42,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
      * GridViewItem, which nicely gives it access to the full [MarsPhoto] information.
      */
     class MarsPhotosViewHolder(
-        private var binding: RowBindingBinding
+        private var binding: ApplicationRowBindingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         var textView: TextView
         var img: ImageView
@@ -87,7 +87,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
             return MenuViewHolder(v);
         }else{
             return MarsPhotosViewHolder(
-                RowBindingBinding.inflate(LayoutInflater.from(parent.context))
+                ApplicationRowBindingBinding.inflate(LayoutInflater.from(parent.context))
             )
         }
     }

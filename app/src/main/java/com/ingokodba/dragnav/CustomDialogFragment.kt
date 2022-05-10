@@ -12,14 +12,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.example.dragnav.R
-import com.ingokodba.dragnav.modeli.MeniJednoPolje
+import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CustomDialogFragment(polje: MeniJednoPolje) : DialogFragment() {
-    var polje: MeniJednoPolje
+class CustomDialogFragment(polje: KrugSAplikacijama) : DialogFragment() {
+    var polje: KrugSAplikacijama
     init {
         this.polje=polje
     }
