@@ -551,16 +551,16 @@ class MainActivity : AppCompatActivity(){
         }
         val db = AppDatabase.getInstance(this)
         val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        var meniPolja:List<KrugSAplikacijama> = recDao.getAll()
-        if(meniPolja.size == 0){
+        var krugSAplikacijama:List<KrugSAplikacijama> = recDao.getAll()
+        if(krugSAplikacijama.size == 0){
             viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
                 showIntroPopup()
             }
         } else {
             withContext(Dispatchers.Main) {
-                viewModel.listaMenija += meniPolja
-                viewModel.pocetnaId = meniPolja.first().id
+                viewModel.listaMenija += krugSAplikacijama
+                viewModel.pocetnaId = krugSAplikacijama.first().id
             }
         }
         for(meni in viewModel.listaMenija){
@@ -596,7 +596,7 @@ class MainActivity : AppCompatActivity(){
                         viewModel.removeApp(viewModel.appsList.value!![i])
                     }
                     Log.d("ingo", "removed " + pn)
-                    for (polje in meniPolja.reversed()) {
+                    for (polje in krugSAplikacijama.reversed()) {
                         if (polje.nextIntent == pn) {
                             recDao.delete(polje)
                             viewModel.listaMenija.remove(polje)
@@ -643,9 +643,11 @@ class MainActivity : AppCompatActivity(){
                     quality_density,
                     null
                 )
-                viewModel.icons.value!![pname] = icon
                 if(icon != null) {
                     viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(icon).toString()
+                    viewModel.icons.value!![pname] = icon
+                } else {
+                    viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
                 }
             } catch (e: Resources.NotFoundException){}
         } catch (e: PackageManager.NameNotFoundException){}
@@ -661,15 +663,15 @@ class MainActivity : AppCompatActivity(){
         if(ids == null) return listOf()
         val db = AppDatabase.getInstance(this)
         val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        val meniPolja:MutableList<KrugSAplikacijama> = mutableListOf()
+        val krugSAplikacijama:MutableList<KrugSAplikacijama> = mutableListOf()
         for(id in ids){
-            meniPolja += recDao.findById(id)
+            krugSAplikacijama += recDao.findById(id)
         }
         Log.d("ingo", "getAllMeniPolja")
-        meniPolja.forEach{
+        krugSAplikacijama.forEach{
             Log.d("ingo", "\tuzeli polje  " + it.text)
         }
-        return meniPolja
+        return krugSAplikacijama
     }
 
     fun getShortcutFromPackage(packageName:String): List<ShortcutInfo>{
@@ -734,25 +736,7 @@ class MainActivity : AppCompatActivity(){
                 }
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
                 Log.d("ingo", "loading new app " + appName + " " + p.packageName)
-                val res: Resources = packageManager.getResourcesForApplication(p.applicationInfo)
-
-                if(loadIconBool){
-                    try {
-                        val icon = res.getDrawableForDensity(
-                            p.applicationInfo.icon,
-                            DisplayMetrics.DENSITY_LOW,
-                            null
-                        )
-                        if (icon != null) {
-                            colorPrimary = getBestPrimaryColor(icon)
-                        }
-                        viewModel.icons.value!![p.applicationInfo.packageName] = icon
-                    } catch (error: android.content.res.Resources.NotFoundException) {
-
-                    }
-                } else {
-                    colorPrimary = Color.BLACK
-                }
+                colorPrimary = Color.BLACK
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
 
@@ -772,15 +756,7 @@ class MainActivity : AppCompatActivity(){
                 continue
             }
             Log.d("ingo", ri.activityInfo.packageName)
-            if(loadIconBool){
-                val icon = ri.loadIcon(packageManager)
-                viewModel.icons.value!![ri.activityInfo.packageName] = icon
-                if(icon != null) {
-                    colorPrimary = getBestPrimaryColor(icon)
-                }
-            } else {
-                colorPrimary = 0
-            }
+            colorPrimary = 0
             newApps.add(AppInfo(uid, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString(), installed = true))
         }
         return newApps
