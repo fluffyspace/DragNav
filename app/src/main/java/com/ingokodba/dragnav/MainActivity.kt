@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.*
 import android.content.res.Resources
 import android.database.Cursor
@@ -13,6 +14,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -40,15 +42,19 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.MeniJednoPoljeDao
+import com.ingokodba.dragnav.modeli.Action
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MeniJednoPolje
 import com.ingokodba.dragnav.modeli.MessageEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -59,9 +65,16 @@ import java.util.Collections.min
 class MainActivity : AppCompatActivity(){
     val viewModel: NewRAdapterViewModel by viewModels()
 
-
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
+
+        // For Singleton instantiation
+        @Volatile private var instance: MainActivity? = null
+
+        fun getInstance(context: Context): MainActivity? {
+            return instance
+        }
+
         lateinit var resources2:Resources
         val ACTION_CANCEL = -1
         val ACTION_LAUNCH = -2
@@ -75,51 +88,42 @@ class MainActivity : AppCompatActivity(){
         val MENU_SHORTCUT = 1
         val MENU_ACTION = 2
         enum class Layouts {
-            LAYOUT_MAIN, LAYOUT_SEARCH, LAYOUT_ACTIVITIES, LAYOUT_SETTINGS
+            LAYOUT_MAIN, LAYOUT_SEARCH, LAYOUT_ACTIVITIES, LAYOUT_SETTINGS, LAYOUT_ACTIONS
+        }
+        enum class ActionTypes {
+            ACTION_SEND_TO_APP
         }
         val ACTION_IMPORT = 1
         val ACTION_EXPORT = 2
     }
 
-    var loadIconBool:Boolean = false
+    var loadIconBool:Boolean = true
     var circleViewLoadIcons:Boolean = true
     var loadAppsBool:Boolean = true
 
     var shortcutPopup:PopupWindow? = null
 
     var appListOpened:Boolean = false
-    val cache_apps:Boolean = false
+    val cache_apps:Boolean = true
     var selectAppMenuOpened:Boolean = false
     var currentLayout:Layouts = Layouts.LAYOUT_MAIN
     var addingNewAppEvent:MessageEvent? = null
 
-    var roomMeniPolja:List<MeniJednoPolje>? = null
     lateinit var pocetna: MeniJednoPolje
-    val gmail = MeniJednoPolje(1, "Gmail", polja=listOf(4,5,6))
-    val whatsapp = MeniJednoPolje(2, "Whatsapp", polja=listOf(9,10))
-    val postavke = MeniJednoPolje(3, "Postavke", polja=listOf(7,8))
-    val gmail_nova = MeniJednoPolje(4, "Nova Poruka")
-    val gmail_inbox = MeniJednoPolje(5, "Inbox")
-    val gmail_outbox = MeniJednoPolje(6, "Outbox")
-    val postavke_wifi = MeniJednoPolje(7, "WiFi")
-    val postavke_torch = MeniJednoPolje(8, "Torch")
-    val whatsapp_kodbaci = MeniJednoPolje(9, "Kodbači", polja=listOf(11,14,15))
-    val whatsapp_sara = MeniJednoPolje(10, "Sara", polja=listOf(11,14,15))
-    val whatsapp_akcije = MeniJednoPolje(11, "Posebne akcije", polja=listOf(12,13))
-    val whatsapp_akcije_sendpic = MeniJednoPolje(12, "Pošalji zadnju sliku")
-    val whatsapp_akcije_sendapetit = MeniJednoPolje(13, "Pošalji 'Dobar tek'")
-    val whatsapp_call = MeniJednoPolje(14, "Nazovi")
-    val whatsapp_message = MeniJednoPolje(15, "Šalji poruku")
-    //var defaultMenus:MutableList<MeniJednoPolje> = mutableListOf(pocetna, gmail, whatsapp, postavke, gmail_nova, gmail_inbox, gmail_outbox, postavke_wifi, postavke_torch, whatsapp_akcije, whatsapp_akcije_sendapetit, whatsapp_call, whatsapp_kodbaci, whatsapp_message, whatsapp_sara, whatsapp_akcije_sendpic)
 
     var backButtonAction:Boolean = false
 
+    var actions: List<Action> = listOf(
+        Action(title="SEND_LAST_IMAGE", description = "Send last image", type = ActionTypes.ACTION_SEND_TO_APP),
+        Action(title="TIMER", description = "Timer", type = ActionTypes.ACTION_SEND_TO_APP),
+    )
 
     var import_export_action:Int = 0
 
     lateinit var mainFragment:MainFragment
     lateinit var searchFragment:SearchFragment
     lateinit var activitiesFragment:ActivitiesFragment
+    lateinit var actionsFragment:ActionsFragment
 
     fun changeLocale(c:Context){
         val config = c.resources.configuration
@@ -150,9 +154,11 @@ class MainActivity : AppCompatActivity(){
         backButtonAction = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_BACKBUTTON, false)
     }
 
+
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this as MainActivity
 
         val darkModeString = getString(R.string.dark_mode)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
@@ -203,10 +209,6 @@ class MainActivity : AppCompatActivity(){
             goToPocetna()
         }*/
 
-
-
-
-
         //binding.recyclerView.adapter = radapter
         //findViewById<RecyclerView>(R.id.recycler_view).adapter = radapter
         //Toast.makeText(this, "App list loading", Toast.LENGTH_SHORT).show()
@@ -229,12 +231,38 @@ class MainActivity : AppCompatActivity(){
             }
         }
         //findViewById<ImageButton>(R.id.plus_button).setOnClickListener { openAddMenu(it) }
+
+        val br: AppListener = AppListener()
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED)
+        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED)
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED)
+        intentFilter.addDataScheme("package")
+        registerReceiver(br, intentFilter)
+    }
+
+    fun packageIsGame(context: Context, packageName: String): Boolean {
+        return try {
+            val info: ApplicationInfo = context.packageManager.getApplicationInfo(packageName, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                info.category == ApplicationInfo.CATEGORY_GAME
+            } else {
+                // We are suppressing deprecation since there are no other options in this API Level
+                @Suppress("DEPRECATION")
+                (info.flags and ApplicationInfo.FLAG_IS_GAME) == ApplicationInfo.FLAG_IS_GAME
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.e("Util", "Package info not found for name: " + packageName, e)
+            // Or throw an exception if you want
+            false
+        }
     }
 
     fun loadFragments(){
         mainFragment = MainFragment()
         searchFragment = SearchFragment()
         activitiesFragment = ActivitiesFragment()
+        actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
             .replace(R.id.settings_container, mainFragment, "main")
@@ -244,6 +272,20 @@ class MainActivity : AppCompatActivity(){
 
     fun showMainFragment(){
         supportFragmentManager.popBackStack()
+    }
+
+    fun showActionsFragment(){
+        supportFragmentManager.commit {
+            setCustomAnimations(
+                R.anim.slideup,
+                R.anim.fadeout,
+                R.anim.fadein,
+                R.anim.slidedown
+            )
+            replace(R.id.settings_container, actionsFragment, "actions")
+            setReorderingAllowed(true)
+            addToBackStack(null)
+        }
     }
 
     fun showActivitiesFragment(){
@@ -286,6 +328,12 @@ class MainActivity : AppCompatActivity(){
                 showActivitiesFragment()
                 Log.d("ingo", "showActivitiesFragment")
             }
+            Layouts.LAYOUT_ACTIONS -> {
+                //findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
+                actionsFragment.actions = actions
+                showActionsFragment()
+                Log.d("ingo", "showActionsFragment")
+            }
             Layouts.LAYOUT_SEARCH -> {
                 //findViewById<View>(R.id.recycle_container).visibility = View.GONE
                 showSearchFragment()
@@ -321,10 +369,33 @@ class MainActivity : AppCompatActivity(){
         val cursor: Cursor? = contentResolver
             .query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
-                null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC"
+                null, MediaStore.Images.Media.DATE_ADDED + " DESC"
             )
+
         if (cursor?.moveToFirst() == true) {
+            Log.d("ingo", "entered")
             val imageLocation: String = cursor.getString(1)
+
+            val b = BitmapFactory.decodeFile(imageLocation)
+
+            val share = Intent(Intent.ACTION_SEND)
+            share.type = "image/jpeg"
+            val bytes = ByteArrayOutputStream()
+            b.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+            val path = MediaStore.Images.Media.insertImage(contentResolver, b, "Title", null)
+            val imageUri: Uri = Uri.parse(path)
+            share.putExtra(Intent.EXTRA_STREAM, imageUri)
+            startActivity(Intent.createChooser(share, "Select"))
+        }
+        cursor?.close()
+    }
+
+    fun runAction(action: Action){
+        when(action.title){
+            "SEND_LAST_IMAGE" -> {
+                getLastImage()
+                Toast.makeText(this, action.title, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -413,7 +484,7 @@ class MainActivity : AppCompatActivity(){
                         color = event.color
                     )
                 )
-                if (trenutnoPolje != null) {
+                if (trenutnoPolje != null && dodanoPolje != null) {
                     trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
                     databaseUpdateItem(trenutnoPolje)
                 }
@@ -512,6 +583,54 @@ class MainActivity : AppCompatActivity(){
         Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
     }
 
+    fun loadApp(packageName: String){
+        if(viewModel.appsList.value!!.find{it.packageName == packageName} != null) return
+        val ctx = this
+        lifecycleScope.launch(Dispatchers.IO) {
+            val applicationInfo = ctx.packageManager.getApplicationInfo(packageName, 0)
+            val appName = applicationInfo.loadLabel(ctx.packageManager).toString()
+            Log.d("ingo", "loading newly installed app " + appName + " " + packageName)
+            val res: Resources = ctx.packageManager.getResourcesForApplication(applicationInfo)
+            var colorPrimary: Int = 0
+            val icon = res.getDrawableForDensity(
+                applicationInfo.icon,
+                DisplayMetrics.DENSITY_LOW,
+                null
+            )
+            if (icon != null) {
+                colorPrimary = getBestPrimaryColor(icon)
+            }
+            viewModel.icons.value!![packageName] = icon
+
+            if (appName != packageName) {
+                val newApp =
+                    AppInfo(
+                        applicationInfo.uid,
+                        appName,
+                        packageName,
+                        colorPrimary.toString(),
+                        installed = true
+                    )
+
+                val db = AppDatabase.getInstance(ctx)
+                val appDao: AppInfoDao = db.appInfoDao()
+                try {
+                    appDao.insertAll(newApp)
+                }catch(exception: android.database.sqlite.SQLiteConstraintException){
+
+                }
+                withContext(Dispatchers.Main) {
+                    viewModel.addApps(mutableListOf(newApp))
+                }
+                delay(200)
+                withContext(Dispatchers.Main) {
+                    val index = viewModel.appsList.value!!.indexOf(viewModel.appsList.value!!.find{it.packageName == packageName})
+                    activitiesFragment.radapter.notifyItemInserted(index)
+                }
+            }
+        }
+    }
+
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
         if(!loadAppsBool){
@@ -524,7 +643,7 @@ class MainActivity : AppCompatActivity(){
         val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
         var meniPolja:List<MeniJednoPolje> = recDao.getAll()
         if(meniPolja.size == 0){
-            viewModel.pocetnaId = databaseAddNewPolje(pocetna).id
+            viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
                 showIntroPopup()
             }
@@ -539,7 +658,7 @@ class MainActivity : AppCompatActivity(){
         }
         val appDao: AppInfoDao = db.appInfoDao()
         Log.d("ingo", "initializeRoom before cache")
-        if(false) {
+        if(cache_apps) {
             val cached_apps = appDao.getAll() as MutableList<AppInfo>
             for(app in cached_apps){
                 app.installed = false
@@ -743,19 +862,23 @@ class MainActivity : AppCompatActivity(){
                     continue
                 }
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
-                Log.d("ingo", "loading new app " + appName)
+                Log.d("ingo", "loading new app " + appName + " " + p.packageName)
                 val res: Resources = packageManager.getResourcesForApplication(p.applicationInfo)
 
                 if(loadIconBool){
-                    val icon = res.getDrawableForDensity(
-                        p.applicationInfo.icon,
-                        DisplayMetrics.DENSITY_LOW,
-                        null
-                    )
-                    if(icon != null) {
-                        colorPrimary = getBestPrimaryColor(icon)
+                    try {
+                        val icon = res.getDrawableForDensity(
+                            p.applicationInfo.icon,
+                            DisplayMetrics.DENSITY_LOW,
+                            null
+                        )
+                        if (icon != null) {
+                            colorPrimary = getBestPrimaryColor(icon)
+                        }
+                        viewModel.icons.value!![p.applicationInfo.packageName] = icon
+                    } catch (error: android.content.res.Resources.NotFoundException) {
+
                     }
-                    viewModel.icons.value!![p.applicationInfo.packageName] = icon
                 } else {
                     colorPrimary = Color.BLACK
                 }
@@ -928,7 +1051,7 @@ class MainActivity : AppCompatActivity(){
                 lifecycleScope.launch(Dispatchers.IO) {
                     val dodanoPolje = databaseAddNewPolje(MeniJednoPolje(id=0, text=ime))
                     val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
-                    if(trenutnoPolje != null){
+                    if(trenutnoPolje != null && dodanoPolje != null){
                         trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
                         databaseUpdateItem(trenutnoPolje)
                         Log.d("ingo", trenutnoPolje.polja.toString())
@@ -984,15 +1107,20 @@ class MainActivity : AppCompatActivity(){
         Log.d("ingo", "deleted- " + id)
     }
 
-    fun databaseAddNewPolje(polje: MeniJednoPolje): MeniJednoPolje {
+    fun databaseAddNewPolje(polje: MeniJednoPolje): MeniJednoPolje? {
         polje.id = 0
         Log.d("ingo", "databaseAddNewPolje(" + polje.text + ")")
         val db = AppDatabase.getInstance(this)
         val recDao: MeniJednoPoljeDao = db.meniJednoPoljeDao()
-        val rowid = recDao.insertAll(polje)
-        val polje = databaseGetItemByRowId(rowid.first())
-        viewModel.listaMenija.add(polje)
-        return polje
+        try {
+            val rowid = recDao.insertAll(polje)
+            val polje = databaseGetItemByRowId(rowid.first())
+            viewModel.listaMenija.add(polje)
+            return polje
+        }catch(exception: android.database.sqlite.SQLiteConstraintException){
+
+        }
+        return null
     }
 
     fun pronadiMoguceAkcije(intent:String):List<MeniJednoPolje>{

@@ -40,7 +40,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val darkModeString = getString(R.string.dark_mode)
         val darkMode: ListPreference? = findPreference(darkModeString)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        darkMode?.summary = PreferenceManager.getDefaultSharedPreferences(context).getString(darkModeString, darkModeValues[3])
+        darkMode?.summary = context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[3]) }
         darkMode?.setOnPreferenceChangeListener { preference, newValue ->
             when (newValue) {
                 darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)

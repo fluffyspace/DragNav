@@ -275,7 +275,9 @@ class MainFragment : Fragment() {
             //toggleAppMenu()
         }
         view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
-            Toast.makeText(requireContext(), "Not implemented yet:(", Toast.LENGTH_SHORT).show()
+            mactivity.shortcutPopup?.dismiss()
+            mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
+            //Toast.makeText(requireContext(), "Not implemented yet:(", Toast.LENGTH_SHORT).show()
         }
         return view
     }
@@ -354,7 +356,8 @@ class MainFragment : Fragment() {
     }
 
     fun maxElementsPresent(): Boolean{
-        return (circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 8) || (!circleView.amIHomeVar && viewModel.currentSubmenuList.size >= 7)
+        val currentSizeWithoutPlusButton = viewModel.currentSubmenuList.size - if(viewModel.currentSubmenuList.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
+        return (circleView.amIHomeVar && currentSizeWithoutPlusButton >= 8) || (!circleView.amIHomeVar && currentSizeWithoutPlusButton >= 7)
     }
 
     fun addNew(){

@@ -55,4 +55,5 @@
     <string name="dark_mode">Dark Mode</string>
     <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
     <string name="open_default_apps">Open default apps</string>
+    <string name="wizard_yes_no">Do you want to use Wizard to automatically populate home screen with apps?</string>
 </resources>

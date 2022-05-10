@@ -3,13 +3,14 @@ package com.ingokodba.dragnav
 import android.graphics.Canvas
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import androidx.core.widget.addTextChangedListener
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearSmoothScroller
@@ -31,10 +32,12 @@ class ActivitiesFragment : Fragment() {
     private val viewModel: NewRAdapterViewModel by activityViewModels()
     lateinit var search_bar: EditText
     lateinit var recycler_view: RecyclerView
+    lateinit var recycle_scroller: RecycleScroller
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
     lateinit var radapter: NewRAdapter
+    var rowsVisibleCounter = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,20 +55,60 @@ class ActivitiesFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_activities, container, false)
     }
 
+    fun scrollIt(precentage: Int){
+        Log.d("ingo", "precentage is " + precentage)
+        val pos = (((viewModel.appsList.value!!.size/100f)*precentage)).toInt()
+        Log.d("ingo", "scrolling to " + pos)
+        val maxY = recycler_view.getChildAt(recycler_view.childCount-1).y
+        recycler_view.scrollToPosition(pos)
+        //Log.d("ingo", recycler_view.scrollY.toString())
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        recycler_view = view.findViewById(R.id.recycler_view)
         val smoothScroller: RecyclerView.SmoothScroller =
             object : LinearSmoothScroller(context) {
+                val scrollDuration = 500f;
                 override fun getVerticalSnapPreference(): Int {
                     return SNAP_TO_START
+                }
+                override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics?): Float {
+                    return scrollDuration / recycler_view.computeVerticalScrollRange();
                 }
             }
         radapter = NewRAdapter(viewModel)
         search_bar = view.findViewById(R.id.search_bar)
-        recycler_view = view.findViewById(R.id.recycler_view)
+        recycle_scroller = view.findViewById<RecycleScroller>(R.id.recycle_scroller)
+        recycle_scroller.setCallback(::scrollIt)
         recycler_view.adapter = radapter
+        recycler_view.addOnScrollListener(object: RecyclerView.OnScrollListener(){
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                recycle_scroller.drawThumb = true
+
+                val offset = recycler_view.computeVerticalScrollOffset()
+                val extent = recycler_view.computeVerticalScrollExtent()
+                val range = recycler_view.computeVerticalScrollRange()
+
+                val percentage = 100.0f * offset / (range - extent).toFloat()
+
+                recycle_scroller.precentageToScroll(percentage.toInt())
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    if(!recycle_scroller.touchDown) recycle_scroller.drawThumb = false
+                }
+            }
+        })
         radapter.submitList(viewModel.appsList.value!!)
+        /*for(i in 0 until viewModel.appsList.value!!.size-1){
+            if(recycler_view.getChildAt(i).isVisible){
+                rowsVisibleCounter++
+            } else break
+        }*/
         Log.d("ingo", "activities fragment onViewCreated")
         Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         search_bar.apply {

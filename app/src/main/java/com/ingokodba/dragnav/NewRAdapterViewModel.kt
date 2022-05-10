@@ -56,7 +56,9 @@ class NewRAdapterViewModel : ViewModel() {
         var concatenated: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
         concatenated.sortBy { it.label.lowercase() }
         _popis_aplikacija.postValue(concatenated)
-        Log.d("ingo", "added " + concatenated.map{it.label}.toString())
+        for(app in concatenated){
+        Log.d("ingo", "" + app.label + "->" + app.packageName)
+        }
     }
 
     fun removeApp(app: AppInfo){

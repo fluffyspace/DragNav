@@ -55,4 +55,5 @@
     <string name="dark_mode">Dark mode</string>
     <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
     <string name="open_default_apps">Otvori zadane aplikacije</string>
+    <string name="wizard_yes_no">Želite li koristiti Čarobjak za populiranje početnog zaslona aplikacijama?</string>
 </resources>

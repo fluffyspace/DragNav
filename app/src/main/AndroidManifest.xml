@@ -29,18 +29,29 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Shrine">
         <activity
+            android:name="com.ingokodba.dragnav.MainActivity3"
+            android:exported="true" >
+        </activity>
+
+        <service
+            android:name="com.ingokodba.dragnav.RemoveAppService"
+            android:enabled="true"
+            android:exported="true" />
+
+        <activity
             android:name="com.ingokodba.dragnav.SettingsActivity"
             android:exported="false"
-            android:parentActivityName="com.ingokodba.dragnav.MainActivity"/>
+            android:parentActivityName="com.ingokodba.dragnav.MainActivity" />
 
         <receiver
             android:name="com.ingokodba.dragnav.AppListener"
-            android:exported="true"
-            android:enabled="true">
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_ADDED" />
                 <action android:name="android.intent.action.PACKAGE_REMOVED" />
                 <action android:name="android.intent.action.PACKAGE_REPLACED" />
+
                 <data android:scheme="package" />
             </intent-filter>
         </receiver>

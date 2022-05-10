@@ -33,12 +33,29 @@
             android:hint="@string/search_to_scroll"
             android:imeOptions="actionGo"
             android:layout_marginBottom="5dp"/>
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layoutManager=
-                "androidx.recyclerview.widget.GridLayoutManager"/>
+            android:orientation="horizontal">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layoutManager=
+                    "androidx.recyclerview.widget.GridLayoutManager"/>
+                <!--android:scrollbars="vertical"
+                app:fastScrollEnabled="true"
+                app:fastScrollVerticalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollVerticalTrackDrawable="@drawable/fast_scroll_track"
+                app:fastScrollHorizontalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollHorizontalTrackDrawable="@drawable/fast_scroll_track"-->
+            <com.ingokodba.dragnav.RecycleScroller
+                android:id="@+id/recycle_scroller"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="right"/>
+        </FrameLayout>
+
     </LinearLayout>
 
 </FrameLayout>
