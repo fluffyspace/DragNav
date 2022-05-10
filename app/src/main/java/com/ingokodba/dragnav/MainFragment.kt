@@ -35,7 +35,7 @@ class MainFragment : Fragment() {
 
     lateinit var circleView: CircleView
     lateinit var bottomMenuView: BottomMenuView
-    private val viewModel: NewRAdapterViewModel by activityViewModels()
+    private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
     lateinit var selected_text: TextView
     lateinit var global_view:View
@@ -276,8 +276,8 @@ class MainFragment : Fragment() {
         }
         view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
             mactivity.shortcutPopup?.dismiss()
-            mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
-            //Toast.makeText(requireContext(), "Not implemented yet:(", Toast.LENGTH_SHORT).show()
+            //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
+            Toast.makeText(requireContext(), "Not implemented yet:(", Toast.LENGTH_SHORT).show()
         }
         return view
     }

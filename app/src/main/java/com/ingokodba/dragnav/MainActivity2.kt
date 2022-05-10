@@ -10,6 +10,7 @@ import com.google.android.material.slider.Slider
 
 
 class MainActivity2 : AppCompatActivity() {
+    // testna aktivnost
     lateinit var bottom:BottomMenuView
     lateinit var circle:CircleView
     override fun onCreate(savedInstanceState: Bundle?) {

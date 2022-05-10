@@ -12,6 +12,7 @@ class RemoveAppService : Service() {
     lateinit var korutina: Job
     val scope = CoroutineScope(Job() + Dispatchers.IO)
 
+    // ovaj servis služi za uklanjanje pojedine aplikacije iz launchera pri deinstalaciji aplikacije, da se ne bi pojavljivala u launcheru aplikacija koja ne postoji više
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val packageName = intent?.extras?.getString("packageName")
         val ctx = this
@@ -28,7 +29,7 @@ class RemoveAppService : Service() {
                     Log.v("ingo", "app removed")
                 }
             }
-            val mainActivity = MainActivity.getInstance(ctx)
+            val mainActivity = MainActivity.getInstance()
             if(mainActivity != null) {
                 val app =
                     mainActivity.viewModel.appsList.value!!.find { it.packageName == packageName }

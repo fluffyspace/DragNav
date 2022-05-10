@@ -6,14 +6,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.Action
 import com.ingokodba.dragnav.modeli.OnActionClick
 
 
-class RAdapter(c: Context, onActionClick: OnActionClick) : RecyclerView.Adapter<RAdapter.ViewHolder>() {
+class ActionsAdapter(c: Context, onActionClick: OnActionClick) : RecyclerView.Adapter<ActionsAdapter.ViewHolder>() {
     var actionsList: List<Action> = listOf()
     var context:Context
     var onActionClick:OnActionClick
@@ -73,7 +72,7 @@ class RAdapter(c: Context, onActionClick: OnActionClick) : RecyclerView.Adapter<
 
         //This is what adds the code we've written in here to our target view
         val inflater = LayoutInflater.from(parent.context)
-        val view: View = inflater.inflate(R.layout.small_row, parent, false)
+        val view: View = inflater.inflate(R.layout.cardview_action_row, parent, false)
         return ViewHolder(view)
     }
 

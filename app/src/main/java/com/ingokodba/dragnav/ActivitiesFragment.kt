@@ -29,14 +29,14 @@ private const val ARG_PARAM2 = "param2"
  */
 class ActivitiesFragment : Fragment() {
 
-    private val viewModel: NewRAdapterViewModel by activityViewModels()
+    private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
     lateinit var recycler_view: RecyclerView
     lateinit var recycle_scroller: RecycleScroller
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
-    lateinit var radapter: NewRAdapter
+    lateinit var radapter: ApplicationsListAdapter
     var rowsVisibleCounter = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,12 +55,12 @@ class ActivitiesFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_activities, container, false)
     }
 
-    fun scrollIt(precentage: Int){
+    fun scrollRecyclerViewToPrecentage(precentage: Int){
         Log.d("ingo", "precentage is " + precentage)
         val pos = (((viewModel.appsList.value!!.size/100f)*precentage)).toInt()
         Log.d("ingo", "scrolling to " + pos)
-        val maxY = recycler_view.getChildAt(recycler_view.childCount-1).y
         recycler_view.scrollToPosition(pos)
+        //val maxY = recycler_view.getChildAt(recycler_view.childCount-1).y
         //Log.d("ingo", recycler_view.scrollY.toString())
     }
 
@@ -77,10 +77,10 @@ class ActivitiesFragment : Fragment() {
                     return scrollDuration / recycler_view.computeVerticalScrollRange();
                 }
             }
-        radapter = NewRAdapter(viewModel)
+        radapter = ApplicationsListAdapter(viewModel)
         search_bar = view.findViewById(R.id.search_bar)
         recycle_scroller = view.findViewById<RecycleScroller>(R.id.recycle_scroller)
-        recycle_scroller.setCallback(::scrollIt)
+        recycle_scroller.setCallback(::scrollRecyclerViewToPrecentage)
         recycler_view.adapter = radapter
         recycler_view.addOnScrollListener(object: RecyclerView.OnScrollListener(){
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -92,7 +92,6 @@ class ActivitiesFragment : Fragment() {
                 val range = recycler_view.computeVerticalScrollRange()
 
                 val percentage = 100.0f * offset / (range - extent).toFloat()
-
                 recycle_scroller.precentageToScroll(percentage.toInt())
             }
 
@@ -104,11 +103,6 @@ class ActivitiesFragment : Fragment() {
             }
         })
         radapter.submitList(viewModel.appsList.value!!)
-        /*for(i in 0 until viewModel.appsList.value!!.size-1){
-            if(recycler_view.getChildAt(i).isVisible){
-                rowsVisibleCounter++
-            } else break
-        }*/
         Log.d("ingo", "activities fragment onViewCreated")
         Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         search_bar.apply {

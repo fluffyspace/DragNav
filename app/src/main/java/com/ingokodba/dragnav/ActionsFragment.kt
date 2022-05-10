@@ -1,12 +1,10 @@
 package com.ingokodba.dragnav
 
 import android.os.Bundle
-import android.util.DisplayMetrics
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.Action
@@ -22,7 +20,7 @@ import com.ingokodba.dragnav.modeli.OnActionClick
  */
 class ActionsFragment : Fragment(), OnActionClick {
     lateinit var recycler_view: RecyclerView
-    var radapter: RAdapter? = null
+    var radapter: ActionsAdapter? = null
     lateinit var mactivity:MainActivity
 
     var actions: List<Action> = listOf()
@@ -35,7 +33,6 @@ class ActionsFragment : Fragment(), OnActionClick {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mactivity = (activity as MainActivity)
-
     }
 
     override fun onCreateView(
@@ -49,7 +46,7 @@ class ActionsFragment : Fragment(), OnActionClick {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recycler_view = view.findViewById(R.id.actions_recycler_view)
-        radapter = RAdapter(requireContext(), this)
+        radapter = ActionsAdapter(requireContext(), this)
         recycler_view.adapter = radapter
         radapter?.actionsList = actions
     }

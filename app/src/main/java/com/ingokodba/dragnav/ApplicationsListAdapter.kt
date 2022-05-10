@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -21,10 +20,10 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
 import org.greenrobot.eventbus.EventBus
 
-class NewRAdapter(viewModel: NewRAdapterViewModel) :
+class ApplicationsListAdapter(viewModel: ViewModel) :
     ListAdapter<AppInfo, RecyclerView.ViewHolder>(DiffCallback) {
 
-    var viewModel: NewRAdapterViewModel = viewModel
+    var viewModel: ViewModel = viewModel
     var idOtvorenogMenija:Int = -1
 
     private val SHOW_MENU = 1
@@ -52,7 +51,7 @@ class NewRAdapter(viewModel: NewRAdapterViewModel) :
             img = itemView.findViewById(R.id.img) as ImageView
         }
 
-        fun bind(aplikacija: AppInfo, viewModel: NewRAdapterViewModel) {
+        fun bind(aplikacija: AppInfo, viewModel: ViewModel) {
             binding.aplikacija = aplikacija
             binding.viewModel = viewModel
             // This is important, because it forces the data binding to execute immediately,

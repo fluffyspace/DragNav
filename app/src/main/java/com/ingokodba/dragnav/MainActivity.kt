@@ -3,7 +3,6 @@ package com.ingokodba.dragnav
 //import com.example.dragnav.databinding.ActivityMainBinding
 
 import android.app.Activity
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -36,7 +35,6 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import androidx.window.layout.WindowMetricsCalculator
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.baza.AppDatabase
@@ -54,7 +52,6 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.ByteArrayOutputStream
-import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -63,7 +60,7 @@ import java.util.Collections.min
 
 
 class MainActivity : AppCompatActivity(){
-    val viewModel: NewRAdapterViewModel by viewModels()
+    val viewModel: ViewModel by viewModels()
 
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
@@ -71,7 +68,7 @@ class MainActivity : AppCompatActivity(){
         // For Singleton instantiation
         @Volatile private var instance: MainActivity? = null
 
-        fun getInstance(context: Context): MainActivity? {
+        fun getInstance(): MainActivity? {
             return instance
         }
 
@@ -100,15 +97,13 @@ class MainActivity : AppCompatActivity(){
     var loadIconBool:Boolean = true
     var circleViewLoadIcons:Boolean = true
     var loadAppsBool:Boolean = true
-
-    var shortcutPopup:PopupWindow? = null
-
     var appListOpened:Boolean = false
     val cache_apps:Boolean = true
     var selectAppMenuOpened:Boolean = false
     var currentLayout:Layouts = Layouts.LAYOUT_MAIN
     var addingNewAppEvent:MessageEvent? = null
 
+    var shortcutPopup:PopupWindow? = null
     lateinit var pocetna: MeniJednoPolje
 
     var backButtonAction:Boolean = false
@@ -154,7 +149,6 @@ class MainActivity : AppCompatActivity(){
         backButtonAction = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_BACKBUTTON, false)
     }
 
-
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -177,41 +171,12 @@ class MainActivity : AppCompatActivity(){
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
 
-        /*val binding: ActivityMainBinding = DataBindingUtil.setContentView(this,
-            R.layout.activity_main
-        )
-        binding.lifecycleOwner = this
-        binding.viewModel = viewModel*/
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            val w: Window = window // in Activity's onCreate() for instance
-            /*w.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-            )*/
-            //w.statusBarColor = Color.TRANSPARENT
-        }
         val icons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
         circleViewLoadIcons = icons
-        /*findViewById<Button>(R.id.edit_mode_button).setOnClickListener{ changeEditMode() }
-        findViewById<Button>(R.id.back_button).setOnClickListener{ goBack() }
-        findViewById<Button>(R.id.edit_rename_button).setOnClickListener{ showDialog() }
-        findViewById<Button>(R.id.edit_delete_button).setOnClickListener{ deleteSelectedItem() }
-        findViewById<Button>(R.id.edit_cancel).setOnClickListener{
-            enterSelected()
-        }*/
+
         supportFragmentManager.commit { setReorderingAllowed(true) }
         loadFragments()
-        //loadMainFragment()
 
-
-        /*findViewById<Button>(R.id.pocetna_button).setOnClickListener{
-            goToPocetna()
-        }*/
-
-        //binding.recyclerView.adapter = radapter
-        //findViewById<RecyclerView>(R.id.recycler_view).adapter = radapter
-        //Toast.makeText(this, "App list loading", Toast.LENGTH_SHORT).show()
         lifecycleScope.launch(Dispatchers.IO) {
             initializeRoom()
             withContext(Dispatchers.Main) {
@@ -226,11 +191,8 @@ class MainActivity : AppCompatActivity(){
                 Log.d("ingo", "vm.pocetna ima id " + viewModel.pocetnaId.toString())
                 mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
                 mainFragment.circleView.icons = viewModel.icons.value!!
-
-                //Toast.makeText(c, "App list loaded", Toast.LENGTH_SHORT).show()
             }
         }
-        //findViewById<ImageButton>(R.id.plus_button).setOnClickListener { openAddMenu(it) }
 
         val br: AppListener = AppListener()
         val intentFilter = IntentFilter()
@@ -324,18 +286,15 @@ class MainActivity : AppCompatActivity(){
         if(currentLayout == id) return
         when(id){
             Layouts.LAYOUT_ACTIVITIES -> {
-                //findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
                 showActivitiesFragment()
                 Log.d("ingo", "showActivitiesFragment")
             }
             Layouts.LAYOUT_ACTIONS -> {
-                //findViewById<View>(R.id.recycle_container).visibility = View.VISIBLE
                 actionsFragment.actions = actions
                 showActionsFragment()
                 Log.d("ingo", "showActionsFragment")
             }
             Layouts.LAYOUT_SEARCH -> {
-                //findViewById<View>(R.id.recycle_container).visibility = View.GONE
                 showSearchFragment()
             }
             Layouts.LAYOUT_MAIN -> {
@@ -344,9 +303,6 @@ class MainActivity : AppCompatActivity(){
                 mainFragment.circleView.invalidate()
             }
             Layouts.LAYOUT_SETTINGS -> {
-                //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.WHITE)
-                //findViewById<View>(R.id.recycle_container).visibility = View.GONE
-                //showSettingsFragment()
                 val intent = Intent(this, SettingsActivity::class.java)
                 resultLauncher.launch(intent)
                 changeId = false
@@ -358,7 +314,7 @@ class MainActivity : AppCompatActivity(){
         return
     }
 
-    fun getLastImage(){
+    fun contentProvideLastPictureInGallery(){
         val projection = arrayOf(
             MediaStore.Images.ImageColumns._ID,
             MediaStore.Images.ImageColumns.DATA,
@@ -393,12 +349,13 @@ class MainActivity : AppCompatActivity(){
     fun runAction(action: Action){
         when(action.title){
             "SEND_LAST_IMAGE" -> {
-                getLastImage()
+                contentProvideLastPictureInGallery()
                 Toast.makeText(this, action.title, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    // used by settings fragment to apply actions
     var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             // There are no request codes
@@ -433,20 +390,6 @@ class MainActivity : AppCompatActivity(){
             AppDatabase.getInstance(con).clearAllTables()
         }
         startActivity(Intent.makeRestartActivityTask(this.intent?.component));
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when(import_export_action){
-            ACTION_IMPORT -> {
-                //importDatabase(data?.data)
-            }
-            ACTION_EXPORT -> {
-                //exportDatabase(data?.data)
-            }
-        }
-        import_export_action = 0
-        Log.d("ingo", "onActivityResult " + requestCode + " " + resultCode + " " + data.toString())
     }
 
     fun startShortcut(shortcut: MeniJednoPolje){
@@ -540,40 +483,7 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
-    private fun computeWindowSizeClasses() {
-        val metrics = WindowMetricsCalculator.getOrCreate()
-            .computeCurrentWindowMetrics(this)
-
-        val widthDp = metrics.bounds.width() /
-                resources.displayMetrics.density
-        val widthWindowSizeClass = when {
-            widthDp < 600f -> WindowSizeClass.COMPACT
-            widthDp < 840f -> WindowSizeClass.MEDIUM
-            else -> WindowSizeClass.EXPANDED
-        }
-
-        val heightDp = metrics.bounds.height() /
-                resources.displayMetrics.density
-        val heightWindowSizeClass = when {
-            heightDp < 480f -> WindowSizeClass.COMPACT
-            heightDp < 900f -> WindowSizeClass.MEDIUM
-            else -> WindowSizeClass.EXPANDED
-        }
-
-        // Use widthWindowSizeClass and heightWindowSizeClass
-    }
-
-    fun goBack(){
-        if(viewModel.stack.size > 1){
-            val lastitem = viewModel.stack[viewModel.stack.size-2]
-            val lastpolje = lastitem.first
-            val lastcounter = lastitem.second
-            mainFragment.prebaciMeni(lastpolje, lastcounter, true)
-            viewModel.stack.removeAt(viewModel.stack.lastIndex)
-        }
-    }
-
-    suspend fun addFrequency(application: AppInfo){
+    fun addFrequency(application: AppInfo){
         val db = AppDatabase.getInstance(this)
         val appDao: AppInfoDao = db.appInfoDao()
         application.frequency++// = application.frequency!! + 1
@@ -674,7 +584,6 @@ class MainActivity : AppCompatActivity(){
         val newAppsInitialize = loadNewApps()
         Log.d("ingo", "grgr " + newAppsInitialize.map{it.label}.toString())
 
-
         // potrebno izbaciti aplikacije koje su deinstalirane
         val remove_duplicates = true
         if(remove_duplicates) {
@@ -763,8 +672,6 @@ class MainActivity : AppCompatActivity(){
         return meniPolja
     }
 
-
-
     fun getShortcutFromPackage(packageName:String): List<ShortcutInfo>{
         val shortcutManager:LauncherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         val shortcutQuery: LauncherApps.ShortcutQuery = LauncherApps.ShortcutQuery()
@@ -780,42 +687,7 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
-    fun getIcon(pname:String):Drawable? {
-        //if(radapter.icons.containsKey(pname)) continue
-        try {
-            return packageManager.getApplicationIcon(pname)
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
-        }
-        return null
-    }
-
-    fun ucitajIkonu(view:ImageView, pname: String){
-        lifecycleScope.launch(Dispatchers.IO) {
-            var drawable:Drawable? = null
-            try {
-                drawable = packageManager.getApplicationIcon(pname)
-            } catch (e: PackageManager.NameNotFoundException) {
-                e.printStackTrace()
-            }
-            withContext(Dispatchers.Main){
-                if(drawable != null) {
-                    view.setImageDrawable(drawable)
-                }
-            }
-        }
-    }
-
-    fun getActivityIcon(context: Context, packageName: String?, activityName: String?): Drawable? {
-        val pm: PackageManager = context.getPackageManager()
-        val intent = Intent()
-        intent.component = ComponentName(packageName!!, activityName!!)
-        val resolveInfo = pm.resolveActivity(intent, 0)
-        return resolveInfo!!.loadIcon(pm)
-    }
-
     private fun isSystemPackage(pkgInfo: PackageInfo): Boolean {
-        //Log.d("ingo", "" + pkgInfo.packageName + " " + pkgInfo.applicationInfo.flags + " " + (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0))
         return pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
     }
 
@@ -846,7 +718,6 @@ class MainActivity : AppCompatActivity(){
     @SuppressWarnings("ResourceType")
     fun loadNewApps(): MutableList<AppInfo>{
         var newApps: MutableList<AppInfo> = mutableListOf()
-
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
         for (i in packs.indices) {
@@ -935,7 +806,6 @@ class MainActivity : AppCompatActivity(){
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: MessageEvent?) {
-        // Do something
         if (event != null) {
             Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
             if(event.draganddrop){
@@ -1122,14 +992,4 @@ class MainActivity : AppCompatActivity(){
         }
         return null
     }
-
-    fun pronadiMoguceAkcije(intent:String):List<MeniJednoPolje>{
-        return listOf()
-    }
-
-
-
-
-
-
 }

@@ -39,7 +39,7 @@ private const val ARG_PARAM2 = "param2"
  */
 class SearchFragment : Fragment() {
 
-    private val viewModel: NewRAdapterViewModel by activityViewModels()
+    private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
     lateinit var imm: InputMethodManager
     lateinit var chipGroup: ChipGroup

@@ -12,7 +12,7 @@ import com.ingokodba.dragnav.modeli.MeniJednoPolje
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class NewRAdapterViewModel : ViewModel() {
+class ViewModel : ViewModel() {
 
     // The internal MutableLiveData that stores the status of the most recent request
     private val _popis_aplikacija = MutableLiveData<MutableList<AppInfo>>()
@@ -53,11 +53,11 @@ class NewRAdapterViewModel : ViewModel() {
     }
 
     fun addApps(apps: MutableList<AppInfo>){
-        var concatenated: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
-        concatenated.sortBy { it.label.lowercase() }
-        _popis_aplikacija.postValue(concatenated)
-        for(app in concatenated){
-        Log.d("ingo", "" + app.label + "->" + app.packageName)
+        var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
+        concatenatedApps.sortBy { it.label.lowercase() }
+        _popis_aplikacija.postValue(concatenatedApps)
+        for(app in concatenatedApps){
+            Log.d("ingo", app.label + "->" + app.packageName)
         }
     }
 

@@ -66,7 +66,7 @@ class FoldersAdapter(c: Context, meniPolja: List<MeniJednoPolje>) : RecyclerView
 
         //This is what adds the code we've written in here to our target view
         val inflater = LayoutInflater.from(parent.context)
-        val view: View = inflater.inflate(R.layout.row, parent, false)
+        val view: View = inflater.inflate(R.layout.image_text_row, parent, false)
         return ViewHolder(view)
     }
 

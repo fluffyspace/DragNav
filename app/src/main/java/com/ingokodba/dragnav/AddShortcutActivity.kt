@@ -24,6 +24,7 @@ import org.greenrobot.eventbus.ThreadMode
 
 
 class AddShortcutActivity : AppCompatActivity() {
+    // ova aktivnost se pokreće kada netko iz druge aplikacije koristi mogućnost dodavanja prečaca na launcher
     var pocetnaId = 0
     var meniPolja:List<MeniJednoPolje> = listOf()
     var pinItemRequest:LauncherApps.PinItemRequest? = null

@@ -9,7 +9,7 @@
             type="com.ingokodba.dragnav.modeli.AppInfo" />
         <variable
             name="viewModel"
-            type="com.ingokodba.dragnav.NewRAdapterViewModel" />
+            type="com.ingokodba.dragnav.ViewModel" />
     </data>
     <LinearLayout
         android:orientation="horizontal"
