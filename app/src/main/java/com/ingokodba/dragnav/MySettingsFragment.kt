@@ -33,6 +33,30 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
     val data:Intent = Intent()
 
+
+
+    /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
+        // Instantiate the new Fragment
+        val args = pref.extras
+        val fragment = pref.fragment?.let {
+            parentFragmentManager.fragmentFactory.instantiate(
+                ClassLoader.getSystemClassLoader(),
+                it
+            )
+        }
+        if (fragment != null) {
+            fragment.arguments = args
+            fragment.setTargetFragment(caller, 0)
+            // Replace the existing Fragment with the new Fragment
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.settings_container, fragment)
+                .addToBackStack(null)
+                .commit()
+            return true
+        }
+        return false
+    }*/
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
@@ -40,7 +64,9 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val darkModeString = getString(R.string.dark_mode)
         val darkMode: ListPreference? = findPreference(darkModeString)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        darkMode?.summary = context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[3]) }
+        val darkModeValuesHumanReadable = resources.getStringArray(R.array.dark_mode_entries)
+        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[3]) })
+        darkMode?.summary = darkModeValuesHumanReadable[if (darkModeValueIndex > 0) darkModeValueIndex else 0]
         darkMode?.setOnPreferenceChangeListener { preference, newValue ->
             when (newValue) {
                 darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -120,8 +146,14 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         }
 
         val numberPreference: EditTextPreference? = findPreference(UI_BORDER_WIDTH)
+        numberPreference?.summary = "Currently " +
+            context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(UI_BORDER_WIDTH, "4") }
         numberPreference?.setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        numberPreference?.setOnPreferenceChangeListener { preference, newValue ->
+            numberPreference?.summary = "Currently $newValue"
+            return@setOnPreferenceChangeListener true
         }
 
         val onelineSwitch: SwitchPreference? = findPreference(UI_ONELINE)

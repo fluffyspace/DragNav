@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory
+    <Preference
+        android:title="Circle preferences"
+        android:icon="@drawable/circles2"
+        app:fragment="com.ingokodba.dragnav.MyCircleSettingsFragment"/>
+
+    <Preference
+        android:title="General preferences"
+        android:icon="@drawable/ic_baseline_settings_100"
+        app:fragment="com.ingokodba.dragnav.MyGeneralSettingsFragment"/>
+
+    <Preference
+        android:title="Help"
+        android:icon="@drawable/ic_outline_info_75"
+        app:fragment="com.ingokodba.dragnav.MyHelpSettingsFragment"/>
+
+    <!--<PreferenceCategory
         app:key="ui_design"
         app:title="@string/ui_design">
 
@@ -35,7 +50,6 @@
         <EditTextPreference
             app:key="ui_border_width"
             app:title="@string/border_width"
-            app:summary="@string/border_width_summary"
             app:defaultValue="4"/>
 
         <SwitchPreference
@@ -54,7 +68,7 @@
             app:summary="@string/backbutton_summary"
             app:defaultValue="false"/>
 
-    </PreferenceCategory>
+    </PreferenceCategory>-->
 
     <!--<PreferenceCategory
         app:key="export_category"
@@ -72,7 +86,7 @@
 
     </PreferenceCategory>-->
 
-    <PreferenceCategory
+    <!--<PreferenceCategory
         app:key="help_category"
         app:title="@string/help">
 
@@ -94,6 +108,6 @@
             app:summary="@string/feedback_summary"
             app:title="@string/feedback_title"/>
 
-    </PreferenceCategory>
+    </PreferenceCategory>-->
 
 </PreferenceScreen>

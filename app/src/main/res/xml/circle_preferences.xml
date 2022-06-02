@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:iconSpaceReserved="false"
+    app:iconSpaceReserved="false"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+<SwitchPreference
+        app:key="ui_circles_toggle"
+        app:title="@string/show_circles"
+        app:defaultValue="true"/>
+
+    <Preference
+        app:key="ui_color"
+        app:title="@string/primary_color"/>
+
+    <SwitchPreference
+        app:key="ui_shadow_toggle"
+        app:title="@string/shadow"
+        app:defaultValue="true"/>
+
+    <EditTextPreference
+        app:key="ui_border_width"
+        app:title="@string/border_width"
+        app:defaultValue="4"/>
+
+    <SwitchPreference
+        app:key="ui_icons_toggle"
+        app:title="@string/icons"
+        app:defaultValue="true"/>
+
+</PreferenceScreen>

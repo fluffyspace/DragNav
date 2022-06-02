@@ -34,6 +34,8 @@ import androidx.core.graphics.red
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -59,7 +61,7 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(){
+class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
 
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
@@ -967,5 +969,27 @@ class MainActivity : AppCompatActivity(){
 
         }
         return null
+    }
+
+    override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
+        // Instantiate the new Fragment
+        val args = pref.extras
+        val fragment = pref.fragment?.let {
+            supportFragmentManager.fragmentFactory.instantiate(
+                classLoader,
+                it
+            )
+        }
+        if (fragment != null) {
+            fragment.arguments = args
+            fragment.setTargetFragment(caller, 0)
+            // Replace the existing Fragment with the new Fragment
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.settings_container, fragment)
+                .addToBackStack(null)
+                .commit()
+            return true
+        }
+        return false
     }
 }

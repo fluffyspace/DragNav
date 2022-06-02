@@ -7,7 +7,7 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MIGRATION_1_2
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 2, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 3, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 

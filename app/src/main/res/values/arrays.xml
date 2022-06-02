@@ -9,9 +9,9 @@
     </string-array>
 
     <string-array name="dark_mode_values">
-        <item>MODE_NIGHT_FOLLOW_SYSTEM</item>
-        <item>MODE_NIGHT_NO</item>
-        <item>MODE_NIGHT_YES</item>
-        <item>MODE_NIGHT_AUTO_BATTERY</item>
+        <item>Follow system</item>
+        <item>Light mode</item>
+        <item>Night mode</item>
+        <item>Auto battery dark mode</item>
     </string-array>
 </resources>
