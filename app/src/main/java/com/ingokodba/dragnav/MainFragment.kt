@@ -81,9 +81,9 @@ class MainFragment : Fragment() {
         //circleView?.mactivity.radapter = mactivity.radapter
         circleView.setEventListener(object :
             CircleView.IMyEventListener {
-            override fun onEventOccurred(event: MotionEvent, counter: Int, current: Int) {
+            override fun onEventOccurred(event: MotionEvent, redniBrojPolja: Int, current: Int) {
                 Log.d("ingo", "onEventOccurred")
-                touched(event, counter, current)
+                touched(event, redniBrojPolja, current)
             }
         })
         bottomMenuView.setEventListener(object :
@@ -165,40 +165,43 @@ class MainFragment : Fragment() {
         Log.d("ingo", "trebalo je cancelat")
     }
 
-    fun touched(event:MotionEvent, counter:Int, no_draw_position:Int){
-        Log.d("ingo", "touched " + event.action.toString() + " " + counter)
+    fun touched(event:MotionEvent, redniBrojPolja:Int, no_draw_position:Int){
+        Log.d("ingo", "touched " + event.action.toString() + " " + redniBrojPolja + " " + no_draw_position)
         bottomMenuView.collapse()
         //Log.d("ingo", "pozvalo me")
-        var sublist_counter = counter
-        // counter govori koji po redu je oznacen, a sublist_counter govori koji textview je oznacen
-        if(no_draw_position >= 0 && no_draw_position <= counter) sublist_counter++
+        var sublist_counter = redniBrojPolja
+        // redniBrojPolja govori koji po redu je oznacen, a sublist_counter govori koji textview je oznacen
+        // koliko sam shvatio, ovo ispod se nikad ne poziva... treba maknuti
+        if(no_draw_position >= 0 && no_draw_position <= redniBrojPolja){
+            sublist_counter++
+            Log.d("ingo", "sublist_counter povecan")
+        }
         //if(viewModel.lastTextViewEnteredCounter <= sublist_counter && viewModel.lastTextViewEnteredCounter >= 0 ) sublist_counter++
         //if(counter+1 > viewModel.lastTextViewEnteredCounter) sublist_counter = counter+1
         //Toast.makeText(this, lista[counter], Toast.LENGTH_SHORT).show()
-        if(counter == MainActivity.ACTION_ADD_APP){
+        if(redniBrojPolja == MainActivity.ACTION_ADD_APP){
             addNewAppHandler()
             return
         }
-        if(counter == MainActivity.ACTION_ADD){
+        if(redniBrojPolja == MainActivity.ACTION_ADD){
             addNew()
             return
         }
-        if(counter == MainActivity.ACTION_CANCEL){
+        if(redniBrojPolja == MainActivity.ACTION_CANCEL){
             /*viewModel.lastEnteredIntent = null
             viewModel.lastTextViewEnteredCounter = -1
             findViewById<TextView>(R.id.selected_text).text = viewModel.currentMenu.text*/
             goToPocetna()
             return
         }
-        if(counter == MainActivity.ACTION_HOME){
+        if(redniBrojPolja == MainActivity.ACTION_HOME){
             goToPocetna()
             return
         }
         if(event.action == MotionEvent.ACTION_UP && !viewModel.editMode && !viewModel.addNewAppMode){
             Log.d("ingo", "action up")
-            if(counter == MainActivity.ACTION_LAUNCH){
+            if(redniBrojPolja == MainActivity.ACTION_LAUNCH){
                 Log.d("ingo", "launch")
-                // obavi intent
                 launchLastEntered()
             }
             //Toast.makeText(this, findViewById<TextView>(R.id.selected_text).text, Toast.LENGTH_SHORT).show()
@@ -210,21 +213,19 @@ class MainFragment : Fragment() {
         }*/
         //Log.d("ingo", "mi smo unutar " + counter + " texta")
         //Log.d("ingo", subcounter.toString() + " " + counter.toString() + " "  + lastItem.toString() + " " + getSubPolja(viewModel.currentMenu.id)[subcounter].nextId.toString())
-        Log.d("ingo", "" + no_draw_position + " " + viewModel.lastTextViewEnteredCounter)
-        if(!viewModel.editMode && no_draw_position == viewModel.lastTextViewEnteredCounter) {
-            if(viewModel.currentSubmenuList[counter].nextIntent != MainActivity.ACTION_ADD_PRECAC) {
-                selected_text.text = viewModel.currentSubmenuList[counter].text
+        if(!viewModel.editMode) {
+            if(viewModel.trenutnoPrikazanaPolja[redniBrojPolja].nextIntent != MainActivity.ACTION_ADD_PRECAC) {
+                selected_text.text = viewModel.trenutnoPrikazanaPolja[redniBrojPolja].text
             }
-            if (viewModel.currentSubmenuList[counter].nextIntent == "") { // mapa
+            if (viewModel.trenutnoPrikazanaPolja[redniBrojPolja].nextIntent == "") { // mapa
                 Log.d("ingo", "nextIntent je prazan")
                 viewModel.lastEnteredIntent = null
-                prebaciMeni(viewModel.currentSubmenuList[counter].id, sublist_counter)
+                prebaciMeni(viewModel.trenutnoPrikazanaPolja[redniBrojPolja].id, sublist_counter)
             } else {
-                viewModel.lastEnteredIntent = viewModel.currentSubmenuList[counter]
-                Log.d("ingo", "viewModel.lastTextViewEnteredCounter " + viewModel.lastTextViewEnteredCounter)
+                viewModel.lastEnteredIntent = viewModel.trenutnoPrikazanaPolja[redniBrojPolja]
                 // TODO: potrebno pronaći prečace
                 // mape/aplikacije -> prečaci/akcije
-                if(!viewModel.currentSubmenuList[counter].shortcut) prebaciMeni(viewModel.currentSubmenuList[counter].id, sublist_counter, precaci = true)
+                if(!viewModel.trenutnoPrikazanaPolja[redniBrojPolja].shortcut) prebaciMeni(viewModel.trenutnoPrikazanaPolja[redniBrojPolja].id, sublist_counter, precaci = true)
                 //viewModel.lastEnteredIntent = precaci[0].intent
                 //launchLastEntered()
                 //return
@@ -235,17 +236,17 @@ class MainFragment : Fragment() {
             //Log.d("ingo", "MENU_SHORTCUT " + viewModel.lastEnteredIntent)
         } else if(viewModel.editMode && event.action == MotionEvent.ACTION_DOWN) {
             Log.d("ingo", "elseif viewModel.editMode down")
-            if(counter >= 0) {
+            if(redniBrojPolja >= 0) {
                 Log.d("ingo", "well its true")
-                if (viewModel.editSelected == -1 || viewModel.editSelected != counter) {
-                    viewModel.editSelected = counter
+                if (viewModel.editSelected == -1 || viewModel.editSelected != redniBrojPolja) {
+                    viewModel.editSelected = redniBrojPolja
                     bottomMenuView.selectedId = viewModel.editSelected
                     bottomMenuView.invalidate()
-                    circleView.yellowIt(counter)
+                    circleView.yellowIt(redniBrojPolja)
                     //Log.d("ingo", "selected " + sublist_counter + " " + viewModel.currentSubmenuList[sublist_counter].text + " " + viewModel.currentSubmenuList[sublist_counter].id)
                     //textView?.setBackgroundColor(Color.YELLOW)
                 } else {
-                    if (viewModel.editSelected == counter) {
+                    if (viewModel.editSelected == redniBrojPolja) {
                         //Log.d("ingo", getPolje(viewModel.editSelected))
                         deYellowAll()
                     } else {
@@ -313,14 +314,13 @@ class MainFragment : Fragment() {
             viewModel.lastEnteredIntent?.let { mactivity.startShortcut(it) }
         }
         viewModel.lastEnteredIntent = null
-        viewModel.lastTextViewEnteredCounter = -1
         circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_HIDE)
         goToPocetna()
     }
 
     fun enterSelected(){
         if(viewModel.editSelected == -1) return
-        prebaciMeni(viewModel.currentSubmenuList[viewModel.editSelected].id, viewModel.editSelected)
+        prebaciMeni(viewModel.trenutnoPrikazanaPolja[viewModel.editSelected].id, viewModel.editSelected)
         deYellowAll()
     }
 
@@ -329,7 +329,7 @@ class MainFragment : Fragment() {
             when (counter) {
                 0 -> addNew()
                 1 -> mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
-                2 -> changeeditMode()
+                2 -> toggleEditMode()
                 3 -> {
                     mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SEARCH)//initializeSearch()
                 }
@@ -347,7 +347,7 @@ class MainFragment : Fragment() {
                 -3 -> {
                     enterSelected()
                 }
-                -4 -> changeeditMode()
+                -4 -> toggleEditMode()
             }
         }
     }
@@ -363,7 +363,7 @@ class MainFragment : Fragment() {
     }
 
     fun maxElementsPresent(): Boolean{
-        val currentSizeWithoutPlusButton = viewModel.currentSubmenuList.size - if(viewModel.currentSubmenuList.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
+        val currentSizeWithoutPlusButton = viewModel.trenutnoPrikazanaPolja.size - if(viewModel.trenutnoPrikazanaPolja.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
         return (circleView.amIHomeVar && currentSizeWithoutPlusButton >= 8) || (!circleView.amIHomeVar && currentSizeWithoutPlusButton >= 7)
     }
 
@@ -377,7 +377,7 @@ class MainFragment : Fragment() {
         }
     }
     fun refreshCurrentMenu(){
-        prebaciMeni(viewModel.currentMenuId, viewModel.selected_global)
+        prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
         Log.d("ingo", "current menu refreshed")
     }
     fun updateStuff() {
@@ -398,7 +398,7 @@ class MainFragment : Fragment() {
         if(polje != null){
             viewModel.currentMenu = polje
             viewModel.currentMenuId = id
-            prikaziPrecace(polje.id, counter)
+            prikaziPoljaKruga(polje.id, counter)
 
             selected_text.text = polje.text
             if(!nostack){
@@ -406,16 +406,15 @@ class MainFragment : Fragment() {
                 Log.d("ingo", "adding " + viewModel.currentMenu.text + " to viewModel.stack.")
                 //findViewById<Button>(R.id.back_button).isEnabled = true
             }
-            viewModel.lastTextViewEnteredCounter = counter
             return polje
         } else {
             Log.d("ingo", "prebaciMeni null!")
         }
         return null
     }
-    fun prikaziPrecace(prosiriId: Int, selected:Int){
+    fun prikaziPoljaKruga(idKruga: Int, selected:Int){
         var precaci:MutableList<KrugSAplikacijama> = mutableListOf()
-        val trenutnoPolje = getPolje(prosiriId)
+        val trenutnoPolje = getPolje(idKruga)
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         if(launcherApps.hasShortcutHostPermission()){
             val precaci_info = trenutnoPolje?.let {
@@ -428,34 +427,31 @@ class MainFragment : Fragment() {
                 KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
             } as MutableList<KrugSAplikacijama>
         }
-        if(prosiriId == viewModel.pocetnaId){
+        if(idKruga == viewModel.pocetnaId){
             circleView.amIHome(true)
         } else {
             circleView.amIHome(false)
         }
         Log.d("ingo", "prikazi prečace " + precaci.map{ it.text + "->" + it.nextIntent + "->" + it.nextId }.toString())
-        var polja = getSubPolja(prosiriId)
+        var polja = getSubPolja(idKruga)
         if(trenutnoPolje?.nextIntent != "" ) {
             precaci.add(KrugSAplikacijama(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
         } else {
             if(!(circleView.amIHomeVar && precaci.size+polja.size >= 8) && !(!circleView.amIHomeVar && precaci.size+polja.size >= 7))
                 polja.add(KrugSAplikacijama(id=0, text= "Add app", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
         }
-        viewModel.currentSubmenuList = precaci + polja
+        viewModel.trenutnoPrikazanaPolja = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
-        circleView.setTextList(viewModel.currentSubmenuList)
-        Log.d("ingo", "currentSubmenuList " + viewModel.currentSubmenuList.map{it.text}.toString())
+        circleView.setTextList(viewModel.trenutnoPrikazanaPolja)
+        Log.d("ingo", "currentSubmenuList " + viewModel.trenutnoPrikazanaPolja.map{it.text}.toString())
         circleView.setPosDontDraw(selected)
-        viewModel.selected_global = selected
-        viewModel.max_subcounter = (viewModel.currentSubmenuList).size
+        viewModel.no_draw_position = selected
+        viewModel.max_subcounter = (viewModel.trenutnoPrikazanaPolja).size
     }
     fun getPolje(id:Int): KrugSAplikacijama?{
-        for(polje in viewModel.krugovi){
-            if(polje.id == id) return polje
-        }
-        return null
+        return viewModel.sviKrugovi.find{it.id == id}
     }
-    fun changeeditMode(){
+    fun toggleEditMode(){
         viewModel.editMode = !viewModel.editMode
         circleView.editMode = !circleView.editMode!!
         circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_EDIT)
@@ -482,7 +478,7 @@ class MainFragment : Fragment() {
         var lista:MutableList<KrugSAplikacijama> = mutableListOf()
         var polje1 = getPolje(id)
         if(polje1 != null) {
-            for (polje2 in viewModel.krugovi) {
+            for (polje2 in viewModel.sviKrugovi) {
                 if(polje1.polja!!.contains(polje2.id)){
                     //Log.d("ingo", "dodajem " + polje2.text)
                     lista.add(polje2)

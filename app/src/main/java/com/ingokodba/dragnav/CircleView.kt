@@ -46,7 +46,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var app_list:List<KrugSAplikacijama> = listOf()
     private var color_list:List<String> = listOf()
     private var no_draw_position:Int = -1
-    private var text_points:MutableList<Point> = mutableListOf()
+    private var polja_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
     val infodrawable = context.getDrawable(R.drawable.ic_outline_info_75)
     val adddrawable = context.getDrawable(R.drawable.ic_baseline_add_50)
@@ -105,8 +105,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun setPosDontDraw(position:Int){
         no_draw_position = position
-        text_points.clear()
-        //Log.d("ingo", "circleviewb pos " + position)
+        polja_points.clear()
+        Log.d("ingo", "setPosDontDraw " + position)
     }
 
     fun setTextList(list:List<KrugSAplikacijama>){
@@ -188,7 +188,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         empty_circle_paint.strokeWidth = border_width
         circle_paint.strokeWidth = border_width
 
-        drawTexts(canvas)
+        drawPolja(canvas)
         when(middleButtonState){
             //MIDDLE_BUTTON_EDIT -> drawEditButton(canvas)
             MIDDLE_BUTTON_CLOSE -> drawCloseButton(canvas)
@@ -231,25 +231,20 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onTouchEvent(event: MotionEvent): Boolean {
         //Log.d("ingo", event.action.toString())
         val rect = Rect((event.x-detectSize).toInt(), (event.y-detectSize).toInt(), (event.x+detectSize).toInt(), (event.y+detectSize).toInt())
-        var counter = 0
+        var redniBrojPolja = 0
         var found = false
         var processed = false
-        for(text_point in text_points){
-            if(rect.contains(text_point)){
-                //if(counter >= no_draw_position) counter++
-                    if(counter == app_list.size){
-                        mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
-                    } else {
-                        mEventListener?.onEventOccurred(event, counter, no_draw_position)
-                        found = true
-                    }
-                /*if(hovered_over != counter) {
-                    hovered_over = counter
-                    invalidate()
-                }*/
+        for(polje_point in polja_points){
+            if(rect.contains(polje_point)){
+                if(redniBrojPolja == app_list.size){
+                    mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
+                } else {
+                    mEventListener?.onEventOccurred(event, redniBrojPolja, no_draw_position)
+                    found = true
+                }
                 break
             }
-            counter++
+            redniBrojPolja++
         }
         var sredina = false
         if (rect.contains(size_width / 2, size / 2)) {
@@ -259,15 +254,6 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             hovered_over = -1
             invalidate()
         }
-        /*if(!found && event.action == MotionEvent.ACTION_DOWN){
-            if(sredina){
-                if(!editMode && middleButtonState != MIDDLE_BUTTON_HOME){
-                    return false
-                }
-            } else {
-                return false
-            }
-        }*/
         if (sredina) {
             if(editMode) {
                 //mEventListener?.onEventOccurred(event, MainActivity.ACTION_ADD, no_draw_position)
@@ -305,7 +291,6 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 } else {
                     changeMiddleButtonState(MIDDLE_BUTTON_HOME)
                 }
-                // provjeri ako je miš na X, ako je onda ne pozovi meventlistener
                 if(sredina){
                     mEventListener?.onEventOccurred(event,
                         MainActivity.ACTION_CANCEL, no_draw_position)
@@ -313,18 +298,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     mEventListener?.onEventOccurred(event,
                         MainActivity.ACTION_LAUNCH, no_draw_position)
                 }
-                //Log.d("ingo", "sakrij")
             }
-        }/* else {
-            if(event.action == MotionEvent.ACTION_DOWN && found){
-                Log.d("ingo", "editmode " + yellow)
-                if(yellow == -1) {
-                    yellowIt(counter)
-                } else {
-                    deyellowAll()
-                }
-            }
-        }*/
+        }
         return (found || processed)
     }
 
@@ -436,29 +411,28 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
     }
 
-    private fun drawTexts(canvas: Canvas){
-
-        text_points.clear()
+    private fun drawPolja(canvas: Canvas){
+        polja_points.clear()
         canvas.apply {
-
             val radius = size / 3f
-            var current:Double = 0.0
+            var currentStepValue = 0.0
             val cx = size_width/2f
             val cy = size/2f
             drawCircle(cx, cy, radius, empty_circle_paint)
             var counter = 0
             var over_no_draw_position = false
-            while(current < Math.PI*2){
+            while(currentStepValue < Math.PI*2){
                 if(!over_no_draw_position && counter == no_draw_position){
-                    current += step_size
+                    currentStepValue += step_size
                     over_no_draw_position = true
                     continue
                 }
-                val x = Math.sin(current)*radius
-                val y = Math.cos(current)*radius
+                val x = Math.sin(currentStepValue)*radius
+                val y = Math.cos(currentStepValue)*radius
                 val draw_pointF = PointF( ((cx+x).toFloat()), ((cy+y).toFloat()) )
                 val draw_point = Point( draw_pointF.x.toInt(), draw_pointF.y.toInt() )
                 var text:String
+                // rade se rupe za krugove
                 if((counter >= app_list.size && draw_circles) || counter < app_list.size ) {
                     drawCircle(
                         draw_pointF.x,
@@ -467,20 +441,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     )
                 }
                 if(counter >= app_list.size){
-                    /*if(counter == app_list.size && app_list.size <= 7){
-                        drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
-                        adddrawable?.setTint(Color.WHITE)
-                        val bitmap: Bitmap? = adddrawable?.toBitmap()
-                        drawBitmap(
-                            bitmap!!, null, Rect(
-                                (draw_pointF.x - detectSize*2/3).toInt(),
-                                (draw_pointF.y - detectSize*2/3).toInt(),
-                                (draw_pointF.x + detectSize*2/3).toInt(),
-                                (draw_pointF.y + detectSize*2/3).toInt()
-                            ), null
-                        )
-                        text_points.add(draw_point)
-                    }*/
+                    // crtaju se prazni krugovi
                     text = ""
                     if (draw_circles) drawCircle(
                         draw_pointF.x,
@@ -490,13 +451,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     )
                 } else {
                     text = app_list[counter].text
-                    Log.d("ingo", "boja je ${app_list[counter].color}")
+                    //Log.d("ingo", "boja je ${app_list[counter].color}")
                     try {
                         circle_paint.color = if (app_list[counter].color != "" && app_list[counter].color.toInt() >= 0) Color.parseColor(app_list[counter].color) else Color.parseColor("#55000000")
                     } catch (e: NumberFormatException ){
                         circle_paint.color = Color.parseColor("#55000000")
                     }
                     if(app_list[counter].nextIntent != "") {
+                        // app
                         var bitmap: Bitmap?
                         if(app_list[counter].nextIntent == MainActivity.ACTION_APPINFO){
                             drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
@@ -512,9 +474,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                                 e.printStackTrace()
                             }
                             bitmap = icons[app_list[counter].nextIntent]?.toBitmap()
-                            Log.d("ingo", "applist[" + counter + "].nextIntent = " + app_list[counter].nextIntent )
+                            //Log.d("ingo", "applist[" + counter + "].nextIntent = " + app_list[counter].nextIntent )
                         }
-                            //radapter.icons[app_list[counter].nextIntent]?.toBitmap()
                         if (draw_icons && bitmap != null) {
                             drawBitmap(
                                 bitmap, null, Rect(
@@ -534,13 +495,13 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                             drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
                         }
                         if(app_list[counter].shortcut){
+                            // prebojaj polje zato što je shortcut pa ide tekst preko ikone
                             drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
-                            if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
+                            //if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
                             drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
                         }
                     } else {
                         // folder
-
                         drawCircle(
                             draw_pointF.x,
                             draw_pointF.y,
@@ -549,7 +510,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                         )
                         drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
                     }
-                    text_points.add(draw_point)
+                    polja_points.add(draw_point)
                 }
                 if(counter == yellow){
                     //drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), yellow_paint)
@@ -560,9 +521,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     //drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), thick_paint)
                 }
 
-
                 //drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
-                current += step_size
+                currentStepValue += step_size
                 counter++
             }
         }

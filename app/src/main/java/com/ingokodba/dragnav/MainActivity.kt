@@ -306,7 +306,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 showMainFragment()
                 mainFragment.circleView.updateDesign()
                 mainFragment.circleView.invalidate()
-                mainFragment.prebaciMeni(viewModel.currentMenuId, viewModel.lastTextViewEnteredCounter)
+                mainFragment.prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
             }
             Layouts.LAYOUT_SETTINGS -> {
                 val intent = Intent(this, SettingsActivity::class.java)
@@ -467,7 +467,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     fun showMyDialog(editSelected:Int) {
         if(editSelected == -1) return
         val fragmentManager = supportFragmentManager
-        viewModel.currentSubmenuList[editSelected].let{
+        viewModel.trenutnoPrikazanaPolja[editSelected].let{
             val newFragment = CustomDialogFragment(it)
 
             val isLargeLayout = true
@@ -550,7 +550,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
         if(dontLoadApps){
-            viewModel.krugovi += pocetna
+            viewModel.sviKrugovi += pocetna
             viewModel.pocetnaId = pocetna.id
             viewModel.currentMenuId = pocetna.id
             return
@@ -565,11 +565,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
         } else {
             withContext(Dispatchers.Main) {
-                viewModel.krugovi += krugSAplikacijama
+                viewModel.sviKrugovi += krugSAplikacijama
                 viewModel.pocetnaId = krugSAplikacijama.first().id
             }
         }
-        for(meni in viewModel.krugovi){
+        for(meni in viewModel.sviKrugovi){
             if(meni.id > viewModel.highestId) viewModel.highestId = meni.id
         }
         val appDao: AppInfoDao = db.appInfoDao()
@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     for (polje in krugSAplikacijama.reversed()) {
                         if (polje.nextIntent == pn) {
                             krugSAplikacijamaDao.delete(polje)
-                            viewModel.krugovi.remove(polje)
+                            viewModel.sviKrugovi.remove(polje)
                         }
                     }
                 }
@@ -624,7 +624,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
         }
         if(circleViewLoadIcons) {
-            for (app in viewModel.krugovi) {
+            for (app in viewModel.sviKrugovi) {
                 loadIcon(app.nextIntent)
             }
         }
@@ -836,7 +836,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             showLayout(Layouts.LAYOUT_MAIN)
         } else {
             if(viewModel.editMode){
-                mainFragment.changeeditMode()
+                mainFragment.toggleEditMode()
             } else if(backButtonAction) {
                 showLayout(Layouts.LAYOUT_SEARCH)
             } else {
@@ -968,7 +968,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     fun deleteSelectedItem(editSelected:Int){
         if(editSelected == -1) return
         lifecycleScope.launch(Dispatchers.IO) {
-            databaseDeleteById(viewModel.currentSubmenuList[editSelected].id)
+            databaseDeleteById(viewModel.trenutnoPrikazanaPolja[editSelected].id)
             withContext(Dispatchers.Main){
                 mainFragment.deYellowAll()
                 mainFragment.refreshCurrentMenu()
@@ -982,7 +982,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         mainFragment.getPolje(id)?.let {
             krugSAplikacijamaDao.delete(it)
             viewModel.currentMenu.polja = viewModel.currentMenu.polja.filter { it != id }
-            viewModel.krugovi.filter{ it.id != id }
+            viewModel.sviKrugovi.filter{ it.id != id }
             krugSAplikacijamaDao.update(viewModel.currentMenu)
             Log.d("ingo", "deleted " + id)
         }
@@ -997,7 +997,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         try {
             val rowid = krugSAplikacijamaDao.insertAll(polje)
             val polje = databaseGetItemByRowId(rowid.first())
-            viewModel.krugovi.add(polje)
+            viewModel.sviKrugovi.add(polje)
             return polje
         }catch(exception: android.database.sqlite.SQLiteConstraintException){
 

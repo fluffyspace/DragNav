@@ -18,26 +18,25 @@ class ViewModel : ViewModel() {
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
 
-    var lastTextViewEnteredCounter:Int = -1
     lateinit var currentMenu: KrugSAplikacijama
     var currentMenuId: Int = -1
-    var currentSubmenuList: List<KrugSAplikacijama> = listOf()
+    var trenutnoPrikazanaPolja: List<KrugSAplikacijama> = listOf()
     var max_subcounter:Int = -1
     var stack:MutableList<Pair<Int,Int>> = mutableListOf()
     var highestId = -1
-    var selected_global:Int = -1
+    var no_draw_position:Int = -1
     var lastEnteredIntent: KrugSAplikacijama? = null
     var editMode:Boolean = false
     var addNewAppMode:Boolean = false
     var editSelected:Int = -1
     var pocetnaId:Int = -1
-    var krugovi:MutableList<KrugSAplikacijama> = mutableListOf()
+    var sviKrugovi:MutableList<KrugSAplikacijama> = mutableListOf()
 
     fun initialize(){
         _icons.postValue(mutableMapOf())
         _popis_aplikacija.postValue(mutableListOf())
-        currentSubmenuList = listOf()
-        krugovi = mutableListOf()
+        trenutnoPrikazanaPolja = listOf()
+        sviKrugovi = mutableListOf()
         currentMenuId = -1
     }
 
