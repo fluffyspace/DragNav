@@ -30,44 +30,46 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="18sp"/>
-            <EditText
-                android:id="@+id/labela"
+
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/ime_linka"/>
-            <EditText
-                android:id="@+id/intent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/intent_linka"/>
-            <!--<com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/labela_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Naziv linka">
+                android:hint="@string/ime_linka">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/labela"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text|textCapSentences"
-                    android:imeActionId="2" />
+                    android:textSize="20sp"
+                    />
+
             </com.google.android.material.textfield.TextInputLayout>
+
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Akcija linka (intent)">
+                android:hint="@string/intent_linka"
+                android:layout_marginTop="10dp">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/intent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textMultiLine|textCapSentences"
-                    android:imeOptions="actionDone"
-                    android:minLines="5"
-                    android:lines="5"
-                    android:scrollbars="vertical"
-                    android:singleLine="false"
-                    android:gravity="top|start" />
-            </com.google.android.material.textfield.TextInputLayout>-->
+                    android:textSize="20sp"
+                    />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/pick_folder_color"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/odaberi_boju"
+                android:padding="10dp"
+                android:layout_marginTop="10dp"
+                android:textSize="20sp"
+                android:gravity="center"
+                style="@style/MojButton"/>
             <Button
                 android:id="@+id/submit"
                 android:layout_width="match_parent"

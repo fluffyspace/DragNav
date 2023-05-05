@@ -18,8 +18,10 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val UI_COLOR = "ui_color"
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
         val UI_BORDER_WIDTH = "ui_border_width"
+        val UI_TEXT_SIZE = "ui_text_size"
         val UI_CIRCLES_TOGGLE = "ui_circles_toggle"
         val UI_ICONS_TOGGLE = "ui_icons_toggle"
+        val UI_SHOW_APP_NAMES = "ui_show_app_names"
         val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
         val UI_ONELINE = "ui_oneline_buttons_toggle"
         val UI_BACKBUTTON = "ui_backbutton_toggle"
@@ -153,6 +155,17 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         }
         numberPreference?.setOnPreferenceChangeListener { preference, newValue ->
             numberPreference?.summary = "Currently $newValue"
+            return@setOnPreferenceChangeListener true
+        }
+
+        val numberPreference2: EditTextPreference? = findPreference(UI_TEXT_SIZE)
+        numberPreference2?.summary = "Currently " +
+                context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(UI_TEXT_SIZE, "18") }
+        numberPreference2?.setOnBindEditTextListener { editText ->
+            editText.inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        numberPreference2?.setOnPreferenceChangeListener { preference, newValue ->
+            numberPreference2?.summary = "Currently $newValue"
             return@setOnPreferenceChangeListener true
         }
 

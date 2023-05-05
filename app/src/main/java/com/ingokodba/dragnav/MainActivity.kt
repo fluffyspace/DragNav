@@ -2,10 +2,13 @@ package com.ingokodba.dragnav
 
 //import com.example.dragnav.databinding.ActivityMainBinding
 
+//import com.facebook.spectrum.SpectrumSoLoader
+
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.*
 import android.content.res.Resources
 import android.database.Cursor
@@ -38,7 +41,6 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
-//import com.facebook.spectrum.SpectrumSoLoader
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -49,6 +51,8 @@ import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MessageEvent
 import com.madrapps.pikolo.ColorPicker
 import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
+import com.skydoves.colorpickerview.ColorPickerView
+import com.skydoves.colorpickerview.listeners.ColorListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,6 +66,7 @@ import java.time.ZoneOffset
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
+
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
@@ -859,18 +864,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         shortcutPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
     }
 
-    fun openColorPickerMenu(view: View){
-        val contentView = createColorPickerDialog()
-        val locations = IntArray(2, {0})
-        view.getLocationOnScreen(locations)
-        colorPickerPopup?.dismiss()
-        colorPickerPopup = PopupWindow(contentView,
-            ListPopupWindow.MATCH_PARENT,
-            ListPopupWindow.WRAP_CONTENT, true)
-        //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        colorPickerPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
-    }
-
     fun showIntroPopup(){
         MaterialAlertDialogBuilder(this,
             androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
@@ -901,19 +894,18 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         shortcutPopup?.showAtLocation(mainFragment.circleView, Gravity.CENTER, 0, 0)
     }
 
-    fun createColorPickerDialog():View{
-        val view = LayoutInflater.from(this).inflate(R.layout.color_picker_dialog, null)
-        gcolor = 1
-        view.findViewById<ColorPicker>(R.id.dialog_colorpicker).setColorSelectionListener(object : SimpleColorSelectionListener() {
-            override fun onColorSelected(color: Int) {
-                // Do whatever you want with the color
-                gcolor = color
+    var colorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if(data != null) {
+                gcolor = data.getIntExtra("color", 0)
             }
-        })
-        view.findViewById<Button>(R.id.dialog_pickcolorbutton).setOnClickListener {
-            colorPickerPopup?.dismiss()
         }
-        return view
+    }
+
+    fun startColorpicker(){
+        val intent = Intent(this@MainActivity, ColorPickerActivity::class.java)
+        colorResultLauncher.launch(intent)
     }
 
     fun createFolderNameMenu():View{
@@ -923,7 +915,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             shortcutPopup?.dismiss()
         }
         view.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
-            openColorPickerMenu(mainFragment.circleView)
+            startColorpicker()
         }
         view.findViewById<Button>(R.id.popup_folder_submit).setOnClickListener{
             val ime:String = view.findViewById<EditText>(R.id.popup_folder_name).text.toString()

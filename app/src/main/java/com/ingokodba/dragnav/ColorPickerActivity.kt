@@ -1,14 +1,15 @@
 package com.ingokodba.dragnav
 
-import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import android.widget.Toast
-import androidx.preference.PreferenceManager
+import android.widget.LinearLayout
+import androidx.appcompat.app.AppCompatActivity
 import com.example.dragnav.R
-import com.madrapps.pikolo.ColorPicker
 import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
+import com.skydoves.colorpickerview.ColorPickerView
+import com.skydoves.colorpickerview.listeners.ColorListener
+
 
 class ColorPickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,20 +18,20 @@ class ColorPickerActivity : AppCompatActivity() {
         displaySetColor()
 
         var gcolor:Int = 0
-        findViewById<ColorPicker>(R.id.colorpicker).setColorSelectionListener(object : SimpleColorSelectionListener() {
-            override fun onColorSelected(color: Int) {
-                // Do whatever you want with the color
-                gcolor = color
-            }
+
+        findViewById<ColorPickerView>(R.id.colorPickerView).setColorListener(ColorListener { color, fromUser ->
+            gcolor = color
         })
         findViewById<Button>(R.id.pickcolorbutton).setOnClickListener {
-            val preferences: SharedPreferences =
+            setResult(RESULT_OK, Intent().putExtra("color", gcolor).putExtra("forPrimaryColor", true))
+            finish()
+            /*val preferences: SharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(this)
             val editor = preferences.edit()
             editor.putString("ui_color", gcolor.toString())
             editor.apply()
             displaySetColor()
-            finish()
+            finish()*/
         }
     }
 

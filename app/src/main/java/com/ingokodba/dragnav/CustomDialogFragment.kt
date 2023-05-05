@@ -76,10 +76,15 @@ class CustomDialogFragment(polje: KrugSAplikacijama) : DialogFragment() {
             dismiss()
             true
         }
+
+        (activity as MainActivity).gcolor = polje.color.toInt()
+
         var recipeName = (view.findViewById<TextInputLayout>(R.id.labela) as EditText)
         var recipeDesc = (view.findViewById<TextInputLayout>(R.id.intent) as EditText)
         var recipeId = (view.findViewById<TextView>(R.id.id_linka) as TextView)
-
+        view.findViewById<Button>(R.id.pick_folder_color).setOnClickListener { view ->
+            (activity as MainActivity).startColorpicker()
+        }
         view.findViewById<Button>(R.id.submit).setOnClickListener{ view ->
             if(recipeName.toString() == "") {
                 Toast.makeText(requireContext(), "There has to be at least name.", Toast.LENGTH_SHORT).show()
@@ -88,6 +93,7 @@ class CustomDialogFragment(polje: KrugSAplikacijama) : DialogFragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 polje.text = recipeName.text.toString()
                 polje.nextIntent = recipeDesc.text.toString()
+                polje.color = (activity as MainActivity).gcolor.toString()
                 (activity as MainActivity).databaseUpdateItem(polje)
                 withContext(Dispatchers.Main){
                     (activity as MainActivity).mainFragment.refreshCurrentMenu()

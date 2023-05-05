@@ -25,9 +25,19 @@
         app:title="@string/border_width"
         app:defaultValue="4"/>
 
+    <EditTextPreference
+        app:key="ui_text_size"
+        app:title="@string/text_size"
+        app:defaultValue="18"/>
+
     <SwitchPreference
         app:key="ui_icons_toggle"
         app:title="@string/icons"
+        app:defaultValue="true"/>
+
+    <SwitchPreference
+        app:key="ui_show_app_names"
+        app:title="@string/ui_show_app_names"
         app:defaultValue="true"/>
 
 </PreferenceScreen>

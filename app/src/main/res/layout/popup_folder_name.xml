@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Adding a folder"
+        android:text="@string/adding_a_folder"
         android:textColor="?attr/colorOnPrimary"
         android:textSize="25sp"
         android:layout_marginBottom="15dp"/>
@@ -23,6 +23,7 @@
             android:id="@+id/popup_folder_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textSize="20sp"
             />
 
     </com.google.android.material.textfield.TextInputLayout>
@@ -32,12 +33,14 @@
         style="@style/MojButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:layout_marginRight="5dp"
-        android:text="pick a folder color"
+        android:text="@string/odaberi_boju"
         android:textAllCaps="false"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@id/popup_folder_cancel"
         app:layout_constraintTop_toTopOf="parent" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -32,6 +32,7 @@
     <string name="primary_color">Primary color</string>
     <string name="shadow">Show shadow</string>
     <string name="border_width">Circles border width</string>
+    <string name="text_size">Text size</string>
     <string name="icons">Show icons</string>
     <string name="settings_im_ex">Settings import/export</string>
     <string name="feedback_summary">Report technical issues or suggest new features</string>
@@ -56,4 +57,7 @@
     <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
     <string name="open_default_apps">Open default apps</string>
     <string name="wizard_yes_no">Do you want to use Wizard to automatically populate home screen with apps?</string>
+    <string name="odaberi_boju">Choose a color</string>
+    <string name="adding_a_folder">Adding a folder</string>
+    <string name="ui_show_app_names">Show application names</string>
 </resources>

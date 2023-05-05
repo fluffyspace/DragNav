@@ -116,7 +116,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         text_paint.textAlign = Paint.Align.CENTER
         text_paint.style = Paint.Style.FILL
         text_paint.textSize = 50F;
-        text_paint.setShadowLayer(4.0f, 1.0f, 2.0f, Color.WHITE);
+        //text_paint.setShadowLayer(4.0f, 1.0f, 2.0f, Color.WHITE);
 
         semi_transparent_paint.color = Color.parseColor("#88000000")
         semi_transparent_paint.style = Paint.Style.FILL
@@ -159,12 +159,12 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
         circle_border_paint.color = Color.parseColor("#BB000000")
         circle_border_paint.style = Paint.Style.STROKE
         circle_border_paint.strokeWidth = borderWidth
-        circle_border_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+        //circle_border_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
 
         thick_paint.color = middleButtonColor
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
-        thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+        //thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

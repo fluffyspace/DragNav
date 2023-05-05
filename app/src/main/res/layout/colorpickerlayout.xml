@@ -5,16 +5,14 @@
     android:orientation="vertical"
     android:background="@android:color/transparent">
 
-    <com.madrapps.pikolo.RGBColorPicker
-        android:id="@+id/colorpicker"
+    <com.skydoves.colorpickerview.ColorPickerView
+        android:id="@+id/colorPickerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="10"/>
+        android:layout_height="300dp" />
     <Button
         android:id="@+id/pickcolorbutton"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="80dp"
         android:text="@string/pick"
         style="MojButton"/>
 </LinearLayout>

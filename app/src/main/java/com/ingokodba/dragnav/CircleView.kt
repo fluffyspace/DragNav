@@ -56,7 +56,9 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     var draw_circles = true
     var draw_icons = true
     var border_width = 4f
+    var text_size = 18f
     var shadow_toggle = true
+    var show_app_names = true
 
     var detectSize = 100
     var editMode:Boolean = false
@@ -319,6 +321,9 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         draw_icons = icons
         val shadow = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHADOW_TOGGLE, true)
         shadow_toggle = shadow
+        show_app_names = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHOW_APP_NAMES, true)
+        text_size = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_TEXT_SIZE, "18")!!.toFloat()
+        text_paint.textSize = text_size;
         val border_width1 = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_BORDER_WIDTH, "4")
         try {
             if (border_width1 != null) {
@@ -451,11 +456,16 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                     )
                 } else {
                     text = app_list[counter].text
-                    //Log.d("ingo", "boja je ${app_list[counter].color}")
+                    Log.d("ingo", "boja za ${app_list[counter].text} je ${app_list[counter].color}")
                     try {
-                        circle_paint.color = if (app_list[counter].color != "" && app_list[counter].color.toInt() >= 0) Color.parseColor(app_list[counter].color) else Color.parseColor("#55000000")
+                        circle_paint.color = if (app_list[counter].color != "") app_list[counter].color.toInt() else Color.parseColor("#55000000")
+                        Log.d("ingo", "boja je ${circle_paint.color}")
                     } catch (e: NumberFormatException ){
                         circle_paint.color = Color.parseColor("#55000000")
+                        Log.d("ingo", "boja nemoguće za dešifrirati1")
+                    } catch (e: IllegalArgumentException ){
+                        circle_paint.color = Color.parseColor("#55000000")
+                        Log.d("ingo", "boja nemoguće za dešifrirati2")
                     }
                     if(app_list[counter].nextIntent != "") {
                         // app
@@ -485,6 +495,9 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                                     (draw_pointF.y + detectSize).toInt()
                                 ), null
                             )
+                            if(show_app_names){
+                                drawText(text, draw_pointF.x, draw_pointF.y+160, text_paint)
+                            }
                         } else {
                             drawCircle(
                                 draw_pointF.x,

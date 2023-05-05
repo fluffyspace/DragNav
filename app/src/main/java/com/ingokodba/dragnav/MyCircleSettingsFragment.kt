@@ -10,26 +10,12 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.*
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_BORDER_WIDTH
+import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_COLOR
 
 
 class MyCircleSettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
-    companion object{
-        val UI_COLOR = "ui_color"
-        val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
-        val UI_BORDER_WIDTH = "ui_border_width"
-        val UI_CIRCLES_TOGGLE = "ui_circles_toggle"
-        val UI_ICONS_TOGGLE = "ui_icons_toggle"
-        val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
-        val UI_ONELINE = "ui_oneline_buttons_toggle"
-        val UI_BACKBUTTON = "ui_backbutton_toggle"
-        val IMPORT = "import"
-        val EXPORT = "export"
-        val FEEDBACK = "feedback"
-        val RESTART = "restart"
-        val DROP_DATABASE = "drop_database"
-        val DEFAULT_APPS = "default_apps"
-    }
 
     val data:Intent = Intent()
 
