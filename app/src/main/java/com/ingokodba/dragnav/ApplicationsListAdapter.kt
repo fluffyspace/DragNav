@@ -109,7 +109,12 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
      * Replaces the contents of a view (invoked by the layout manager)
      */
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, pos: Int) {
-        val appInfo: AppInfo = getItem(pos)
+        val appInfo: AppInfo
+        try{
+            appInfo = getItem(pos)
+        }catch (e: ArrayIndexOutOfBoundsException){
+            return
+        }
         if (holder is MarsPhotosViewHolder) {
             holder.bind(appInfo, viewModel)
             if(viewModel.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewModel.appsList.value!![pos].color.toInt())

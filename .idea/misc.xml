@@ -36,6 +36,7 @@
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/activity_main3.xml" value="0.1923899102180419" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/activity_settings.xml" value="0.3009833262077811" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/chip_template.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/color_picker_dialog.xml" value="0.3009833262077811" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/colorpickerlayout.xml" value="0.10731081658828559" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/editall_dialog.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/Krepana Krava/AndroidStudioProjects/DragNav2/app/src/main/res/layout/fragment_actions.xml" value="0.1923899102180419" />
@@ -60,7 +61,7 @@
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

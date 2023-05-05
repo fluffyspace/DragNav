@@ -24,6 +24,7 @@
     <string name="edit_link">Uredi poveznicu</string>
     <string name="loading">Učitavanje…</string>
     <string name="intro_message">Pozdrav, korisniče. Ova aplikacija je još u izradi, pa nemoj biti pregrub kod ocjenjivanja. Ako želiš, možeš ostaviti opširan i privatan feedabck preko emaila. Sretno navigiranje!</string>
+    <string name="actions_todo_message">This feature is not yet implemented. It will be possible to </string>
     <!-- Probaj koristiti aplikaciju tijekom par dana, isprobaj sve mogućnosti i na kraju reci što vam smeta, kako da poboljšam aplikaciju za vaš ukus. Slobodno mi se javite ako hoćete da dodam nekoga na mailing listu za testiranje. Sretno navigiranje! -->
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

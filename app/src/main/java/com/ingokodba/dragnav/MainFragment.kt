@@ -115,11 +115,15 @@ class MainFragment : Fragment() {
                 bottomMenuView.visibility = View.VISIBLE
             }
         }
+
+
+        if(viewModel.currentMenuId == -1){
             goToPocetna()
-        /*if(viewModel.currentMenuId == -1){
         } else {
             refreshCurrentMenu()
-        }*/
+        }
+
+        Log.d("ingo", "mainfragment created")
     }
 
     override fun onCreateView(
@@ -208,7 +212,9 @@ class MainFragment : Fragment() {
         //Log.d("ingo", subcounter.toString() + " " + counter.toString() + " "  + lastItem.toString() + " " + getSubPolja(viewModel.currentMenu.id)[subcounter].nextId.toString())
         Log.d("ingo", "" + no_draw_position + " " + viewModel.lastTextViewEnteredCounter)
         if(!viewModel.editMode && no_draw_position == viewModel.lastTextViewEnteredCounter) {
-            selected_text.text = viewModel.currentSubmenuList[counter].text
+            if(viewModel.currentSubmenuList[counter].nextIntent != MainActivity.ACTION_ADD_PRECAC) {
+                selected_text.text = viewModel.currentSubmenuList[counter].text
+            }
             if (viewModel.currentSubmenuList[counter].nextIntent == "") { // mapa
                 Log.d("ingo", "nextIntent je prazan")
                 viewModel.lastEnteredIntent = null
@@ -299,6 +305,7 @@ class MainFragment : Fragment() {
                     startActivity(intent)
                 } else if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_ADD_PRECAC){
                     addNew()
+                    return
                 }
             }
         } else {
@@ -443,7 +450,7 @@ class MainFragment : Fragment() {
         viewModel.max_subcounter = (viewModel.currentSubmenuList).size
     }
     fun getPolje(id:Int): KrugSAplikacijama?{
-        for(polje in viewModel.listaMenija){
+        for(polje in viewModel.krugovi){
             if(polje.id == id) return polje
         }
         return null
@@ -475,7 +482,7 @@ class MainFragment : Fragment() {
         var lista:MutableList<KrugSAplikacijama> = mutableListOf()
         var polje1 = getPolje(id)
         if(polje1 != null) {
-            for (polje2 in viewModel.listaMenija) {
+            for (polje2 in viewModel.krugovi) {
                 if(polje1.polja!!.contains(polje2.id)){
                     //Log.d("ingo", "dodajem " + polje2.text)
                     lista.add(polje2)

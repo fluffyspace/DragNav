@@ -38,6 +38,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+//import com.facebook.spectrum.SpectrumSoLoader
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -46,6 +47,8 @@ import com.ingokodba.dragnav.modeli.Action
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MessageEvent
+import com.madrapps.pikolo.ColorPicker
+import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -59,7 +62,6 @@ import java.time.ZoneOffset
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
-
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
@@ -104,8 +106,9 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     var selectAppMenuOpened:Boolean = false
     var currentLayout:Layouts = Layouts.LAYOUT_MAIN
     var addingNewAppEvent:MessageEvent? = null
-
+    var gcolor:Int = 1
     var shortcutPopup:PopupWindow? = null
+    var colorPickerPopup:PopupWindow? = null
     lateinit var pocetna: KrugSAplikacijama
 
     var backButtonAction:Boolean = false
@@ -154,6 +157,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //SpectrumSoLoader.init(this);
         instance = this as MainActivity
 
         val darkModeString = getString(R.string.dark_mode)
@@ -173,8 +177,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
 
-        val icons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
-        circleViewLoadIcons = icons
+        circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 
         supportFragmentManager.commit { setReorderingAllowed(true) }
         loadFragments()
@@ -262,7 +265,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             )
             replace(R.id.settings_container, activitiesFragment, "activities")
             setReorderingAllowed(true)
-            addToBackStack(null)
+            addToBackStack("activities")
         }
     }
 
@@ -303,6 +306,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 showMainFragment()
                 mainFragment.circleView.updateDesign()
                 mainFragment.circleView.invalidate()
+                mainFragment.prebaciMeni(viewModel.currentMenuId, viewModel.lastTextViewEnteredCounter)
             }
             Layouts.LAYOUT_SETTINGS -> {
                 val intent = Intent(this, SettingsActivity::class.java)
@@ -546,14 +550,14 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
         if(dontLoadApps){
-            viewModel.listaMenija += pocetna
+            viewModel.krugovi += pocetna
             viewModel.pocetnaId = pocetna.id
             viewModel.currentMenuId = pocetna.id
             return
         }
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        var krugSAplikacijama:List<KrugSAplikacijama> = recDao.getAll()
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        var krugSAplikacijama:List<KrugSAplikacijama> = krugSAplikacijamaDao.getAll()
         if(krugSAplikacijama.size == 0){
             viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
@@ -561,11 +565,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
         } else {
             withContext(Dispatchers.Main) {
-                viewModel.listaMenija += krugSAplikacijama
+                viewModel.krugovi += krugSAplikacijama
                 viewModel.pocetnaId = krugSAplikacijama.first().id
             }
         }
-        for(meni in viewModel.listaMenija){
+        for(meni in viewModel.krugovi){
             if(meni.id > viewModel.highestId) viewModel.highestId = meni.id
         }
         val appDao: AppInfoDao = db.appInfoDao()
@@ -600,8 +604,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     Log.d("ingo", "removed " + pn)
                     for (polje in krugSAplikacijama.reversed()) {
                         if (polje.nextIntent == pn) {
-                            recDao.delete(polje)
-                            viewModel.listaMenija.remove(polje)
+                            krugSAplikacijamaDao.delete(polje)
+                            viewModel.krugovi.remove(polje)
                         }
                     }
                 }
@@ -620,7 +624,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
         }
         if(circleViewLoadIcons) {
-            for (app in viewModel.listaMenija) {
+            for (app in viewModel.krugovi) {
                 loadIcon(app.nextIntent)
             }
         }
@@ -664,10 +668,10 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     fun databaseGetMeniPolja(ids:List<Int>?): List<KrugSAplikacijama>{
         if(ids == null) return listOf()
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         val krugSAplikacijama:MutableList<KrugSAplikacijama> = mutableListOf()
         for(id in ids){
-            krugSAplikacijama += recDao.findById(id)
+            krugSAplikacijama += krugSAplikacijamaDao.findById(id)
         }
         Log.d("ingo", "getAllMeniPolja")
         krugSAplikacijama.forEach{
@@ -741,7 +745,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 colorPrimary = Color.BLACK
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
-
                     newApps.add(AppInfo(p.applicationInfo.uid, appName, packageName, colorPrimary.toString(), installed = true))
                 }
             }
@@ -853,7 +856,19 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             ListPopupWindow.MATCH_PARENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
+    }
+
+    fun openColorPickerMenu(view: View){
+        val contentView = createColorPickerDialog()
+        val locations = IntArray(2, {0})
+        view.getLocationOnScreen(locations)
+        colorPickerPopup?.dismiss()
+        colorPickerPopup = PopupWindow(contentView,
+            ListPopupWindow.MATCH_PARENT,
+            ListPopupWindow.WRAP_CONTENT, true)
+        //shortcutPopup?.animationStyle = R.style.PopupAnimation
+        colorPickerPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
     }
 
     fun showIntroPopup(){
@@ -886,10 +901,29 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         shortcutPopup?.showAtLocation(mainFragment.circleView, Gravity.CENTER, 0, 0)
     }
 
+    fun createColorPickerDialog():View{
+        val view = LayoutInflater.from(this).inflate(R.layout.color_picker_dialog, null)
+        gcolor = 1
+        view.findViewById<ColorPicker>(R.id.dialog_colorpicker).setColorSelectionListener(object : SimpleColorSelectionListener() {
+            override fun onColorSelected(color: Int) {
+                // Do whatever you want with the color
+                gcolor = color
+            }
+        })
+        view.findViewById<Button>(R.id.dialog_pickcolorbutton).setOnClickListener {
+            colorPickerPopup?.dismiss()
+        }
+        return view
+    }
+
     fun createFolderNameMenu():View{
+        gcolor = Color.GRAY
         val view = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
         view.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
             shortcutPopup?.dismiss()
+        }
+        view.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
+            openColorPickerMenu(mainFragment.circleView)
         }
         view.findViewById<Button>(R.id.popup_folder_submit).setOnClickListener{
             val ime:String = view.findViewById<EditText>(R.id.popup_folder_name).text.toString()
@@ -897,7 +931,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 Log.d("ingo", "usli")
                 // create folder
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime))
+                    val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime, color = gcolor.toString()))
                     val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
                     if(trenutnoPolje != null && dodanoPolje != null){
                         trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
@@ -917,8 +951,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     fun databaseUpdateItem(polje: KrugSAplikacijama){
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        recDao.update(polje)
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        krugSAplikacijamaDao.update(polje)
         var staro_polje = mainFragment.getPolje(polje.id)
         staro_polje = polje
         Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
@@ -926,9 +960,9 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     fun databaseGetItemByRowId(id:Long): KrugSAplikacijama {
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         Log.d("ingo", "databaseGetItemByRowId " + id)
-        return recDao.findByRowId(id).first()
+        return krugSAplikacijamaDao.findByRowId(id).first()
     }
 
     fun deleteSelectedItem(editSelected:Int){
@@ -944,12 +978,12 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     fun databaseDeleteById(id: Int){
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         mainFragment.getPolje(id)?.let {
-            recDao.delete(it)
+            krugSAplikacijamaDao.delete(it)
             viewModel.currentMenu.polja = viewModel.currentMenu.polja.filter { it != id }
-            viewModel.listaMenija.filter{ it.id != id }
-            recDao.update(viewModel.currentMenu)
+            viewModel.krugovi.filter{ it.id != id }
+            krugSAplikacijamaDao.update(viewModel.currentMenu)
             Log.d("ingo", "deleted " + id)
         }
         Log.d("ingo", "deleted- " + id)
@@ -959,11 +993,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         polje.id = 0
         Log.d("ingo", "databaseAddNewPolje(" + polje.text + ")")
         val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
+        val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         try {
-            val rowid = recDao.insertAll(polje)
+            val rowid = krugSAplikacijamaDao.insertAll(polje)
             val polje = databaseGetItemByRowId(rowid.first())
-            viewModel.listaMenija.add(polje)
+            viewModel.krugovi.add(polje)
             return polje
         }catch(exception: android.database.sqlite.SQLiteConstraintException){
 

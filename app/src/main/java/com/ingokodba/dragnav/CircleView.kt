@@ -177,7 +177,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
         if(shadow_toggle) {
             empty_circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK)
             circle_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
-            thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
+            //thick_paint.setShadowLayer(1.0f, 1.0f, 2.0f, Color.BLACK);
         } else {
             empty_circle_paint.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK)
             circle_paint.setShadowLayer(0.0f, 1.0f, 2.0f, Color.BLACK);
@@ -488,10 +488,14 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                         detectSize.toFloat(),
                         empty_circle_paint
                     )
-
                 } else {
                     text = app_list[counter].text
-                    circle_paint.color = Color.parseColor("#55000000")
+                    Log.d("ingo", "boja je ${app_list[counter].color}")
+                    try {
+                        circle_paint.color = if (app_list[counter].color != "" && app_list[counter].color.toInt() >= 0) Color.parseColor(app_list[counter].color) else Color.parseColor("#55000000")
+                    } catch (e: NumberFormatException ){
+                        circle_paint.color = Color.parseColor("#55000000")
+                    }
                     if(app_list[counter].nextIntent != "") {
                         var bitmap: Bitmap?
                         if(app_list[counter].nextIntent == MainActivity.ACTION_APPINFO){
@@ -535,6 +539,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                             drawText(text, draw_pointF.x, draw_pointF.y+20, text_paint)
                         }
                     } else {
+                        // folder
+
                         drawCircle(
                             draw_pointF.x,
                             draw_pointF.y,

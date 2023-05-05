@@ -31,13 +31,13 @@ class ViewModel : ViewModel() {
     var addNewAppMode:Boolean = false
     var editSelected:Int = -1
     var pocetnaId:Int = -1
-    var listaMenija:MutableList<KrugSAplikacijama> = mutableListOf()
+    var krugovi:MutableList<KrugSAplikacijama> = mutableListOf()
 
     fun initialize(){
         _icons.postValue(mutableMapOf())
         _popis_aplikacija.postValue(mutableListOf())
         currentSubmenuList = listOf()
-        listaMenija = mutableListOf()
+        krugovi = mutableListOf()
         currentMenuId = -1
     }
 

@@ -36,7 +36,7 @@ class RecycleScroller : View {
     /**
      * In the example view, this drawable is drawn above the text.
      */
-    var thumbDrawable: Drawable? = resources.getDrawable(R.drawable.thumb)
+    var thumbDrawable: Drawable? = context.getDrawable(R.drawable.thumb)
 
     constructor(context: Context) : super(context) {
         init(null, 0)
