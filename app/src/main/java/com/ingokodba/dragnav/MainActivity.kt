@@ -8,7 +8,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.content.pm.*
 import android.content.res.Resources
 import android.database.Cursor
@@ -42,6 +41,7 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.Gson
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
@@ -49,10 +49,6 @@ import com.ingokodba.dragnav.modeli.Action
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MessageEvent
-import com.madrapps.pikolo.ColorPicker
-import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
-import com.skydoves.colorpickerview.ColorPickerView
-import com.skydoves.colorpickerview.listeners.ColorListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -730,12 +726,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     @SuppressWarnings("ResourceType")
     fun loadNewApps(): MutableList<AppInfo>{
+        val gson = Gson()
+
         var newApps: MutableList<AppInfo> = mutableListOf()
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
+                Log.d("ingo", "aplikacija ${gson.toJson(p)}")
                 if(isAppLoaded(p.applicationInfo.uid)) {
                     val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
                     //Log.d("ingo", "isAppLoaded " + p.packageName)

@@ -63,7 +63,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     var edit_drawables:List<Drawable?> = listOf(
         context.getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24),
         context.getDrawable(R.drawable.ic_baseline_delete_24),
-        context.getDrawable(R.drawable.ic_baseline_arrow_forward_24),
+        context.getDrawable(R.drawable.door_open),
         context.getDrawable(R.drawable.ic_baseline_close_50),
     )
 
@@ -337,6 +337,9 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             val ccy = (size-detectSize-padding)
 
             drawCircleBitmapButton(canvas, cx, ccy, detectSize, (if (opened) collapse_icon else expand_icon), null)
+            if(!opened){
+
+            }
 
             /*drawCircle(cx, ccy, detectSize, circle_paint)
             drawCircle(cx, ccy, detectSize, circle_border_paint)
@@ -356,10 +359,6 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
             for(edit_text in edit_texts) {
                 val offset_n = counter*editDetectSize*2+counter*padding+editDetectSize
                 drawCircleBitmapButton(canvas, cx-offset+offset_n, ccy, editDetectSize, edit_drawables[counter], edit_points, (selectedId == -1 && counter != edit_texts.size-1))
-                /*drawCircle(cx-offset+offset_n, ccy, editDetectSize, if(selectedId == -1 && counter != edit_texts.size-1) hover_circle_paint else circle_paint)
-                drawCircle(cx-offset+offset_n, ccy, editDetectSize, circle_border_paint)
-                drawText(edit_text, cx-offset+offset_n, ccy + text_paint.textSize/2, text_paint)
-                edit_points.add(Point((cx-offset+offset_n).toInt(), ccy.toInt()))*/
                 counter++
             }
         }
@@ -423,6 +422,14 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                         mEventListener?.onEventOccurred(event, counter)
                         buttonsState = BUTTONS_HIDDEN
                         invalidate()
+                    }
+                } else {
+                    if(event.y > (size-detectSize*2-padding*2)) {
+                        if (event.x > width * 2 / 3) {
+                            mEventListener?.onEventOccurred(event, 1)
+                        } else if (event.x < width * 1 / 3) {
+                            mEventListener?.onEventOccurred(event, 3)
+                        }
                     }
                 }
                 if (event.action == MotionEvent.ACTION_UP) {

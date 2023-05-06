@@ -438,7 +438,8 @@ class MainFragment : Fragment() {
             precaci.add(KrugSAplikacijama(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
         } else {
             if(!(circleView.amIHomeVar && precaci.size+polja.size >= 8) && !(!circleView.amIHomeVar && precaci.size+polja.size >= 7))
-                polja.add(KrugSAplikacijama(id=0, text= "Add app", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
+                //resources.getString(R.string.add_app)
+                polja.add(KrugSAplikacijama(id=0, text="", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
         }
         viewModel.trenutnoPrikazanaPolja = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })

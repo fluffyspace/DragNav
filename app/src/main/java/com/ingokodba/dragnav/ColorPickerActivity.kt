@@ -9,6 +9,7 @@ import com.example.dragnav.R
 import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
 import com.skydoves.colorpickerview.ColorPickerView
 import com.skydoves.colorpickerview.listeners.ColorListener
+import com.skydoves.colorpickerview.sliders.BrightnessSlideBar
 
 
 class ColorPickerActivity : AppCompatActivity() {
@@ -19,9 +20,12 @@ class ColorPickerActivity : AppCompatActivity() {
 
         var gcolor:Int = 0
 
-        findViewById<ColorPickerView>(R.id.colorPickerView).setColorListener(ColorListener { color, fromUser ->
+        val colorPickerView = findViewById<ColorPickerView>(R.id.colorPickerView)
+        colorPickerView.setColorListener(ColorListener { color, fromUser ->
             gcolor = color
         })
+        val brightnessSlideBar = findViewById<BrightnessSlideBar>(R.id.brightnessSlide)
+        colorPickerView.attachBrightnessSlider(brightnessSlideBar)
         findViewById<Button>(R.id.pickcolorbutton).setOnClickListener {
             setResult(RESULT_OK, Intent().putExtra("color", gcolor).putExtra("forPrimaryColor", true))
             finish()

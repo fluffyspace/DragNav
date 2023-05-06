@@ -19,9 +19,11 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
         val UI_BORDER_WIDTH = "ui_border_width"
         val UI_TEXT_SIZE = "ui_text_size"
+        val UI_TRANSPARENCY = "ui_transparency"
         val UI_CIRCLES_TOGGLE = "ui_circles_toggle"
         val UI_ICONS_TOGGLE = "ui_icons_toggle"
         val UI_SHOW_APP_NAMES = "ui_show_app_names"
+        val UI_BIG_CIRCLE = "ui_big_circle"
         val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
         val UI_ONELINE = "ui_oneline_buttons_toggle"
         val UI_BACKBUTTON = "ui_backbutton_toggle"
@@ -35,157 +37,10 @@ class MySettingsFragment : PreferenceFragmentCompat() {
 
     val data:Intent = Intent()
 
-
-
-    /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
-        // Instantiate the new Fragment
-        val args = pref.extras
-        val fragment = pref.fragment?.let {
-            parentFragmentManager.fragmentFactory.instantiate(
-                ClassLoader.getSystemClassLoader(),
-                it
-            )
-        }
-        if (fragment != null) {
-            fragment.arguments = args
-            fragment.setTargetFragment(caller, 0)
-            // Replace the existing Fragment with the new Fragment
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.settings_container, fragment)
-                .addToBackStack(null)
-                .commit()
-            return true
-        }
-        return false
-    }*/
-
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
 
-        val darkModeString = getString(R.string.dark_mode)
-        val darkMode: ListPreference? = findPreference(darkModeString)
-        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        val darkModeValuesHumanReadable = resources.getStringArray(R.array.dark_mode_entries)
-        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[3]) })
-        darkMode?.summary = darkModeValuesHumanReadable[if (darkModeValueIndex > 0) darkModeValueIndex else 0]
-        darkMode?.setOnPreferenceChangeListener { preference, newValue ->
-            when (newValue) {
-                darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-                darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
-                else -> {}
-            }
-            darkMode?.summary = newValue as CharSequence
-            return@setOnPreferenceChangeListener true
-        }
-
-        val colorPick: Preference? = findPreference(UI_COLOR)
-        colorPick?.setOnPreferenceClickListener  {
-            settingsActivity.startColorpicker()
-            return@setOnPreferenceClickListener true
-        }
-
-
-        val defaultApps: Preference? = findPreference(DEFAULT_APPS)
-        defaultApps?.setOnPreferenceClickListener  {
-            settingsActivity.openDefaultApps()
-            return@setOnPreferenceClickListener true
-        }
-
-        val drop_database: Preference? = findPreference(DROP_DATABASE)
-        drop_database?.setOnPreferenceClickListener  {
-            data.putExtra("dropDatabase", true);
-            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-            (activity as SettingsActivity).finish()
-            return@setOnPreferenceClickListener true
-        }
-
-        val import: Preference? = findPreference(IMPORT)
-        import?.setOnPreferenceClickListener  {
-            Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
-            //mactivity.import_export_action = MainActivity.ACTION_IMPORT
-            return@setOnPreferenceClickListener true
-        }
-
-        val export: Preference? = findPreference(EXPORT)
-        export?.setOnPreferenceClickListener  {
-            Toast.makeText(requireContext(), "TO DO", Toast.LENGTH_SHORT).show()
-            //mactivity.import_export_action = MainActivity.ACTION_EXPORT
-            return@setOnPreferenceClickListener true
-        }
-
-        val feedback: Preference? = findPreference(FEEDBACK)
-        feedback?.setOnPreferenceClickListener  {
-            composeEmail(arrayOf("ingokodba@gamil.com"), "Feedback")
-            return@setOnPreferenceClickListener true
-        }
-
-        val restart: Preference? = findPreference(RESTART)
-        restart?.setOnPreferenceClickListener  {
-            data.putExtra("restart", true);
-            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-            (activity as SettingsActivity).finish()
-            return@setOnPreferenceClickListener true
-        }
-
-        val languageSwitch: SwitchPreference? = findPreference(UI_LANGUAGE_TOGGLE)
-        languageSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            MaterialAlertDialogBuilder(requireContext(),
-                androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
-                .setMessage(MainActivity.resources2.getString(R.string.restart_required))
-                .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
-                    // Respond to negative button press
-                }
-                .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
-                    data.putExtra("restart", true);
-                    (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-                    (activity as SettingsActivity).finish()
-                }
-                .show()
-            return@setOnPreferenceChangeListener true
-        }
-
-        val numberPreference: EditTextPreference? = findPreference(UI_BORDER_WIDTH)
-        numberPreference?.summary = "Currently " +
-            context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(UI_BORDER_WIDTH, "4") }
-        numberPreference?.setOnBindEditTextListener { editText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER
-        }
-        numberPreference?.setOnPreferenceChangeListener { preference, newValue ->
-            numberPreference?.summary = "Currently $newValue"
-            return@setOnPreferenceChangeListener true
-        }
-
-        val numberPreference2: EditTextPreference? = findPreference(UI_TEXT_SIZE)
-        numberPreference2?.summary = "Currently " +
-                context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(UI_TEXT_SIZE, "18") }
-        numberPreference2?.setOnBindEditTextListener { editText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER
-        }
-        numberPreference2?.setOnPreferenceChangeListener { preference, newValue ->
-            numberPreference2?.summary = "Currently $newValue"
-            return@setOnPreferenceChangeListener true
-        }
-
-        val onelineSwitch: SwitchPreference? = findPreference(UI_ONELINE)
-        onelineSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            data.putExtra("refresh", true);
-            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-            return@setOnPreferenceChangeListener true
-        }
-
-        val backButtonSwitch: SwitchPreference? = findPreference(UI_BACKBUTTON)
-        backButtonSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            data.putExtra("backButtonAction", newValue.toString().toBoolean());
-            (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-            return@setOnPreferenceChangeListener true
-        }
-
-        /*numberPreference?.setOnBindEditTextListener { editText ->
-            editText.inputType = InputType.TYPE_CLASS_NUMBER
-        }*/
     }
 
     fun composeEmail(addresses: Array<String?>?, subject: String?) {
@@ -197,5 +52,4 @@ class MySettingsFragment : PreferenceFragmentCompat() {
             startActivity(intent)
         }
     }
-
 }

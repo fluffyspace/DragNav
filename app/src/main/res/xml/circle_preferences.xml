@@ -6,29 +6,15 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
 
-<SwitchPreference
+    <SwitchPreference
         app:key="ui_circles_toggle"
         app:title="@string/show_circles"
         app:defaultValue="true"/>
 
-    <Preference
-        app:key="ui_color"
-        app:title="@string/primary_color"/>
-
     <SwitchPreference
-        app:key="ui_shadow_toggle"
-        app:title="@string/shadow"
+        app:key="ui_big_circle"
+        app:title="@string/show_big_circle"
         app:defaultValue="true"/>
-
-    <EditTextPreference
-        app:key="ui_border_width"
-        app:title="@string/border_width"
-        app:defaultValue="4"/>
-
-    <EditTextPreference
-        app:key="ui_text_size"
-        app:title="@string/text_size"
-        app:defaultValue="18"/>
 
     <SwitchPreference
         app:key="ui_icons_toggle"
@@ -39,5 +25,29 @@
         app:key="ui_show_app_names"
         app:title="@string/ui_show_app_names"
         app:defaultValue="true"/>
+
+    <SwitchPreference
+        app:key="ui_shadow_toggle"
+        app:title="@string/shadow"
+        app:defaultValue="true"/>
+
+    <Preference
+        app:key="ui_color"
+        app:title="@string/primary_color"/>
+
+    <EditTextPreference
+        app:key="ui_border_width"
+        app:title="@string/border_width"
+        app:defaultValue="4"/>
+
+    <EditTextPreference
+        app:key="ui_text_size"
+        app:title="@string/text_size"
+        app:defaultValue="30"/>
+
+    <EditTextPreference
+        app:key="ui_transparency"
+        app:title="@string/transparency"
+        app:defaultValue="1.0"/>
 
 </PreferenceScreen>
