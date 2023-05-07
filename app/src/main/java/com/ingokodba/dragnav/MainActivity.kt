@@ -63,7 +63,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
-
+    var rightHandMode: Boolean = true
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
 
@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     var import_export_action:Int = 0
 
-    lateinit var mainFragment:MainFragment
+    lateinit var mainFragment:MainFragmentInterface
     lateinit var searchFragment:SearchFragment
     lateinit var activitiesFragment:ActivitiesFragment
     lateinit var actionsFragment:ActionsFragment
@@ -129,13 +129,9 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         val langstr = if (lang) "hr" else "en"
         val locale = Locale(langstr)
         Locale.setDefault(locale)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-            config.setLocale(locale)
-        else
-            config.locale = locale
+        config.setLocale(locale)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-            c.createConfigurationContext(config)
+        c.createConfigurationContext(config)
         resources2 = Resources(assets, c.resources.displayMetrics, config);
         c.resources.updateConfiguration(config, c.resources.displayMetrics)
     }
@@ -143,9 +139,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     private fun getStringResourceByName(aString: String): String {
         val packageName = packageName
         val resId = this.resources.getIdentifier(aString, "string", packageName)
-        var vrati = this.getString(resId)
-        if(vrati == null) vrati = aString
-        return vrati
+        return this.getString(resId)
     }
 
     fun loadOnBackButtonPreference(){
@@ -222,13 +216,13 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     fun loadFragments(){
-        mainFragment = MainFragment()
+        mainFragment = if(rightHandMode) MainFragmentRightHand() else MainFragment()
         searchFragment = SearchFragment()
         activitiesFragment = ActivitiesFragment()
         actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.settings_container, mainFragment, "main")
+            .replace(R.id.settings_container, mainFragment.fragment, "main")
             .setReorderingAllowed(true)
             .commit()
     }
@@ -913,7 +907,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             ListPopupWindow.WRAP_CONTENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(mainFragment.view, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(mainFragment.fragment.view, Gravity.CENTER, 0, 0)
     }
 
     var colorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

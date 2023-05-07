@@ -19,7 +19,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlin.math.floor
 
 
-class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), UiComponent{
+class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private var middleButtonState:MiddleButtonStates = MIDDLE_BUTTON_HIDE
 
@@ -58,17 +58,17 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
     var shadow_toggle = true
     var show_app_names = true
     var showBigCircle = false
-    override var view: View = this
+    var view: View = this
 
     var detectSize = 100
-    override var editMode:Boolean = false
-    override var addAppMode:Boolean = false
-    override var icons:MutableMap<String, Drawable?> = mutableMapOf()
+    var editMode:Boolean = false
+    var addAppMode:Boolean = false
+    var icons:MutableMap<String, Drawable?> = mutableMapOf()
 
     var mShowText:Boolean
     var textPos:Int
     var selected:Int = -1
-    override var amIHomeVar: Boolean = true
+    var amIHomeVar: Boolean = true
 
     var sredina_processed = false
 
@@ -88,13 +88,13 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         invalidate()
     }
 
-    override fun selectPolje(id:Int){
+    fun selectPolje(id:Int){
         selected = id
         changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
         invalidate()
     }
 
-    override fun deselectAll(){
+    fun deselectAll(){
         selected = -1
         amIHome(amIHomeVar)
         if(editMode){
@@ -107,20 +107,20 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         invalidate()
     }
 
-    override fun setPosDontDraw(position:Int){
+    fun setPosDontDraw(position:Int){
         no_draw_position = position
         polja_points.clear()
         Log.d("ingo", "setPosDontDraw " + position)
     }
 
-    override fun setKrugSAplikacijamaList(list:List<KrugSAplikacijama>){
+    fun setKrugSAplikacijamaList(list:List<KrugSAplikacijama>){
         app_list = list
         hovered_over = -1
         invalidate()
         //Log.d("ingo", "circleviewb setTextList " + list.map{it.text})
     }
 
-    override fun setColorList(list:List<String>){
+    fun setColorList(list:List<String>){
         color_list = list
     }
 
@@ -201,7 +201,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
 
     private var mEventListener: MainFragment.IMyEventListener? = null
 
-    override fun setEventListener(mEventListener: MainFragment.IMyEventListener?) {
+    fun setEventListener(mEventListener: MainFragment.IMyEventListener?) {
         this.mEventListener = mEventListener
     }
 
@@ -210,7 +210,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         invalidate()
     }
 
-    override fun amIHome(ami:Boolean?){
+    fun amIHome(ami:Boolean?){
         if(ami != null) amIHomeVar=ami
         if(!addAppMode) {
             if (editMode) {
@@ -311,12 +311,12 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         return (found || processed)
     }
 
-    override fun changeMiddleButtonState(state:MiddleButtonStates){
+    fun changeMiddleButtonState(state:MiddleButtonStates){
         middleButtonState = state
         invalidate()
     }
 
-    override fun updateDesign(){
+    fun updateDesign(){
         val gcolor = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_COLOR, "-1")
         if (gcolor != null) {
             setColor(gcolor)
@@ -424,7 +424,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         }
     }
 
-    override fun setAppList(list:List<AppInfo>){
+    fun setAppList(list:List<AppInfo>){
 
     }
 
