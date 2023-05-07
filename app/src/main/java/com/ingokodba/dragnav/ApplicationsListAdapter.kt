@@ -18,6 +18,7 @@ import com.example.dragnav.R
 import com.example.dragnav.databinding.ApplicationRowBindingBinding
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
+import com.ingokodba.dragnav.modeli.MessageEventType
 import org.greenrobot.eventbus.EventBus
 
 class ApplicationsListAdapter(viewModel: ViewModel) :
@@ -33,7 +34,8 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
     class MenuViewHolder(view: View) : RecyclerView.ViewHolder(view){
         var infobutton:LinearLayout = view.findViewById(R.id.appinfobutton)
         var addappbutton:LinearLayout = view.findViewById(R.id.addappbutton)
-        var backbutton:LinearLayout = view.findViewById(R.id.backbutton)
+        var favoritebutton:LinearLayout = view.findViewById(R.id.favoritebutton)
+        var favoriteimage:ImageView = view.findViewById(R.id.favoriteimage)
 
     }
 
@@ -102,7 +104,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
 
     fun dragAndDropApp(pos:Int, context: Context){
         //Toast.makeText(context, context.getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
-        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, draganddrop = true, app = viewModel.appsList.value!![pos]))
+        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, type = MessageEventType.DRAG_N_DROP, app = viewModel.appsList.value!![pos]))
     }
 
     /**
@@ -127,7 +129,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
                 val launchIntent: Intent? =
                     context.packageManager.getLaunchIntentForPackage(viewModel.appsList.value!![pos].packageName)
                 if(launchIntent != null) {
-                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, app=viewModel.appsList.value!![pos]))
+                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, app=viewModel.appsList.value!![pos], type = MessageEventType.LAUNCH_APP))
                 } else {
                     Log.d("ingo", "No launch intent")
                 }
@@ -138,9 +140,10 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         }
 
         if (holder is MenuViewHolder) {
+            holder.favoriteimage.setImageResource((if (!viewModel.appsList.value!![pos].favorite) R.drawable.star_empty else R.drawable.star_fill))
             //Menu Actions
-            holder.backbutton.setOnClickListener{
-                closeMenu()
+            holder.favoritebutton.setOnClickListener{
+                toggleFavorite(pos)
             }
             holder.addappbutton.setOnClickListener { dragAndDropApp(pos, it.context) }
             holder.infobutton.setOnClickListener {
@@ -159,9 +162,21 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         return viewModel.appsList.value!!.size
     }
 
+    fun toggleFavorite(pos: Int){
+        viewModel.appsList.value!![pos].favorite = !viewModel.appsList.value!![pos].favorite
+        notifyItemChanged(pos)
+        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, type = MessageEventType.FAVORITE, app = viewModel.appsList.value!![pos]))
+    }
+
     fun showMenu(position: Int) {
-        idOtvorenogMenija = position
-        notifyDataSetChanged()
+        if(position == idOtvorenogMenija){
+            closeMenu()
+        } else {
+            val tmp = idOtvorenogMenija
+            idOtvorenogMenija = position
+            if (tmp != -1) notifyItemChanged(tmp)
+            notifyItemChanged(idOtvorenogMenija)
+        }
     }
 
 
@@ -170,7 +185,8 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
     }
 
     fun closeMenu() {
+        val tmp = idOtvorenogMenija
         idOtvorenogMenija = -1
-        notifyDataSetChanged()
+        if(tmp != -1) notifyItemChanged(tmp)
     }
 }

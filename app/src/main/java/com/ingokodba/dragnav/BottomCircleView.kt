@@ -18,7 +18,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlin.math.floor
 
 
-class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), UiComponent{
+class BottomCircleView(context: Context, attrs: AttributeSet) : View(context, attrs), UiComponent{
 
     private var middleButtonState:MiddleButtonStates = MIDDLE_BUTTON_HIDE
 
@@ -140,6 +140,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         text_paint.textAlign = Paint.Align.CENTER
         text_paint.style = Paint.Style.FILL
         text_paint.setShadowLayer(4.0f, 1.0f, 2.0f, Color.BLACK);
+
         semi_transparent_paint.color = Color.parseColor("#88000000")
         semi_transparent_paint.style = Paint.Style.FILL
         close_inside_paint.color = closeInsideColor
@@ -149,7 +150,9 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         thick_paint.color = middleButtonColor
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
+
         clear_boja.setXfermode(PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

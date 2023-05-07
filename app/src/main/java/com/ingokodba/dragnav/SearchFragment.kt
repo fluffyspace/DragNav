@@ -25,6 +25,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
+import com.ingokodba.dragnav.modeli.MessageEventType
 import org.greenrobot.eventbus.EventBus
 
 // TODO: Rename parameter arguments, choose names that match
@@ -130,7 +131,7 @@ class SearchFragment : Fragment() {
                         // otvori ovu aplikaciju
                         val launchIntent: Intent? = requireContext().packageManager.getLaunchIntentForPackage(app.second.packageName.toString())
                         if(launchIntent != null) {
-                            mactivity.onMessageEvent(MessageEvent(search_lista_aplikacija[chip.id].second.label, 0, search_lista_aplikacija[chip.id].second.packageName, search_lista_aplikacija[chip.id].second.color, app=search_lista_aplikacija[chip.id].second))
+                            mactivity.onMessageEvent(MessageEvent(search_lista_aplikacija[chip.id].second.label, 0, search_lista_aplikacija[chip.id].second.packageName, search_lista_aplikacija[chip.id].second.color, app=search_lista_aplikacija[chip.id].second, type=MessageEventType.LAUNCH_APP))
                         }
                         imm.hideSoftInputFromWindow(windowToken, 0)
                         //startActivity(launchIntent)
@@ -183,7 +184,7 @@ class SearchFragment : Fragment() {
         }
         view.findViewById<LinearLayout>(R.id.start_adding).setOnClickListener{
             //Toast.makeText(context, getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
-            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, draganddrop = true, app = app))
+            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, type = MessageEventType.DRAG_N_DROP, app = app))
             shortcutPopup.dismiss()
         }
         return view

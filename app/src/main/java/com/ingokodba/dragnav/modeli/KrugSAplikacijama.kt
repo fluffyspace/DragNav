@@ -11,5 +11,5 @@ data class KrugSAplikacijama(
     var nextIntent: String = "",
     var polja: List<Int> = listOf(),
     var shortcut: Boolean = false,
-    var color: String = ""
+    var color: String = "",
 )

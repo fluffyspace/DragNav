@@ -45,10 +45,7 @@ import com.google.gson.Gson
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
-import com.ingokodba.dragnav.modeli.Action
-import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.KrugSAplikacijama
-import com.ingokodba.dragnav.modeli.MessageEvent
+import com.ingokodba.dragnav.modeli.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,7 +59,7 @@ import java.time.ZoneOffset
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
-
+import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
@@ -490,6 +487,16 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         }
     }
 
+    fun saveAppInfo(application: AppInfo){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val appDao: AppInfoDao = db.appInfoDao()
+            appDao.update(application)
+            val lol = appDao.getAll()
+            Log.d("ingo", lol.map { it.label + " " + it.frequency }.toString())
+        }
+    }
+
     fun addFrequency(application: AppInfo){
         val db = AppDatabase.getInstance(this)
         val appDao: AppInfoDao = db.appInfoDao()
@@ -779,11 +786,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         }
         mainFragment.circleView.addAppMode = viewModel.addNewAppMode
         if(viewModel.addNewAppMode) {
-            mainFragment.circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_CHECK)
+            mainFragment.circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
             mainFragment.bottomMenuView.visibility = View.GONE
             mainFragment.addingMenuCancelOk.visibility = View.VISIBLE
         } else {
-            mainFragment.circleView.amIHome()
+            mainFragment.circleView.amIHome(null)
             mainFragment.addingMenuCancelOk.visibility = View.GONE
             mainFragment.bottomMenuView.visibility = View.VISIBLE
         }
@@ -793,30 +800,33 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     fun onMessageEvent(event: MessageEvent?) {
         if (event != null) {
             Log.d("ingo", "on message event " + event.launchIntent + " " + selectAppMenuOpened)
-            if(event.draganddrop){
+            if(event.type == MessageEventType.DRAG_N_DROP){
                 showLayout(Layouts.LAYOUT_MAIN)
-                addingNewAppEvent = event
-                circleViewToggleAddAppMode(1)
+                /*addingNewAppEvent = event
+                circleViewToggleAddAppMode(1)*/
                 Log.d("ingo", "it's dragndrop")
-                return
-            }
-            // kad se dodaje aplikacija pomoću bottom viewa
-            if(selectAppMenuOpened){
-                // izaberi ovu aplikaciju
-                showLayout(Layouts.LAYOUT_MAIN)
-                Toast.makeText(this, "Adding " + event.text, Toast.LENGTH_SHORT).show()
                 addNewApp(event)
-                //selectAppMenuOpened = false
-                //findViewById<TextView>(R.id.notification).visibility = View.INVISIBLE
-            } else {
-                // otvori ovu aplikaciju
-                lifecycleScope.launch(Dispatchers.IO) {
-                    addFrequency(event.app)
+            } else if(event.type == MessageEventType.LAUNCH_APP){
+                if(selectAppMenuOpened){
+                    // kad se dodaje aplikacija pomoću bottom viewa
+                    // izaberi ovu aplikaciju
+                    showLayout(Layouts.LAYOUT_MAIN)
+                    Toast.makeText(this, "Adding " + event.text, Toast.LENGTH_SHORT).show()
+                    addNewApp(event)
+                    //selectAppMenuOpened = false
+                    //findViewById<TextView>(R.id.notification).visibility = View.INVISIBLE
+                } else {
+                    // otvori ovu aplikaciju
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        addFrequency(event.app)
+                    }
+                    val launchIntent: Intent? =
+                        packageManager.getLaunchIntentForPackage(event.launchIntent)
+                    startActivity(launchIntent)
                 }
-                val launchIntent: Intent? = packageManager.getLaunchIntentForPackage(event.launchIntent)
-                startActivity(launchIntent)
+            } else if(event.type == MessageEventType.FAVORITE){
+                saveAppInfo(event.app)
             }
-
         }
     }
 
@@ -890,7 +900,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             ListPopupWindow.WRAP_CONTENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(mainFragment.circleView, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(mainFragment.circleView.view, Gravity.CENTER, 0, 0)
     }
 
     var colorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

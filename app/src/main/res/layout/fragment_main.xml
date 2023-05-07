@@ -35,7 +35,7 @@
             android:autoSizeTextType="uniform"
             android:text="@string/loading"
             android:textColor="@color/white"/>
-        <com.ingokodba.dragnav.CircleView
+        <com.ingokodba.dragnav.BottomCircleView
             android:id="@+id/circleview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

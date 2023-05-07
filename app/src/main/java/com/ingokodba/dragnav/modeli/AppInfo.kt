@@ -17,6 +17,7 @@ data class AppInfo (
     var installed: Boolean = false,
     @ColumnInfo(defaultValue = "0") var frequency: Int = 0,
     @ColumnInfo(defaultValue = "0") var lastLaunched: Long = 0,
+    var favorite: Boolean = false,
 )
 
 // Migration from 1 to 2, Room 2.1.0

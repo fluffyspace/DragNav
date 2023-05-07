@@ -8,6 +8,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
@@ -51,20 +52,20 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
     //lateinit var radapter:RAdapter
 
     val drawables:List<Drawable?> = listOf(
-        context.getDrawable(R.drawable.ic_baseline_add_50),
-        context.getDrawable(R.drawable.ic_baseline_list_100),
-        context.getDrawable(R.drawable.ic_baseline_edit_24),
-        context.getDrawable(R.drawable.ic_baseline_search_80),
-        context.getDrawable(R.drawable.ic_baseline_settings_100),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_add_50),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_list_100),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_edit_24),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_search_80),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_settings_100),
     )
     val expand_icon:Drawable? = context.getDrawable(R.drawable.ic_baseline_menu_24)
     val collapse_icon:Drawable? = context.getDrawable(R.drawable.ic_baseline_close_50)
     var edit_texts:List<String> = listOf("Rename", "Delete", "Enter", "Cancel")
     var edit_drawables:List<Drawable?> = listOf(
-        context.getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24),
-        context.getDrawable(R.drawable.ic_baseline_delete_24),
-        context.getDrawable(R.drawable.door_open),
-        context.getDrawable(R.drawable.ic_baseline_close_50),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_drive_file_rename_outline_24),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_delete_24),
+        AppCompatResources.getDrawable(context, R.drawable.door_open),
+        AppCompatResources.getDrawable(context, R.drawable.ic_baseline_close_50),
     )
 
     var detectSize = 110f

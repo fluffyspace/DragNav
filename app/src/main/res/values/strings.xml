@@ -63,4 +63,6 @@
     <string name="add_app">Add app</string>
     <string name="transparency">Transparency</string>
     <string name="show_big_circle">Show big circle</string>
+    <string name="favorite">Favorite</string>
+    <string name="add_to_home">Add to home</string>
 </resources>

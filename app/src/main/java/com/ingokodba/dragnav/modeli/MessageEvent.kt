@@ -5,6 +5,8 @@ data class MessageEvent(
     val pos:Int,
     val launchIntent: String,
     val color: String = "",
-    val draganddrop: Boolean = false,
+    val type: MessageEventType,
     val app: AppInfo
 )
+
+enum class MessageEventType{ DRAG_N_DROP, LAUNCH_APP, FAVORITE }

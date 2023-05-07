@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -20,6 +21,8 @@ import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.MiddleButtonStates
+import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -33,7 +36,7 @@ private const val ARG_PARAM2 = "param2"
  */
 class MainFragment : Fragment() {
 
-    lateinit var circleView: CircleView
+    lateinit var circleView: UiComponent
     lateinit var bottomMenuView: BottomMenuView
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
@@ -42,6 +45,8 @@ class MainFragment : Fragment() {
     lateinit var addingMenuCancelOk:LinearLayout
     lateinit var cancelAddingApp:Button
     lateinit var addApp: Button
+
+    var rightHandedMode = false
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -61,6 +66,11 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
         bottomMenuView = view.findViewById(R.id.bottomMenuView)
+
+        if(rightHandedMode){
+            bottomMenuView.visibility = View.GONE
+        }
+
         addingMenuCancelOk = view.findViewById(R.id.addingMenuCancelOk)
         cancelAddingApp = view.findViewById(R.id.cancelAddingApp)
         addApp = view.findViewById(R.id.addApp)
@@ -80,7 +90,7 @@ class MainFragment : Fragment() {
         }*/
         //circleView?.mactivity.radapter = mactivity.radapter
         circleView.setEventListener(object :
-            CircleView.IMyEventListener {
+            IMyEventListener {
             override fun onEventOccurred(event: MotionEvent, redniBrojPolja: Int, current: Int) {
                 Log.d("ingo", "onEventOccurred")
                 touched(event, redniBrojPolja, current)
@@ -106,11 +116,11 @@ class MainFragment : Fragment() {
         if(viewModel.addNewAppMode){
             circleView.addAppMode = viewModel.addNewAppMode
             if(viewModel.addNewAppMode) {
-                circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_CHECK)
+                circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
                 bottomMenuView.visibility = View.GONE
                 addingMenuCancelOk.visibility = View.VISIBLE
             } else {
-                circleView.amIHome()
+                circleView.amIHome(null)
                 addingMenuCancelOk.visibility = View.GONE
                 bottomMenuView.visibility = View.VISIBLE
             }
@@ -242,7 +252,7 @@ class MainFragment : Fragment() {
                     viewModel.editSelected = redniBrojPolja
                     bottomMenuView.selectedId = viewModel.editSelected
                     bottomMenuView.invalidate()
-                    circleView.yellowIt(redniBrojPolja)
+                    circleView.selectPolje(redniBrojPolja)
                     //Log.d("ingo", "selected " + sublist_counter + " " + viewModel.currentSubmenuList[sublist_counter].text + " " + viewModel.currentSubmenuList[sublist_counter].id)
                     //textView?.setBackgroundColor(Color.YELLOW)
                 } else {
@@ -306,6 +316,7 @@ class MainFragment : Fragment() {
                     startActivity(intent)
                 } else if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_ADD_PRECAC){
                     addNew()
+                    viewModel.lastEnteredIntent = null
                     return
                 }
             }
@@ -314,7 +325,7 @@ class MainFragment : Fragment() {
             viewModel.lastEnteredIntent?.let { mactivity.startShortcut(it) }
         }
         viewModel.lastEnteredIntent = null
-        circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_HIDE)
+        //circleView.changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
         goToPocetna()
     }
 
@@ -362,6 +373,12 @@ class MainFragment : Fragment() {
 
     }
 
+    interface IMyEventListener {
+        fun onEventOccurred(event: MotionEvent, counter:Int, current:Int)
+    }
+
+
+
     fun maxElementsPresent(): Boolean{
         val currentSizeWithoutPlusButton = viewModel.trenutnoPrikazanaPolja.size - if(viewModel.trenutnoPrikazanaPolja.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
         return (circleView.amIHomeVar && currentSizeWithoutPlusButton >= 8) || (!circleView.amIHomeVar && currentSizeWithoutPlusButton >= 7)
@@ -387,7 +404,7 @@ class MainFragment : Fragment() {
         //mactivity.radapter.notifyDataSetChanged()
     }
     fun deYellowAll(){
-        circleView.deyellowAll()
+        circleView.deselectAll()
         viewModel.editSelected = -1
         bottomMenuView.selectedId = -1
         bottomMenuView.invalidate()
@@ -455,7 +472,7 @@ class MainFragment : Fragment() {
     fun toggleEditMode(){
         viewModel.editMode = !viewModel.editMode
         circleView.editMode = !circleView.editMode!!
-        circleView.changeMiddleButtonState(CircleView.MIDDLE_BUTTON_EDIT)
+        circleView.changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
         circleView.invalidate()
         if(viewModel.editMode){
             bottomMenuView.editMode = true
