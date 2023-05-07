@@ -12,6 +12,7 @@ import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
@@ -112,7 +113,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
         Log.d("ingo", "setPosDontDraw " + position)
     }
 
-    override fun setTextList(list:List<KrugSAplikacijama>){
+    override fun setKrugSAplikacijamaList(list:List<KrugSAplikacijama>){
         app_list = list
         hovered_over = -1
         invalidate()
@@ -421,6 +422,10 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs), 
             drawLine((size_width/2f)+(-detectSize+plus_margin).toFloat(), center+(-detectSize+plus_margin).toFloat(), (size_width/2f)+(detectSize-plus_margin).toFloat(), center+(detectSize-plus_margin).toFloat(), thick_paint)
             drawLine((size_width/2f)+(-detectSize+plus_margin).toFloat(), center+(+detectSize-plus_margin).toFloat(), (size_width/2f)+(detectSize-plus_margin).toFloat(), center-(detectSize-plus_margin).toFloat(), thick_paint)
         }
+    }
+
+    override fun setAppList(list:List<AppInfo>){
+
     }
 
     fun colorToHex(color: Color): String? {

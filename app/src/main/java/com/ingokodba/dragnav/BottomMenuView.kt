@@ -496,7 +496,7 @@ class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attr
                 }
                 counter++
             }
-            if (event.action == MotionEvent.ACTION_DOWN && found) {
+            if (event.action == MotionEvent.ACTION_UP && found) {
                 mEventListener?.onEventOccurred(event, -counter-1)
             }
         }

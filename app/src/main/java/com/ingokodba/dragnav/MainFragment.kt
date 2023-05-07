@@ -4,25 +4,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.graphics.Color
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
-import com.ingokodba.dragnav.modeli.MiddleButtonStates
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
+
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -38,6 +34,7 @@ class MainFragment : Fragment() {
 
     lateinit var circleView: UiComponent
     lateinit var bottomMenuView: BottomMenuView
+    lateinit var relativeLayout: LinearLayout
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
     lateinit var selected_text: TextView
@@ -66,10 +63,16 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
         bottomMenuView = view.findViewById(R.id.bottomMenuView)
+        relativeLayout = view.findViewById(R.id.relativelayout)
 
         if(rightHandedMode){
             bottomMenuView.visibility = View.GONE
+            val params = relativeLayout.layoutParams as FrameLayout.LayoutParams
+            params.setMargins(0, 0, 0, 0)
+            relativeLayout.layoutParams = params
         }
+
+        bottomMenuView.updateTexts(listOf(MainActivity.resources2.getString(R.string.rename), MainActivity.resources2.getString(R.string.delete), MainActivity.resources2.getString(R.string.enter), MainActivity.resources2.getString(R.string.cancel)))
 
         addingMenuCancelOk = view.findViewById(R.id.addingMenuCancelOk)
         cancelAddingApp = view.findViewById(R.id.cancelAddingApp)
@@ -107,8 +110,10 @@ class MainFragment : Fragment() {
         /*view.findViewById<LinearLayout>(R.id.relativelayout).updateLayoutParams<ViewGroup.MarginLayoutParams> {
             setMargins(0, 0, 0, (bottomMenuView.detectSize*2+bottomMenuView.padding*3).toInt())
         }*/
-        view.findViewById<LinearLayout>(R.id.relativelayout).setOnClickListener { bottomMenuView.collapse()
-        Log.d("ingo", "collapse?")}
+        relativeLayout.setOnClickListener {
+            bottomMenuView.collapse()
+            Log.d("ingo", "collapse?")
+        }
         if(viewModel.icons.value != null){
             circleView.icons = viewModel.icons.value!!
             Log.d("ingo", "icons who??")
@@ -126,11 +131,12 @@ class MainFragment : Fragment() {
             }
         }
 
-
-        if(viewModel.currentMenuId == -1){
-            goToPocetna()
-        } else {
-            refreshCurrentMenu()
+        if(!rightHandedMode) {
+            if (viewModel.currentMenuId == -1) {
+                goToPocetna()
+            } else {
+                refreshCurrentMenu()
+            }
         }
 
         Log.d("ingo", "mainfragment created")
@@ -164,9 +170,18 @@ class MainFragment : Fragment() {
             }
     }
 
+    fun iconsUpdated(){
+        circleView.icons = viewModel.icons.value!!
+    }
+
     fun cancelAddingAppHandler(){
         mactivity.addingNewAppEvent = null
-        mactivity.circleViewToggleAddAppMode(0)
+        circleViewToggleAddAppMode(0)
+    }
+
+    fun selectedItemDeleted(){
+        deYellowAll()
+        refreshCurrentMenu()
     }
 
     fun addNewAppHandler(){
@@ -267,38 +282,6 @@ class MainFragment : Fragment() {
         }
     }
 
-    fun createAddMenu():View{
-        val view = LayoutInflater.from(requireContext()).inflate(R.layout.popup_add_which, null)
-        view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
-            //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
-            mactivity.openFolderNameMenu(view)
-        }
-        view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
-            //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
-            mactivity.toggleAppMenu()
-            mactivity.selectAppMenuOpened = true
-            /*global_view.findViewById<TextView>(R.id.notification).apply{
-                text = "Choose an app from app list or search. Click here to cancel."
-                setOnClickListener {
-                    mactivity.selectAppMenuOpened = false
-                    it.visibility = View.INVISIBLE
-                    mactivity.recycle_view_label.visibility = View.GONE
-                }
-                visibility = View.VISIBLE
-            }*/
-            mactivity.shortcutPopup?.dismiss()
-            mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
-            //changeeditMode()
-            //toggleAppMenu()
-        }
-        view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
-            mactivity.shortcutPopup?.dismiss()
-            //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
-            Toast.makeText(requireContext(), "Not implemented yet:(", Toast.LENGTH_SHORT).show()
-        }
-        return view
-    }
-
     fun launchLastEntered(){
         if(viewModel.lastEnteredIntent == null) return
         if(!viewModel.lastEnteredIntent?.shortcut!!) {
@@ -393,7 +376,27 @@ class MainFragment : Fragment() {
             mactivity.openAddMenu()
         }
     }
+
+    fun circleViewToggleAddAppMode(yesOrNo:Int = -1){
+        if(yesOrNo != -1) {
+            viewModel.addNewAppMode = yesOrNo != 0
+        } else {
+            viewModel.addNewAppMode = !viewModel.addNewAppMode
+        }
+        circleView.addAppMode = viewModel.addNewAppMode
+        if(viewModel.addNewAppMode) {
+            circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
+            bottomMenuView.visibility = View.GONE
+            addingMenuCancelOk.visibility = View.VISIBLE
+        } else {
+            circleView.amIHome(null)
+            addingMenuCancelOk.visibility = View.GONE
+            bottomMenuView.visibility = View.VISIBLE
+        }
+    }
     fun refreshCurrentMenu(){
+        circleView.updateDesign()
+        circleView.invalidate()
         prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
         Log.d("ingo", "current menu refreshed")
     }
@@ -429,6 +432,19 @@ class MainFragment : Fragment() {
         }
         return null
     }
+
+    /*fun putInAllApps(){
+        val polja = viewModel.appsList.value
+        //val krugovi = polja!!.map { KrugSAplikacijama(id=0, text=it.label, nextIntent = null, nextId = trenutnoPolje!!.nextIntent)}
+
+
+        circleView.setColorList(polja!!.map{ it.color })
+        circleView.setKrugSAplikacijamaList(polja)
+        Log.d("ingo", "currentSubmenuList " + viewModel.trenutnoPrikazanaPolja.map{it.text}.toString())
+        circleView.setPosDontDraw(-1)
+        viewModel.no_draw_position = -1
+        //viewModel.max_subcounter = (viewModel.trenutnoPrikazanaPolja).size
+    }*/
     fun prikaziPoljaKruga(idKruga: Int, selected:Int){
         var precaci:MutableList<KrugSAplikacijama> = mutableListOf()
         val trenutnoPolje = getPolje(idKruga)
@@ -460,7 +476,7 @@ class MainFragment : Fragment() {
         }
         viewModel.trenutnoPrikazanaPolja = precaci + polja
         circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
-        circleView.setTextList(viewModel.trenutnoPrikazanaPolja)
+        circleView.setKrugSAplikacijamaList(viewModel.trenutnoPrikazanaPolja)
         Log.d("ingo", "currentSubmenuList " + viewModel.trenutnoPrikazanaPolja.map{it.text}.toString())
         circleView.setPosDontDraw(selected)
         viewModel.no_draw_position = selected

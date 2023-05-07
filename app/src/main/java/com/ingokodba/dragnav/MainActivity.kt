@@ -183,17 +183,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         lifecycleScope.launch(Dispatchers.IO) {
             initializeRoom()
             withContext(Dispatchers.Main) {
-                mainFragment.circleView.icons = viewModel.icons.value!!
+                mainFragment.iconsUpdated()
                 mainFragment.goToPocetna()
                 mainFragment.updateStuff();
-                mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
             }
             if(circleViewLoadIcons) loadIcons()
             Log.d("ingo", "initializeRoom after loadicons")
             withContext(Dispatchers.Main) {
                 Log.d("ingo", "vm.pocetna ima id " + viewModel.pocetnaId.toString())
-                mainFragment.bottomMenuView.updateTexts(listOf(resources2.getString(R.string.rename), resources2.getString(R.string.delete), resources2.getString(R.string.enter), resources2.getString(R.string.cancel)))
-                mainFragment.circleView.icons = viewModel.icons.value!!
+                mainFragment.iconsUpdated()
             }
         }
 
@@ -233,6 +231,10 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             .replace(R.id.settings_container, mainFragment, "main")
             .setReorderingAllowed(true)
             .commit()
+    }
+
+    fun getPolje(id:Int): KrugSAplikacijama?{
+        return viewModel.sviKrugovi.find{it.id == id}
     }
 
     fun showMainFragment(){
@@ -302,9 +304,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
             Layouts.LAYOUT_MAIN -> {
                 showMainFragment()
-                mainFragment.circleView.updateDesign()
-                mainFragment.circleView.invalidate()
-                mainFragment.prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
+                mainFragment.refreshCurrentMenu()
             }
             Layouts.LAYOUT_SETTINGS -> {
                 val intent = Intent(this, SettingsActivity::class.java)
@@ -368,8 +368,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             if(data != null){
                 if(data.hasExtra("refresh"))
                 {
-                    mainFragment.bottomMenuView.requestLayout()
-                    mainFragment.bottomMenuView.invalidate()
+                    mainFragment.refreshCurrentMenu()
                 }
                 if(data.hasExtra("backButtonAction"))
                 {
@@ -421,7 +420,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     fun addNewApp(event:MessageEvent?){
         if(event != null) {
-            val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
+            val trenutnoPolje = getPolje(viewModel.currentMenu.id)
             lifecycleScope.launch(Dispatchers.IO) {
                 val dodanoPolje = databaseAddNewPolje(
                     KrugSAplikacijama(
@@ -447,8 +446,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     override fun onResume() {
         super.onResume()
         //recreate()
-        mainFragment.circleView.updateDesign()
-        mainFragment.circleView.invalidate()
+        mainFragment.refreshCurrentMenu()
         Log.d("ingo", "invalidated")
     }
 
@@ -639,7 +637,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         Log.d("ingo", "initializeRoom before addall")
         withContext(Dispatchers.Main) {
             viewModel.addApps(newAppsInitialize)
-            //mainFragment.circleView.icons = viewModel.icons.value!!
         }
         //radapter.appsList.sortBy { it.label.toString().lowercase() }
         //if(cache_apps){
@@ -778,23 +775,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         return newApps
     }
 
-    fun circleViewToggleAddAppMode(yesOrNo:Int = -1){
-        if(yesOrNo != -1) {
-            viewModel.addNewAppMode = yesOrNo != 0
-        } else {
-            viewModel.addNewAppMode = !viewModel.addNewAppMode
-        }
-        mainFragment.circleView.addAppMode = viewModel.addNewAppMode
-        if(viewModel.addNewAppMode) {
-            mainFragment.circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
-            mainFragment.bottomMenuView.visibility = View.GONE
-            mainFragment.addingMenuCancelOk.visibility = View.VISIBLE
-        } else {
-            mainFragment.circleView.amIHome(null)
-            mainFragment.addingMenuCancelOk.visibility = View.GONE
-            mainFragment.bottomMenuView.visibility = View.VISIBLE
-        }
-    }
+
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: MessageEvent?) {
@@ -893,14 +874,46 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             .show()
     }
 
+    fun createAddMenu():View{
+        val view = LayoutInflater.from(applicationContext).inflate(R.layout.popup_add_which, null)
+        view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
+            //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
+            openFolderNameMenu(view)
+        }
+        view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
+            //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
+            toggleAppMenu()
+            selectAppMenuOpened = true
+            /*global_view.findViewById<TextView>(R.id.notification).apply{
+                text = "Choose an app from app list or search. Click here to cancel."
+                setOnClickListener {
+                    selectAppMenuOpened = false
+                    it.visibility = View.INVISIBLE
+                    recycle_view_label.visibility = View.GONE
+                }
+                visibility = View.VISIBLE
+            }*/
+            shortcutPopup?.dismiss()
+            showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
+            //changeeditMode()
+            //toggleAppMenu()
+        }
+        view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
+            shortcutPopup?.dismiss()
+            //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
+            Toast.makeText(applicationContext, "Not implemented yet:(", Toast.LENGTH_SHORT).show()
+        }
+        return view
+    }
+
     fun openAddMenu(){
-        val contentView = mainFragment.createAddMenu()
+        val contentView = createAddMenu()
         shortcutPopup?.dismiss()
         shortcutPopup = PopupWindow(contentView,
             ListPopupWindow.WRAP_CONTENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(mainFragment.circleView.view, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(mainFragment.view, Gravity.CENTER, 0, 0)
     }
 
     var colorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -911,7 +924,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             }
         }
     }
-
     fun startColorpicker(){
         val intent = Intent(this@MainActivity, ColorPickerActivity::class.java)
         colorResultLauncher.launch(intent)
@@ -933,7 +945,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 // create folder
                 lifecycleScope.launch(Dispatchers.IO) {
                     val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime, color = gcolor.toString()))
-                    val trenutnoPolje = mainFragment.getPolje(viewModel.currentMenu.id)
+                    val trenutnoPolje = getPolje(viewModel.currentMenu.id)
                     if(trenutnoPolje != null && dodanoPolje != null){
                         trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
                         databaseUpdateItem(trenutnoPolje)
@@ -954,8 +966,6 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         val db = AppDatabase.getInstance(this)
         val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         krugSAplikacijamaDao.update(polje)
-        var staro_polje = mainFragment.getPolje(polje.id)
-        staro_polje = polje
         Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
     }
 
@@ -971,8 +981,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         lifecycleScope.launch(Dispatchers.IO) {
             databaseDeleteById(viewModel.trenutnoPrikazanaPolja[editSelected].id)
             withContext(Dispatchers.Main){
-                mainFragment.deYellowAll()
-                mainFragment.refreshCurrentMenu()
+                mainFragment.selectedItemDeleted()
             }
         }
     }
@@ -980,7 +989,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     fun databaseDeleteById(id: Int){
         val db = AppDatabase.getInstance(this)
         val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        mainFragment.getPolje(id)?.let {
+        getPolje(id)?.let {
             krugSAplikacijamaDao.delete(it)
             viewModel.currentMenu.polja = viewModel.currentMenu.polja.filter { it != id }
             viewModel.sviKrugovi.filter{ it.id != id }
