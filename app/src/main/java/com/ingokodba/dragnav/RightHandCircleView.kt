@@ -8,11 +8,14 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.contains
+import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -45,6 +48,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     val infodrawable = AppCompatResources.getDrawable(context, R.drawable.ic_outline_info_75)
     val adddrawable = AppCompatResources.getDrawable(context, R.drawable.ic_baseline_add_50)
     //lateinit var radapter:RAdapter
+    var bitmap: Bitmap? = null
 
     var gcolor = Color.parseColor("#FBB8AC")
     var draw_circles = true
@@ -57,6 +61,8 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     var showBigCircle = false
     var view: View = this
 
+    var drawn_apps: MutableList<Pair<Int, Rect>> = mutableListOf()
+    var rect: Rect? = null
 
     var editMode:Boolean = false
     var addAppMode:Boolean = false
@@ -67,8 +73,11 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     var selected:Int = -1
     var amIHomeVar: Boolean = true
 
+    var overrideDetectSize: Float? = null
+    var overrideDistance: Float? = null
+
     var detectSizeDivider = 1.0
-    var  detectSize = 0
+    var detectSize = 0
 
     var sredina_processed = false
 
@@ -151,6 +160,11 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         thick_paint.style = Paint.Style.STROKE
         thick_paint.strokeWidth = 20f
         clear_boja.setXfermode(PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+
+        //overrideDistance = PreferenceManager.getDefaultSharedPreferences(context).getFloat("distance", 0f)//.let { if(it != 0f) it else null }
+        //overrideDetectSize = PreferenceManager.getDefaultSharedPreferences(context).getFloat("detectSize", 0f)//.let { if(it != 0f) it else null }
+        Log.d("ingo", "overrideDistance $overrideDistance")
+        Log.d("ingo", "overrideDetectSize $overrideDetectSize")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -162,7 +176,11 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         } else {
             size_width = size
         }
-        detectSize = (size / detectSizeDivider).toInt()
+        detectSize = if(overrideDetectSize != null) {
+            overrideDetectSize!!.toInt()
+        } else {
+            (size / detectSizeDivider).toInt()
+        }
         // 2
         setMeasuredDimension(size_width, size)
     }
@@ -262,9 +280,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if(event.action == MotionEvent.ACTION_DOWN){
-            touchStart = Point(event.x.toInt(),
-                event.y.toInt()
-            )
+            touchStart = Point(event.x.toInt(), event.y.toInt())
         } else if(event.action == MotionEvent.ACTION_MOVE){
             moveDistance = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
             if(moveDistance+moveDistancedAccumulated > 0) {
@@ -272,6 +288,15 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             }
             invalidate()
         } else if(event.action == MotionEvent.ACTION_UP){
+            Log.d("ingo", "moveDistance $moveDistance $detectSize")
+            if(abs(moveDistance) < detectSize/4){
+                for(draw_app in drawn_apps){
+                    if(draw_app.second.contains(touchStart)){
+                        mEventListener?.onEventOccurred(event, draw_app.first)
+                        break
+                    }
+                }
+            }
             moveDistancedAccumulated += moveDistance
             moveDistance = 0
         }
@@ -282,16 +307,17 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
 
     private fun drawPolja(canvas: Canvas){
         detectSizeDivider = 10.0
-        detectSize = 50
+        detectSize = if(overrideDetectSize != null) overrideDetectSize!!.toInt() else 50
         polja_points.clear()
+        drawn_apps.clear()
         canvas.apply {
             val radius = size/1.2f
             //if (showBigCircle) drawCircle(size.toFloat(), size.toFloat(), radius, empty_circle_paint)
 
-            var currentStepValue = Math.PI
+            var currentStepValue: Double = Math.PI
             var offset = (moveDistancedAccumulated+moveDistance)/500f
 
-            drawText((moveDistancedAccumulated+moveDistance).toString(), (size/2).toFloat(), 50F, text_paint)
+            //drawText((moveDistancedAccumulated+moveDistance).toString(), (size/2).toFloat(), 50F, text_paint)
 
             var counter = 0
             var offsetModulated = offset%step_size
@@ -299,19 +325,21 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             var x: Double
             var y: Double
             var draw_pointF: PointF
-            while(currentStepValue > 0 && currentStepValue < Math.PI*2f) {
+            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*2f) < 0) {
                 currentStepValue += step_size
                 x = sin(currentStepValue+offsetModulated) * radius
                 y = cos(currentStepValue+offsetModulated) * radius
                 draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
                 val abc_index = ((counter-offsetDivided.toInt())*2)
+                if(abc_index >= app_list.size) break
                 //if(abc_index >= abc.size) break
-                drawCircle(
+                /*drawCircle(
                     draw_pointF.x,
                     draw_pointF.y,
                     detectSize.toFloat(), empty_circle_paint
-                )
-                drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
+                )*/
+                drawApp(abc_index, draw_pointF.x, draw_pointF.y, this)
+                //drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
                 counter++
             }
             counter = 0
@@ -319,23 +347,41 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             offset += (step_size/2f).toFloat()
             offsetDivided = offset/step_size
             offsetModulated = offset%step_size
-            val inner_radius = radius*0.87
-            while(currentStepValue > 0 && currentStepValue < Math.PI*2f) {
+            val inner_radius = radius * (if(overrideDistance != null) overrideDistance!!.toDouble() else 0.87)
+            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*2f) < 0) {
                 currentStepValue += step_size
                 x = sin(currentStepValue+offsetModulated) * inner_radius
                 y = cos(currentStepValue+offsetModulated) * inner_radius
                 draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
                 val abc_index = ((counter-offsetDivided.toInt())*2+1)
+                if(abc_index >= app_list.size) break
                 //if(abc_index >= abc.size) break
-                drawCircle(
+                /*drawCircle(
                     draw_pointF.x,
                     draw_pointF.y,
                     detectSize.toFloat(), empty_circle_paint
-                )
-                drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
+                )*/
+                //drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
+                drawApp(abc_index, draw_pointF.x, draw_pointF.y, this)
                 counter++
             }
         }
 
+    }
+
+    fun drawApp(index: Int, x: Float, y: Float, canvas: Canvas){
+        bitmap = icons[app_list[index].packageName]?.toBitmap()
+        if(bitmap != null) {
+            rect = Rect(
+                (x - detectSize).toInt(),
+                (y - detectSize).toInt(),
+                (x + detectSize).toInt(),
+                (y + detectSize).toInt()
+            )
+            drawn_apps.add(Pair(index, rect!!))
+            canvas.drawBitmap(
+                bitmap!!, null, rect!!, null
+            )
+        }
     }
 }

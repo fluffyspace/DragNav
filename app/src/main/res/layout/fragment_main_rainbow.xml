@@ -4,39 +4,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ingokodba.dragnav.MainFragment">
-
-    <!-- TODO: Update blank fragment layout -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="top"
-        android:orientation="vertical">
-        <com.google.android.material.slider.Slider
-            android:id="@+id/outerDetectSize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"/>
-        <com.google.android.material.slider.Slider
-            android:id="@+id/outerStepSize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-        <ImageButton
-            android:id="@+id/settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_settings_100"/>
-    </LinearLayout>
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/relativelayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="bottom"
-        android:layout_marginTop="200dp">
+        android:layout_height="match_parent">
         <com.ingokodba.dragnav.RightHandCircleView
             android:id="@+id/circleview"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+            <ImageButton
+                android:id="@+id/settings"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_baseline_settings_100"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"/>
+        <ImageButton
+            android:id="@+id/sliders"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/width_fill0_wght400_grad0_opsz48"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/settings"/>
+            <com.google.android.material.slider.Slider
+                android:id="@+id/detectSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="50dp"
+                android:valueFrom="0"
+                android:valueTo="200"
+                app:layout_constraintTop_toBottomOf="@id/settings"
+                android:visibility="gone"/>
+            <com.google.android.material.slider.Slider
+                android:id="@+id/distance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="0"
+                android:valueTo="1"
+                app:layout_constraintTop_toBottomOf="@id/detectSize"
+                android:visibility="gone"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- TODO: Update blank fragment layout -->
 
 </FrameLayout>

@@ -42,7 +42,6 @@ class MySettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
-
     }
 
     fun composeEmail(addresses: Array<String?>?, subject: String?) {

@@ -1,7 +1,9 @@
 package com.ingokodba.dragnav
 
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.graphics.Color
 import android.net.Uri
@@ -13,9 +15,12 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+import com.google.android.material.slider.Slider
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 
@@ -27,12 +32,13 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
     lateinit var circleView: RightHandCircleView
-    lateinit var relativeLayout: LinearLayout
+    lateinit var relativeLayout: ConstraintLayout
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
     lateinit var global_view:View
 
     override var fragment: Fragment = this
+    var sliders = false
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -48,6 +54,37 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
         relativeLayout = view.findViewById(R.id.relativelayout)
+
+        Log.d("ingo", "detectSize e " +
+            mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).toString()
+        )
+
+        circleView.overrideDistance = mactivity.getPreferences(MODE_PRIVATE).getFloat("distance", 0f).let { if(it != 0f) it else null }
+        circleView.overrideDetectSize = mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).let { if(it != 0f) it else null }
+
+        view.findViewById<Slider>(R.id.detectSize).addOnChangeListener { slider, value, fromUser ->
+            circleView.overrideDetectSize = value
+            Log.d("ingo", "change1 to $value")
+            circleView.invalidate()
+            changeSettings("detectSize", value)
+        }
+        view.findViewById<Slider>(R.id.distance).addOnChangeListener { slider, value, fromUser ->
+            circleView.overrideDistance = value
+            circleView.invalidate()
+            changeSettings("distance", value)
+            Log.d("ingo", "change2 to $value")
+        }
+        view.findViewById<ImageButton>(R.id.sliders).setOnClickListener {
+            sliders = !sliders
+            if(sliders){
+                view.findViewById<Slider>(R.id.detectSize).visibility = View.VISIBLE
+                view.findViewById<Slider>(R.id.distance).visibility = View.VISIBLE
+            } else {
+                view.findViewById<Slider>(R.id.detectSize).visibility = View.GONE
+                view.findViewById<Slider>(R.id.distance).visibility = View.GONE
+            }
+        }
+
         view.findViewById<ImageButton>(R.id.settings).setOnClickListener {
             settings()
         }
@@ -59,9 +96,9 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         //circleView?.mactivity.radapter = mactivity.radapter
         circleView.setEventListener(object :
             IMyEventListener {
-            override fun onEventOccurred(event: MotionEvent, redniBrojPolja: Int, current: Int) {
+            override fun onEventOccurred(event: MotionEvent, app_index: Int) {
                 Log.d("ingo", "onEventOccurred")
-                touched(event, redniBrojPolja, current)
+                touched(event, app_index)
             }
         })
         global_view = view
@@ -82,6 +119,14 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         }
 
         Log.d("ingo", "mainfragment created")
+    }
+
+    private fun changeSettings(key: String, value: Float){
+        Log.d("ingo", "should write $key as $value")
+        val sharedPreferences: SharedPreferences = activity!!.getPreferences(MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putFloat(key, value)
+        editor.apply()
     }
 
     override fun onCreateView(
@@ -111,6 +156,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
     override fun iconsUpdated(){
         circleView.icons = viewModel.icons.value!!
+        circleView.invalidate()
     }
 
     fun cancelAddingAppHandler(){
@@ -128,154 +174,20 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         Log.d("ingo", "trebalo je cancelat")
     }
 
-    fun touched(event:MotionEvent, redniBrojPolja:Int, no_draw_position:Int){
-        Log.d("ingo", "touched " + event.action.toString() + " " + redniBrojPolja + " " + no_draw_position)
-        //Log.d("ingo", "pozvalo me")
-        var sublist_counter = redniBrojPolja
-        // redniBrojPolja govori koji po redu je oznacen, a sublist_counter govori koji textview je oznacen
-        // koliko sam shvatio, ovo ispod se nikad ne poziva... treba maknuti
-        if(no_draw_position >= 0 && no_draw_position <= redniBrojPolja){
-            sublist_counter++
-            Log.d("ingo", "sublist_counter povecan")
+    fun touched(event:MotionEvent, app_index:Int) {
+        Log.d("ingo", "touched " + app_index)
+        val launchIntent: Intent? =
+            viewModel.appsList.value?.get(app_index)
+                ?.let { requireContext().packageManager.getLaunchIntentForPackage(it.packageName) }
+        if (launchIntent != null) {
+            startActivity(launchIntent)
         }
-        //if(viewModel.lastTextViewEnteredCounter <= sublist_counter && viewModel.lastTextViewEnteredCounter >= 0 ) sublist_counter++
-        //if(counter+1 > viewModel.lastTextViewEnteredCounter) sublist_counter = counter+1
-        //Toast.makeText(this, lista[counter], Toast.LENGTH_SHORT).show()
-        if(redniBrojPolja == MainActivity.ACTION_ADD_APP){
-            addNewAppHandler()
-            return
-        }
-        if(redniBrojPolja == MainActivity.ACTION_ADD){
-            addNew()
-            return
-        }
-        if(redniBrojPolja == MainActivity.ACTION_CANCEL){
-            /*viewModel.lastEnteredIntent = null
-            viewModel.lastTextViewEnteredCounter = -1
-            findViewById<TextView>(R.id.selected_text).text = viewModel.currentMenu.text*/
-            goToPocetna()
-            return
-        }
-        if(redniBrojPolja == MainActivity.ACTION_HOME){
-            goToPocetna()
-            return
-        }
-        if(event.action == MotionEvent.ACTION_UP && !viewModel.editMode && !viewModel.addNewAppMode){
-            Log.d("ingo", "action up")
-            if(redniBrojPolja == MainActivity.ACTION_LAUNCH){
-                Log.d("ingo", "launch")
-                launchLastEntered()
-            }
-            //Toast.makeText(this, findViewById<TextView>(R.id.selected_text).text, Toast.LENGTH_SHORT).show()
-            return
-        }
-        /*if(counter == viewModel.lastTextViewEnteredCounter || sublist_counter >= viewModel.max_subcounter ) {
-            Log.d("ingo", "returnic")
-            return
-        }*/
-        //Log.d("ingo", "mi smo unutar " + counter + " texta")
-        //Log.d("ingo", subcounter.toString() + " " + counter.toString() + " "  + lastItem.toString() + " " + getSubPolja(viewModel.currentMenu.id)[subcounter].nextId.toString())
-        if(!viewModel.editMode) {
-            if (viewModel.trenutnoPrikazanaPolja[redniBrojPolja].nextIntent == "") { // mapa
-                Log.d("ingo", "nextIntent je prazan")
-                viewModel.lastEnteredIntent = null
-                prebaciMeni(viewModel.trenutnoPrikazanaPolja[redniBrojPolja].id, sublist_counter)
-            } else {
-                viewModel.lastEnteredIntent = viewModel.trenutnoPrikazanaPolja[redniBrojPolja]
-                // TODO: potrebno pronaći prečace
-                // mape/aplikacije -> prečaci/akcije
-                if(!viewModel.trenutnoPrikazanaPolja[redniBrojPolja].shortcut) prebaciMeni(viewModel.trenutnoPrikazanaPolja[redniBrojPolja].id, sublist_counter, precaci = true)
-                //viewModel.lastEnteredIntent = precaci[0].intent
-                //launchLastEntered()
-                //return
-                // TODO("potraži ostale prečace: koje akcije se mogu raditi s trenutne aktivnosti/prečaca")
-                //precaci_as_menijednopolje += pronadiMoguceAkcije(viewModel.currentSubmenuList[sublist_counter].nextIntent)
-
-            }
-            //Log.d("ingo", "MENU_SHORTCUT " + viewModel.lastEnteredIntent)
-        } else if(viewModel.editMode && event.action == MotionEvent.ACTION_DOWN) {
-            Log.d("ingo", "elseif viewModel.editMode down")
-            if(redniBrojPolja >= 0) {
-                Log.d("ingo", "well its true")
-                if (viewModel.editSelected == -1 || viewModel.editSelected != redniBrojPolja) {
-                    viewModel.editSelected = redniBrojPolja
-                    circleView.selectPolje(redniBrojPolja)
-                    //Log.d("ingo", "selected " + sublist_counter + " " + viewModel.currentSubmenuList[sublist_counter].text + " " + viewModel.currentSubmenuList[sublist_counter].id)
-                    //textView?.setBackgroundColor(Color.YELLOW)
-                } else {
-                    if (viewModel.editSelected == redniBrojPolja) {
-                        //Log.d("ingo", getPolje(viewModel.editSelected))
-                        deYellowAll()
-                    } else {
-                        // zamijeni indexe od MeniJednoPolje s id-evima viewModel.editSelected i subcounter u listi od trenutno prikazanog MeniJednoPolje
-                    }
-                }
-            }
-        }
-    }
-
-    fun launchLastEntered(){
-        if(viewModel.lastEnteredIntent == null) return
-        if(!viewModel.lastEnteredIntent?.shortcut!!) {
-            Log.d("ingo", "launchLastEntered app_or_folder " + viewModel.lastEnteredIntent.toString())
-            val launchIntent: Intent? =
-                viewModel.lastEnteredIntent?.let { requireContext().packageManager.getLaunchIntentForPackage(it.nextIntent) }
-            if(launchIntent != null) {
-                startActivity(launchIntent)
-            } else {
-                if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_APPINFO){
-                    val intent = Intent()
-                    intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                    val uri = Uri.fromParts("package", viewModel.lastEnteredIntent!!.nextId, null)
-                    intent.data = uri
-                    startActivity(intent)
-                } else if(viewModel.lastEnteredIntent!!.nextIntent == MainActivity.ACTION_ADD_PRECAC){
-                    addNew()
-                    viewModel.lastEnteredIntent = null
-                    return
-                }
-            }
-        } else {
-            Log.d("ingo", "launchLastEntered shortcut " + viewModel.lastEnteredIntent.toString())
-            viewModel.lastEnteredIntent?.let { mactivity.startShortcut(it) }
-        }
-        viewModel.lastEnteredIntent = null
-        //circleView.changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        goToPocetna()
     }
 
     fun enterSelected(){
         if(viewModel.editSelected == -1) return
         prebaciMeni(viewModel.trenutnoPrikazanaPolja[viewModel.editSelected].id, viewModel.editSelected)
         deYellowAll()
-    }
-
-    fun touched2(event:MotionEvent, counter:Int) {
-        if(counter >= 0) {
-            when (counter) {
-                0 -> addNew()
-                1 -> mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
-                2 -> toggleEditMode()
-                3 -> {
-                    mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SEARCH)//initializeSearch()
-                }
-                4 -> settings()
-                5 -> collapseMenu()
-            }
-        } else {
-            if(counter != -4 && viewModel.editSelected == -1){
-                Toast.makeText(requireContext(), "Nothing selected.", Toast.LENGTH_SHORT).show()
-                return
-            }
-            when (counter) {
-                -1 -> mactivity.showMyDialog(viewModel.editSelected)
-                -2 -> mactivity.deleteSelectedItem(viewModel.editSelected)
-                -3 -> {
-                    enterSelected()
-                }
-                -4 -> toggleEditMode()
-            }
-        }
     }
 
     fun collapseMenu(){
@@ -289,10 +201,8 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     }
 
     interface IMyEventListener {
-        fun onEventOccurred(event: MotionEvent, counter:Int, current:Int)
+        fun onEventOccurred(event: MotionEvent, counter:Int)
     }
-
-
 
     fun maxElementsPresent(): Boolean{
         val currentSizeWithoutPlusButton = viewModel.trenutnoPrikazanaPolja.size - if(viewModel.trenutnoPrikazanaPolja.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
