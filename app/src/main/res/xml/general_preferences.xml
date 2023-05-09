@@ -27,6 +27,12 @@
         app:summary="@string/backbutton_summary"
         app:defaultValue="false"/>
 
+    <ListPreference
+        android:key="ui_design"
+        android:title="Dizajn početnog zaslona"
+        android:entries="@array/ui_designs_entries"
+        android:entryValues="@array/ui_designs_values"/>
+
     <!--<PreferenceCategory
         app:key="export_category"
         app:title="@string/settings_im_ex">

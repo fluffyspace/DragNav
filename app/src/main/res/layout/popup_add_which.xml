@@ -4,73 +4,95 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:background="@drawable/meni_jedno_polje_obrub"
-    android:padding="5dp">
+    android:background="@color/pozadina"
+    android:padding="15dp">
     <TextView
         android:id="@+id/addwhichtext"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/what_would_you_like_to_add"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="@color/tekst"/>
     <View
         android:layout_marginTop="5dp"
-        android:layout_width="200dp"
+        android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/colorPrimary"
         android:layout_gravity="center"/>
     <LinearLayout
         android:id="@+id/outerlayout"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_gravity="center">
+        android:layout_gravity="center"
+        android:padding="10dp"
+        android:weightSum="3">
         <LinearLayout
             android:id="@+id/new_folder"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_weight="1">
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_baseline_create_new_folder_50"
-                android:padding="5dp"/>
+                android:padding="5dp"
+                android:layout_gravity="center"/>
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/folder"
-                android:gravity="center_horizontal"/>
+                android:textAlignment="center"
+                android:textSize="18sp"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:textColor="@color/tekst"/>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/new_shortcut"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_baseline_app_shortcut_50"
-            android:padding="5dp"/>
+            android:orientation="vertical"
+            android:layout_weight="1">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_app_shortcut_50"
+                android:padding="5dp"
+                android:layout_gravity="center"/>
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/app"
-                android:gravity="center_horizontal"/>
+                android:textSize="18sp"
+                android:layout_gravity="center"
+                android:textAlignment="center"
+                android:gravity="center_horizontal"
+                android:textColor="@color/tekst"/>
         </LinearLayout>
         <LinearLayout
             android:id="@+id/new_action"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_weight="1">
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_baseline_code_50"
-                android:padding="5dp"/>
+                android:padding="5dp"
+                android:layout_gravity="center"/>
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/action"
-                android:gravity="center_horizontal"/>
+                android:textSize="18sp"
+                android:layout_gravity="center"
+                android:textAlignment="center"
+                android:gravity="center_horizontal"
+                android:textColor="@color/tekst"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

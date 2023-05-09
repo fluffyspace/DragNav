@@ -17,6 +17,7 @@ import com.ingokodba.dragnav.MySettingsFragment.Companion.FEEDBACK
 import com.ingokodba.dragnav.MySettingsFragment.Companion.IMPORT
 import com.ingokodba.dragnav.MySettingsFragment.Companion.RESTART
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_BACKBUTTON
+import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_LANGUAGE_TOGGLE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_ONELINE
 
@@ -68,7 +69,19 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
                 darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
                 else -> {}
             }
-            darkMode?.summary = newValue as CharSequence
+            darkMode.summary = newValue as CharSequence
+            return@setOnPreferenceChangeListener true
+        }
+
+        val uiDesign: ListPreference? = findPreference(UI_DESIGN)
+        val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
+        val uiDesignValuesHumanReadable = resources.getStringArray(R.array.ui_designs_entries)
+        val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
+            UI_DESIGN, uiDesignValues[0]) })
+        uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
+        uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
+            uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
+            showRestartDialog()
             return@setOnPreferenceChangeListener true
         }
 
@@ -116,18 +129,7 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
 
         val languageSwitch: SwitchPreference? = findPreference(UI_LANGUAGE_TOGGLE)
         languageSwitch?.setOnPreferenceChangeListener { preference, newValue ->
-            MaterialAlertDialogBuilder(requireContext(),
-                androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
-                .setMessage(MainActivity.resources2.getString(R.string.restart_required))
-                .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
-                    // Respond to negative button press
-                }
-                .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
-                    data.putExtra("restart", true);
-                    (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-                    (activity as SettingsActivity).finish()
-                }
-                .show()
+            showRestartDialog()
             return@setOnPreferenceChangeListener true
         }
 
@@ -158,6 +160,21 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
         if (intent.resolveActivity(settingsActivity.packageManager) != null) {
             startActivity(intent)
         }
+    }
+
+    fun showRestartDialog(){
+        MaterialAlertDialogBuilder(requireContext(),
+            androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
+            .setMessage(MainActivity.resources2.getString(R.string.restart_required))
+            .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
+                // Respond to negative button press
+            }
+            .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
+                data.putExtra("restart", true);
+                (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+                (activity as SettingsActivity).finish()
+            }
+            .show()
     }
 
 }

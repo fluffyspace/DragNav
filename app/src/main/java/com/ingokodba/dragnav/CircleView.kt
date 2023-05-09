@@ -439,6 +439,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     private fun drawPolja(canvas: Canvas){
+        val queued_texts: MutableList<QueuedText> = mutableListOf()
         val hexes = listOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
         val transparenthex = hexes[floor((transparency/1.0)*(hexes.size-1)).toInt()] + "" + hexes[floor((transparency/1.0)*(hexes.size-1)).toInt()]
         Log.d("ingo", "transparent ${transparenthex}")
@@ -530,7 +531,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                                 ), null
                             )
                             if(show_app_names && !app_list[counter].shortcut){
-                                drawText(text, draw_pointF.x, draw_pointF.y+detectSize+text_size, text_paint)
+                                queued_texts.add(QueuedText(text, draw_pointF.x, draw_pointF.y+detectSize+text_size))
+                                //drawText(text, draw_pointF.x, draw_pointF.y+detectSize+text_size, text_paint)
                             }
                         } else {
                             drawCircle(
@@ -539,13 +541,15 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                                 detectSize.toFloat(),
                                 circle_paint
                             )
-                            drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2).toFloat(), text_paint)
+                            queued_texts.add(QueuedText(text,draw_pointF.x, draw_pointF.y+(text_size/2)))
+                            //drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2).toFloat(), text_paint)
                         }
                         if(app_list[counter].shortcut){
                             // prebojaj polje zato što je shortcut pa ide tekst preko ikone
                             drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), semi_transparent_paint)
                             //if(draw_circles) drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), empty_circle_paint)
-                            drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2).toFloat(), text_paint)
+                            queued_texts.add(QueuedText(text, draw_pointF.x, draw_pointF.y+(text_size/2)))
+                            //drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2).toFloat(), text_paint)
                         }
                     } else {
                         // folder
@@ -555,7 +559,8 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                             detectSize.toFloat(),
                             circle_paint
                         )
-                        drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2)-5, text_paint)
+                        queued_texts.add(QueuedText(text,draw_pointF.x, draw_pointF.y+(text_size/2)-5))
+                        //drawText(text, draw_pointF.x, draw_pointF.y+(text_size/2)-5, text_paint)
                     }
                     polja_points.add(draw_point)
                 }
@@ -572,6 +577,16 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 currentStepValue += step_size
                 counter++
             }
+            for(queued_text in queued_texts){
+                drawText(queued_text.text, queued_text.x, queued_text.y, text_paint)
+            }
+            queued_texts.clear()
         }
     }
+}
+
+class QueuedText(text: String, x: Float, y: Float){
+    val text = text
+    val x = x
+    val y = y
 }

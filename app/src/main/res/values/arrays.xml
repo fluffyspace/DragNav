@@ -14,4 +14,18 @@
         <item>Night mode</item>
         <item>Auto battery dark mode</item>
     </string-array>
+
+    <string-array name="ui_designs_entries">
+        <item>Circle</item>
+        <item>Circle with right hand</item>
+        <item>Rainbow</item>
+        <item>Keypad</item>
+    </string-array>
+
+    <string-array name="ui_designs_values">
+        <item>circle</item>
+        <item>circle_right_hand</item>
+        <item>rainbow</item>
+        <item>keypad</item>
+    </string-array>
 </resources>

@@ -16,7 +16,7 @@
     <string name="delete">Delete</string>
     <string name="rename">Edit link</string>
     <string name="action">Action</string>
-    <string name="app">App</string>
+    <string name="app">Aplikacija</string>
     <string name="folder">Folder</string>
     <string name="ime_linka">Link name</string>
     <string name="intent_linka">Link intent</string>
@@ -65,4 +65,6 @@
     <string name="show_big_circle">Show big circle</string>
     <string name="favorite">Favorite</string>
     <string name="add_to_home">Add to home</string>
+    <string name="circle_preferences">Circle preferences</string>
+    <string name="general_preferences">General preferences</string>
 </resources>

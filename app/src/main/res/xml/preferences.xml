@@ -3,17 +3,17 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <Preference
-        android:title="Circle preferences"
-        android:icon="@drawable/circles2"
+        android:title="@string/circle_preferences"
+        android:icon="@drawable/circles"
         app:fragment="com.ingokodba.dragnav.MyCircleSettingsFragment"/>
 
     <Preference
-        android:title="General preferences"
+        android:title="@string/general_preferences"
         android:icon="@drawable/ic_baseline_settings_100"
         app:fragment="com.ingokodba.dragnav.MyGeneralSettingsFragment"/>
 
     <Preference
-        android:title="Help"
+        android:title="@string/help"
         android:icon="@drawable/ic_outline_info_75"
         app:fragment="com.ingokodba.dragnav.MyHelpSettingsFragment"/>
 

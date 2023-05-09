@@ -20,7 +20,7 @@ android {
         targetSdk 31
         versionCode 8
         versionName "0.8"
-        resConfigs("en", "hr")
+        resConfigs 'en', 'hr'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         javaCompileOptions {
@@ -46,6 +46,7 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    namespace 'com.example.dragnav'
 }
 
 dependencies {

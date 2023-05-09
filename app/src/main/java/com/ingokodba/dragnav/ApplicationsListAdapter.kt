@@ -120,6 +120,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         if (holder is MarsPhotosViewHolder) {
             holder.bind(appInfo, viewModel)
             if(viewModel.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewModel.appsList.value!![pos].color.toInt())
+            holder.textView.text = viewModel.appsList.value!![pos].label + " - " + pos
             holder.itemView.setOnLongClickListener{ v ->
                 showMenu(pos)
                 return@setOnLongClickListener true

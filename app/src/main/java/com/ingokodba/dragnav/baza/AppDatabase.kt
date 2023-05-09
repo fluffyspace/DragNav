@@ -3,11 +3,13 @@ package com.ingokodba.dragnav.baza
 import android.content.Context
 import androidx.room.*
 import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MIGRATION_1_2
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 3, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 4, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -48,8 +50,16 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_3_4)
+                    //.fallbackToDestructiveMigration()
                     .build()
         }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE AppInfo ADD COLUMN favorite INTEGER DEFAULT 0")
+            }
+        }
+
     }
 }

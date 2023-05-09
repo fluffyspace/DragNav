@@ -8,8 +8,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="pozadina">#eee</color>
-    <color name="tekst">#333</color>
+    <color name="pozadina">#333</color>
+    <color name="tekst">#eee</color>
     <color name="colorPrimary">#666</color>
     <color name="colorPrimaryDark">#FBB8AC</color>
     <color name="colorAccent">#666</color>

@@ -1,0 +1,14 @@
+<vector android:height="50dp" android:tint="?attr/colorControlNormal"
+    android:viewportHeight="512" android:viewportWidth="512"
+    android:width="50dp" xmlns:android="http://schemas.android.com/apk/res/android">
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m256 421.9c-91.8 0-166-74.1-166-165.9 0-91.8 74.2-166 166-166 91.8 0 165.9 74.2 165.9 166 0 91.8-74.1 165.9-165.9 165.9z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m256.4 299.9c-24 0-43.4-19.4-43.4-43.5 0-24 19.4-43.4 43.4-43.4 24.1 0 43.5 19.4 43.5 43.4 0 24.1-19.4 43.5-43.5 43.5z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m256.4 468.9c-24 0-43.4-19.4-43.4-43.5 0-24 19.4-43.4 43.4-43.4 24.1 0 43.5 19.4 43.5 43.4 0 24.1-19.4 43.5-43.5 43.5z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m256.4 132.9c-24 0-43.4-19.4-43.4-43.5 0-24 19.4-43.4 43.4-43.4 24.1 0 43.5 19.4 43.5 43.4 0 24.1-19.4 43.5-43.5 43.5z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m422.4 299.9c-24 0-43.4-19.4-43.4-43.5 0-24 19.4-43.4 43.4-43.4 24.1 0 43.5 19.4 43.5 43.4 0 24.1-19.4 43.5-43.5 43.5z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m90.4 299.9c-24 0-43.4-19.4-43.4-43.5 0-24 19.4-43.4 43.4-43.4 24.1 0 43.5 19.4 43.5 43.4 0 24.1-19.4 43.5-43.5 43.5z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m106.6 406.6c-17-17-16.9-44.5 0.1-61.4 17.1-17 44.5-16.9 61.5 0.1 16.9 17 16.9 44.5-0.2 61.5-17 16.9-44.5 16.9-61.4-0.2z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m344.7 169.6c-16.9-17-16.9-44.5 0.2-61.5 17-16.9 44.5-16.9 61.4 0.2 17 17 16.9 44.5-0.1 61.4-17.1 17-44.5 16.9-61.5-0.1z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m343.5 405c-17-17-16.9-44.4 0.1-61.4 17-17 44.5-16.9 61.5 0.1 16.9 17.1 16.8 44.5-0.2 61.5-17 16.9-44.5 16.9-61.4-0.2z"/>
+    <path android:strokeColor="@color/white" android:strokeWidth="10" android:pathData="m109.3 169.7c-17-17-16.9-44.4 0.1-61.4 17-17 44.5-16.9 61.4 0.1 17 17.1 16.9 44.5-0.1 61.5-17 16.9-44.5 16.9-61.4-0.2z"/>
+</vector>

@@ -8,16 +8,12 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.graphics.contains
-import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlin.math.cos
-import kotlin.math.floor
 import kotlin.math.sin
 
 
@@ -196,9 +192,9 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         //drawCloseButton(canvas)
     }
 
-    private var mEventListener: MainFragmentRightHand.IMyEventListener? = null
+    private var mEventListener: MainFragmentRainbow.IMyEventListener? = null
 
-    fun setEventListener(mEventListener: MainFragmentRightHand.IMyEventListener?) {
+    fun setEventListener(mEventListener: MainFragmentRainbow.IMyEventListener?) {
         this.mEventListener = mEventListener
     }
 
@@ -262,13 +258,15 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
 
     }
 
+    val abc = listOf('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z')
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if(event.action == MotionEvent.ACTION_DOWN){
             touchStart = Point(event.x.toInt(),
                 event.y.toInt()
             )
         } else if(event.action == MotionEvent.ACTION_MOVE){
-            moveDistance = (event.y - touchStart.y).toInt()
+            moveDistance = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
             if(moveDistance+moveDistancedAccumulated > 0) {
                 moveDistance = -moveDistancedAccumulated
             }
@@ -281,7 +279,6 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     }
 
     var step_size:Double = Math.PI*0.05
-    var inner_step_size:Double = Math.PI*0.05
 
     private fun drawPolja(canvas: Canvas){
         detectSizeDivider = 10.0
@@ -299,36 +296,43 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             var counter = 0
             var offsetModulated = offset%step_size
             var offsetDivided = offset/step_size
+            var x: Double
+            var y: Double
+            var draw_pointF: PointF
             while(currentStepValue > 0 && currentStepValue < Math.PI*2f) {
                 currentStepValue += step_size
-                val x = sin(currentStepValue+offsetModulated) * radius
-                val y = cos(currentStepValue+offsetModulated) * radius
-                val draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
+                x = sin(currentStepValue+offsetModulated) * radius
+                y = cos(currentStepValue+offsetModulated) * radius
+                draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
+                val abc_index = ((counter-offsetDivided.toInt())*2)
+                //if(abc_index >= abc.size) break
                 drawCircle(
                     draw_pointF.x,
                     draw_pointF.y,
                     detectSize.toFloat(), empty_circle_paint
                 )
-                drawText(((counter-offsetDivided.toInt())*2).toString(), draw_pointF.x, draw_pointF.y, text_paint)
+                drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
                 counter++
             }
             counter = 0
             currentStepValue = Math.PI
             offset += (step_size/2f).toFloat()
             offsetDivided = offset/step_size
-            offsetModulated = offset%inner_step_size
+            offsetModulated = offset%step_size
             val inner_radius = radius*0.87
             while(currentStepValue > 0 && currentStepValue < Math.PI*2f) {
-                currentStepValue += inner_step_size
-                val x = sin(currentStepValue+offsetModulated) * inner_radius
-                val y = cos(currentStepValue+offsetModulated) * inner_radius
-                val draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
+                currentStepValue += step_size
+                x = sin(currentStepValue+offsetModulated) * inner_radius
+                y = cos(currentStepValue+offsetModulated) * inner_radius
+                draw_pointF = PointF( ((size+x).toFloat()), ((size+y).toFloat()) )
+                val abc_index = ((counter-offsetDivided.toInt())*2+1)
+                //if(abc_index >= abc.size) break
                 drawCircle(
                     draw_pointF.x,
                     draw_pointF.y,
                     detectSize.toFloat(), empty_circle_paint
                 )
-                drawText(((counter-offsetDivided.toInt())*2+1).toString(), draw_pointF.x, draw_pointF.y, text_paint)
+                drawText(abc_index.toString(), draw_pointF.x, draw_pointF.y+text_size/2, text_paint)
                 counter++
             }
         }

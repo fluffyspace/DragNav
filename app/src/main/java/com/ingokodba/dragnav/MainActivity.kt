@@ -42,6 +42,8 @@ import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
+import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
+import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_RIGHT_HAND
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
@@ -63,7 +65,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
-    var rightHandMode: Boolean = true
+    var rightHandMode: UiDesignEnum = UiDesignEnum.CIRCLE
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
 
@@ -155,6 +157,14 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         val darkModeString = getString(R.string.dark_mode)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
         val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
+        val ui_design_values = resources.let{it.getStringArray(R.array.ui_designs_values)}
+        rightHandMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
+            ui_design_values[0] -> UiDesignEnum.CIRCLE
+            ui_design_values[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
+            ui_design_values[2] -> UiDesignEnum.RAINBOW
+            ui_design_values[3] -> UiDesignEnum.KEYPAD
+            else -> UiDesignEnum.CIRCLE
+        }
         when (darkModePreference) {
             darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
             darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -216,7 +226,12 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     fun loadFragments(){
-        mainFragment = if(rightHandMode) MainFragmentRightHand() else MainFragment()
+        mainFragment = when(rightHandMode){
+            UiDesignEnum.CIRCLE -> MainFragment()
+            UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand()
+            UiDesignEnum.RAINBOW -> MainFragmentRainbow()
+            UiDesignEnum.KEYPAD -> MainFragmentTipke()
+        }
         searchFragment = SearchFragment()
         activitiesFragment = ActivitiesFragment()
         actionsFragment = ActionsFragment()
@@ -907,7 +922,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             ListPopupWindow.WRAP_CONTENT,
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(mainFragment.fragment.view, Gravity.CENTER, 0, 0)
+        shortcutPopup?.showAtLocation(this@MainActivity.findViewById(R.id.mainlayout), Gravity.CENTER, 0, 0)
     }
 
     var colorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
