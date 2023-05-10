@@ -75,9 +75,11 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
 
     var overrideDetectSize: Float? = null
     var overrideDistance: Float? = null
+    var overrideStep: Float? = null
 
     var detectSizeDivider = 1.0
     var detectSize = 0
+    var offset: Float = 0f
 
     var sredina_processed = false
 
@@ -285,10 +287,12 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             moveDistance = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
             if(moveDistance+moveDistancedAccumulated > 0) {
                 moveDistance = -moveDistancedAccumulated
-            }
+            } /*else if(offset+Math.PI/2 < -(app_list.size/2)*step_size - 2/step_size){
+                Log.d("ingo", "zaustavljam")
+            }*/
             invalidate()
         } else if(event.action == MotionEvent.ACTION_UP){
-            Log.d("ingo", "moveDistance $moveDistance $detectSize")
+            Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
             if(abs(moveDistance) < detectSize/4){
                 for(draw_app in drawn_apps){
                     if(draw_app.second.contains(touchStart)){
@@ -306,6 +310,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     var step_size:Double = Math.PI*0.05
 
     private fun drawPolja(canvas: Canvas){
+        if(overrideStep != null) step_size = overrideStep!!.toDouble()
         detectSizeDivider = 10.0
         detectSize = if(overrideDetectSize != null) overrideDetectSize!!.toInt() else 50
         polja_points.clear()
@@ -315,9 +320,13 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             //if (showBigCircle) drawCircle(size.toFloat(), size.toFloat(), radius, empty_circle_paint)
 
             var currentStepValue: Double = Math.PI
-            var offset = (moveDistancedAccumulated+moveDistance)/500f
+            offset = (moveDistancedAccumulated+moveDistance)/500f
 
             //drawText((moveDistancedAccumulated+moveDistance).toString(), (size/2).toFloat(), 50F, text_paint)
+
+            Log.d("ingo", "racunamo " + (app_list.size/2)*step_size + ", $offset, $moveDistancedAccumulated")
+
+
 
             var counter = 0
             var offsetModulated = offset%step_size
@@ -325,7 +334,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             var x: Double
             var y: Double
             var draw_pointF: PointF
-            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*2f) < 0) {
+            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*(3f/2f)) < 0) {
                 currentStepValue += step_size
                 x = sin(currentStepValue+offsetModulated) * radius
                 y = cos(currentStepValue+offsetModulated) * radius
@@ -348,7 +357,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             offsetDivided = offset/step_size
             offsetModulated = offset%step_size
             val inner_radius = radius * (if(overrideDistance != null) overrideDistance!!.toDouble() else 0.87)
-            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*2f) < 0) {
+            while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*(3f/2f)) < 0) {
                 currentStepValue += step_size
                 x = sin(currentStepValue+offsetModulated) * inner_radius
                 y = cos(currentStepValue+offsetModulated) * inner_radius

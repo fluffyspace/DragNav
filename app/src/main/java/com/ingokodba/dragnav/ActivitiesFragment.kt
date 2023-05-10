@@ -37,7 +37,7 @@ class ActivitiesFragment : Fragment() {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
-    lateinit var radapter: ApplicationsListAdapter
+    var radapter: ApplicationsListAdapter? = null
     var rowsVisibleCounter = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,7 +106,7 @@ class ActivitiesFragment : Fragment() {
                 }
             }
         })
-        radapter.submitList(viewModel.appsList.value!!)
+        radapter?.submitList(viewModel.appsList.value!!)
         Log.d("ingo", "activities fragment onViewCreated")
         Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         search_bar.apply {
@@ -147,7 +147,7 @@ class ActivitiesFragment : Fragment() {
                 }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                    radapter.showMenu(viewHolder.adapterPosition)
+                    radapter?.showMenu(viewHolder.adapterPosition)
                 }
 
                 override fun onChildDraw(

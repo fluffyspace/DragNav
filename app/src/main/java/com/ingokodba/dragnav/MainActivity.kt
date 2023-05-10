@@ -556,7 +556,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 delay(200)
                 withContext(Dispatchers.Main) {
                     val index = viewModel.appsList.value!!.indexOf(viewModel.appsList.value!!.find{it.packageName == packageName})
-                    activitiesFragment.radapter.notifyItemInserted(index)
+                    activitiesFragment.radapter?.notifyItemInserted(index)
                 }
             }
         }

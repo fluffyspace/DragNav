@@ -61,6 +61,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
         circleView.overrideDistance = mactivity.getPreferences(MODE_PRIVATE).getFloat("distance", 0f).let { if(it != 0f) it else null }
         circleView.overrideDetectSize = mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).let { if(it != 0f) it else null }
+        circleView.overrideStep = mactivity.getPreferences(MODE_PRIVATE).getFloat("step", 0f).let { if(it != 0f) it else null }
 
         view.findViewById<Slider>(R.id.detectSize).addOnChangeListener { slider, value, fromUser ->
             circleView.overrideDetectSize = value
@@ -74,14 +75,22 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             changeSettings("distance", value)
             Log.d("ingo", "change2 to $value")
         }
+        view.findViewById<Slider>(R.id.step).addOnChangeListener { slider, value, fromUser ->
+            circleView.overrideStep = value
+            circleView.invalidate()
+            changeSettings("step", value)
+            Log.d("ingo", "change3 to $value")
+        }
         view.findViewById<ImageButton>(R.id.sliders).setOnClickListener {
             sliders = !sliders
             if(sliders){
                 view.findViewById<Slider>(R.id.detectSize).visibility = View.VISIBLE
                 view.findViewById<Slider>(R.id.distance).visibility = View.VISIBLE
+                view.findViewById<Slider>(R.id.step).visibility = View.VISIBLE
             } else {
                 view.findViewById<Slider>(R.id.detectSize).visibility = View.GONE
                 view.findViewById<Slider>(R.id.distance).visibility = View.GONE
+                view.findViewById<Slider>(R.id.step).visibility = View.GONE
             }
         }
 
