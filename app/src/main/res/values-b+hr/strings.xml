@@ -61,6 +61,7 @@
     <string name="adding_a_folder">Dodavanje mape</string>
     <string name="ui_show_app_names">Prikaži nazive aplikacija</string>
     <string name="text_size">Veličina teksta</string>
+    <string name="smaller_text_size">Veličina manjeg teksta</string>
     <string name="add_app">Dodaj</string>
     <string name="transparency">Prozirnost</string>
     <string name="show_big_circle">Prikaži veliki krug</string>

@@ -46,6 +46,11 @@
         app:defaultValue="30"/>
 
     <EditTextPreference
+        app:key="ui_smaller_text_size"
+        app:title="@string/smaller_text_size"
+        app:defaultValue="30"/>
+
+    <EditTextPreference
         app:key="ui_transparency"
         app:title="@string/transparency"
         app:defaultValue="1.0"/>

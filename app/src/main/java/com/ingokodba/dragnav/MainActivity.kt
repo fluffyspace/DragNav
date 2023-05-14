@@ -14,6 +14,7 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
@@ -43,11 +44,11 @@ import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
-import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_RIGHT_HAND
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
 import com.ingokodba.dragnav.modeli.*
+import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,13 +56,19 @@ import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStreamReader
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
 import java.util.Collections.max
 import java.util.Collections.min
-import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
+
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
@@ -97,6 +104,10 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         val ACTION_IMPORT = 1
         val ACTION_EXPORT = 2
     }
+
+    var iconDrawable: Drawable? = null
+    var iconBitmap: Bitmap? = null
+    var quality_icons = true
 
     var loadIconBool:Boolean = true
     var circleViewLoadIcons:Boolean = true
@@ -151,6 +162,47 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
+        //Thread.getDefaultUncaughtExceptionHandler()
+
+        var trace = ""
+        var line: String? = null
+        try {
+            val appSpecificExternalDir: File = File(getExternalFilesDir(null), "erori.txt")
+            val reader = BufferedReader(
+                InputStreamReader(FileInputStream(appSpecificExternalDir)))
+
+            while (reader.readLine().also { line = it } != null) {
+                trace += line + "\n"
+            }
+            reader.close()
+        } catch (fnfe: FileNotFoundException) {
+            Log.e("ingo", fnfe.toString())
+        } catch (ioe: IOException) {
+            Log.e("ingo", ioe.toString())
+        }
+
+        if(trace != "") {
+            Log.d("ingo", "trace je $trace")
+            val sendIntent = Intent(Intent.ACTION_SEND)
+            val subject = "Error report"
+            val body = """
+            ${"Pošalji ovaj zapis na ingokodba@gmail.com: \n$trace"}
+            
+            """.trimIndent()
+
+            sendIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gmail.com"))
+            sendIntent.putExtra(Intent.EXTRA_TEXT, body)
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject)
+            sendIntent.type = "message/rfc822"
+
+            //this@MainActivity.startActivity(Intent.createChooser(sendIntent, "Title:"))
+            //this@MainActivity.deleteFile("stack.trace")
+        } else {
+            Log.d("ingo", "trace je prazan")
+        }
+
         //SpectrumSoLoader.init(this);
         instance = this as MainActivity
 
@@ -464,6 +516,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         EventBus.getDefault().register(this);
     }
 
+    fun checkAllAppsForShortcuts(){
+        Log.d("ingo", "checkAllAppsForShortcuts")
+        for(app in viewModel.appsList.value!!){
+            app.hasShortcuts = getShortcutFromPackage(app.packageName).isNotEmpty()
+            saveAppInfo(app)
+        }
+        Log.d("ingo", "checkAllAppsForShortcuts finished")
+    }
+
     override fun onStop() {
         super.onStop()
         EventBus.getDefault().unregister(this);
@@ -515,25 +576,30 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     fun loadApp(packageName: String){
-        if(viewModel.appsList.value!!.find{it.packageName == packageName} != null) return
+        if(viewModel.appsList.value!!.find{it.packageName == packageName} != null || viewModel.currentlyLoadingApps.contains(packageName)){
+            Log.d("ingokodba", "app is already installed")
+            return
+        }
+        viewModel.currentlyLoadingApps.add(packageName)
         val ctx = this
         lifecycleScope.launch(Dispatchers.IO) {
             val applicationInfo = ctx.packageManager.getApplicationInfo(packageName, 0)
             val appName = applicationInfo.loadLabel(ctx.packageManager).toString()
-            Log.d("ingo", "loading newly installed app " + appName + " " + packageName)
+            Log.d("ingokodba", "loading newly installed app " + appName + " " + packageName)
             val res: Resources = ctx.packageManager.getResourcesForApplication(applicationInfo)
             var colorPrimary: Int = 0
-            val icon = res.getDrawableForDensity(
+            iconDrawable = res.getDrawableForDensity(
                 applicationInfo.icon,
                 DisplayMetrics.DENSITY_LOW,
                 null
             )
-            if (icon != null) {
-                colorPrimary = getBestPrimaryColor(icon)
+            if (iconDrawable != null) {
+                colorPrimary = getBestPrimaryColor(iconDrawable!!)
             }
-            viewModel.icons.value!![packageName] = icon
+            viewModel.icons.value!![packageName] = iconDrawable
+            Log.d("ingokodba", packageName + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth)
 
-            if (appName != packageName) {
+            if (appName != packageName) { // zašto ova provjera?
                 val newApp =
                     AppInfo(
                         applicationInfo.uid,
@@ -558,6 +624,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     val index = viewModel.appsList.value!!.indexOf(viewModel.appsList.value!!.find{it.packageName == packageName})
                     activitiesFragment.radapter?.notifyItemInserted(index)
                 }
+                viewModel.currentlyLoadingApps.remove(packageName)
             }
         }
     }
@@ -650,24 +717,65 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         //radapter.appsList.sortBy { it.label.toString().lowercase() }
         //if(cache_apps){
         Log.d("ingo", "initializeRoom before loadicons")
+
+        checkAllAppsForShortcuts()
     }
-    fun loadIcon(pname: String, quality:Boolean=true){
+
+    fun appDeleted(packageName: String){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val appDao: AppInfoDao = db.appInfoDao()
+            val lista = appDao.getAll()
+            lista.find { it.packageName == packageName }.let { app ->
+                Log.v("ingokodba", "all apps -> " + lista.map { it.packageName }.toString())
+                Log.v("ingokodba", "removing app " + packageName)
+                if (app != null) {
+                    appDao.delete(app)
+                    Log.v("ingokodba", "app removed")
+                }
+            }
+            val app =
+                viewModel.appsList.value!!.find { it.packageName == packageName }
+            if (app != null) {
+                withContext(Dispatchers.Main) {
+                    viewModel.removeApp(app)
+                    activitiesFragment?.radapter?.notifyDataSetChanged()
+                    Log.v("ingokodba", "app removed for sure!")
+                }
+            }
+        }
+    }
+    fun Bitmap.scaleWith(scale: Float) = Bitmap.createScaledBitmap(
+        this,
+        (width * scale).toInt(),
+        (height * scale).toInt(),
+        false
+    )
+    fun loadIcon(pname: String){
         if (pname == "" || viewModel.icons.value!!.containsKey(pname)) return
         try {
             val applicationInfo = packageManager.getApplicationInfo(pname, 0)
             val res: Resources = packageManager.getResourcesForApplication(applicationInfo)
             try {
-                val quality_density:Int = if (quality) DisplayMetrics.DENSITY_HIGH else DisplayMetrics.DENSITY_LOW
-                val icon = res.getDrawableForDensity(
+                val quality_density:Int = if (quality_icons) DisplayMetrics.DENSITY_HIGH else DisplayMetrics.DENSITY_LOW
+                iconDrawable = res.getDrawableForDensity(
                     applicationInfo.icon,
                     quality_density,
                     null
                 )
-                if(icon != null) {
-                    viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(icon).toString()
-                    viewModel.icons.value!![pname] = icon
+                if(iconDrawable != null) {
+                    iconBitmap = iconDrawable!!.toBitmap()
+                    Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
+                    if(iconBitmap!!.width > 300){
+                        iconBitmap = iconBitmap!!.scaleWith(300f/iconBitmap!!.width)
+                        iconDrawable = BitmapDrawable(resources, iconBitmap!!)
+                    }
+                    viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(iconDrawable!!).toString()
+                    viewModel.icons.value!![pname] = iconDrawable
+                    Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
                 } else {
                     viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
+                    Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
                 }
             } catch (e: Resources.NotFoundException){}
         } catch (e: PackageManager.NameNotFoundException){}
@@ -739,15 +847,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     @SuppressWarnings("ResourceType")
     fun loadNewApps(): MutableList<AppInfo>{
+        Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
         val gson = Gson()
-
-        var newApps: MutableList<AppInfo> = mutableListOf()
+        val newApps: MutableList<AppInfo> = mutableListOf()
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
         for (i in packs.indices) {
             val p = packs[i]
             if (!isSystemPackage(p)) {
-                Log.d("ingo", "aplikacija ${gson.toJson(p)}")
+                //Log.d("ingokodba", "aplikacija ${gson.toJson(p)}")
                 if(isAppLoaded(p.applicationInfo.uid)) {
                     val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
                     //Log.d("ingo", "isAppLoaded " + p.packageName)
@@ -758,7 +866,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     continue
                 }
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
-                Log.d("ingo", "loading new app " + appName + " " + p.packageName)
+                Log.d("ingokodba", "discovered new app " + appName + " " + p.packageName)
                 colorPrimary = Color.BLACK
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
@@ -777,14 +885,12 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 viewModel.appsList.value?.find { it.id == uid }?.installed = true
                 continue
             }
-            Log.d("ingo", ri.activityInfo.packageName)
+            Log.d("ingokodba", "discovered new app2 " + ri.loadLabel(packageManager).toString() + " " + ri.activityInfo.packageName)
             colorPrimary = 0
             newApps.add(AppInfo(uid, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString(), installed = true))
         }
         return newApps
     }
-
-
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: MessageEvent?) {

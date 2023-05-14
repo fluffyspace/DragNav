@@ -19,6 +19,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
         val UI_BORDER_WIDTH = "ui_border_width"
         val UI_TEXT_SIZE = "ui_text_size"
+        val UI_SMALLER_TEXT_SIZE = "ui_smaller_text_size"
         val UI_TRANSPARENCY = "ui_transparency"
         val UI_CIRCLES_TOGGLE = "ui_circles_toggle"
         val UI_ICONS_TOGGLE = "ui_icons_toggle"

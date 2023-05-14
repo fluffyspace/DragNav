@@ -33,6 +33,7 @@
     <string name="shadow">Show shadow</string>
     <string name="border_width">Circles border width</string>
     <string name="text_size">Text size</string>
+    <string name="smaller_text_size">Smaller text size</string>
     <string name="icons">Show icons</string>
     <string name="settings_im_ex">Settings import/export</string>
     <string name="feedback_summary">Report technical issues or suggest new features</string>

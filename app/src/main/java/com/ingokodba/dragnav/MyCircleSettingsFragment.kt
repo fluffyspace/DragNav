@@ -52,6 +52,18 @@ class MyCircleSettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }
 
+        val numberPreference4: EditTextPreference? = findPreference(MySettingsFragment.UI_SMALLER_TEXT_SIZE)
+        numberPreference4?.summary = "" +
+                context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
+                    MySettingsFragment.UI_SMALLER_TEXT_SIZE, "30") }
+        numberPreference4?.setOnBindEditTextListener { editText ->
+            editText.inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        numberPreference4?.setOnPreferenceChangeListener { preference, newValue ->
+            numberPreference4?.summary = "$newValue"
+            return@setOnPreferenceChangeListener true
+        }
+
         val numberPreference3: EditTextPreference? = findPreference(MySettingsFragment.UI_TRANSPARENCY)
         numberPreference3?.summary = "" +
                 context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(

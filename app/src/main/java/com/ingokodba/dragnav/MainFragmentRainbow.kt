@@ -5,24 +5,37 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.LauncherApps
+import android.content.pm.ShortcutInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.slider.Slider
+import com.google.gson.Gson
+import com.ingokodba.dragnav.baza.AppDatabase
+import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.reflect.typeOf
 
 /**
  * A simple [Fragment] subclass.
@@ -36,9 +49,12 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
     lateinit var global_view:View
+    var countdown: Job? = null
 
     override var fragment: Fragment = this
     var sliders = false
+    var onlyfavorites = false
+    var shortcuts: List<ShortcutInfo> = listOf()
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -55,31 +71,53 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         circleView = view.findViewById(R.id.circleview)
         relativeLayout = view.findViewById(R.id.relativelayout)
 
-        Log.d("ingo", "detectSize e " +
-            mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).toString()
+        Log.d(
+            "ingo", "detectSize e " +
+                    mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).toString()
         )
 
-        circleView.overrideDistance = mactivity.getPreferences(MODE_PRIVATE).getFloat("distance", 0f).let { if(it != 0f) it else null }
-        circleView.overrideDetectSize = mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f).let { if(it != 0f) it else null }
-        circleView.overrideStep = mactivity.getPreferences(MODE_PRIVATE).getFloat("step", 0f).let { if(it != 0f) it else null }
+        circleView.overrideDistance =
+            mactivity.getPreferences(MODE_PRIVATE).getFloat("distance", 0f)
+                .let { if (it != 0f) it else null }
+        circleView.overrideDetectSize =
+            mactivity.getPreferences(MODE_PRIVATE).getFloat("detectSize", 0f)
+                .let { if (it != 0f) it else null }
+        circleView.overrideStep = mactivity.getPreferences(MODE_PRIVATE).getFloat("step", 0f)
+            .let { if (it != 0f) it else null }
+        onlyfavorites = mactivity.getPreferences(MODE_PRIVATE).getBoolean("onlyfavorites", false)
 
-        view.findViewById<Slider>(R.id.detectSize).addOnChangeListener { slider, value, fromUser ->
-            circleView.overrideDetectSize = value
-            Log.d("ingo", "change1 to $value")
-            circleView.invalidate()
-            changeSettings("detectSize", value)
+        view.findViewById<CheckBox>(R.id.onlyfavoriteapps).let {
+            it.setOnCheckedChangeListener { _, isChecked ->
+                toggleFavorites()
+            }
+            it.isChecked = onlyfavorites
         }
-        view.findViewById<Slider>(R.id.distance).addOnChangeListener { slider, value, fromUser ->
-            circleView.overrideDistance = value
-            circleView.invalidate()
-            changeSettings("distance", value)
-            Log.d("ingo", "change2 to $value")
+        view.findViewById<Slider>(R.id.detectSize).let {
+            it.addOnChangeListener { _, value, _ ->
+                circleView.overrideDetectSize = value
+                Log.d("ingo", "change1 to $value")
+                circleView.invalidate()
+                changeSettings("detectSize", value)
+            }
+            if (circleView.overrideDetectSize != null) it.value = circleView.overrideDetectSize!!
         }
-        view.findViewById<Slider>(R.id.step).addOnChangeListener { slider, value, fromUser ->
-            circleView.overrideStep = value
-            circleView.invalidate()
-            changeSettings("step", value)
-            Log.d("ingo", "change3 to $value")
+        view.findViewById<Slider>(R.id.distance).let {
+            it.addOnChangeListener { _, value, _ ->
+                circleView.overrideDistance = value
+                circleView.invalidate()
+                changeSettings("distance", value)
+                Log.d("ingo", "change2 to $value")
+            }
+            if (circleView.overrideDistance != null) it.value = circleView.overrideDistance!!
+        }
+        view.findViewById<Slider>(R.id.step).let{
+            it.addOnChangeListener { _, value, _ ->
+                circleView.overrideStep = value
+                circleView.invalidate()
+                changeSettings("step", value)
+                Log.d("ingo", "change3 to $value")
+            }
+            if (circleView.overrideStep != null) it.value = circleView.overrideStep!!
         }
         view.findViewById<ImageButton>(R.id.sliders).setOnClickListener {
             sliders = !sliders
@@ -97,17 +135,18 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         view.findViewById<ImageButton>(R.id.settings).setOnClickListener {
             settings()
         }
-        /*viewModel.icons.observe(this) {
-            circleView.icons = it
-            circleView.lala()
-            Log.d("ingo", "icons loaded")
-        }*/
-        //circleView?.mactivity.radapter = mactivity.radapter
         circleView.setEventListener(object :
             IMyEventListener {
-            override fun onEventOccurred(event: MotionEvent, app_index: Int) {
+            override fun onEventOccurred(type:EventTypes, app_index: Int) {
+                when(type){
+                    EventTypes.OPEN_APP->touched(app_index)
+                    EventTypes.START_COUNTDOWN->startCountdown()
+                    EventTypes.STOP_COUNTDOWN->stopCountdown()
+                    EventTypes.OPEN_SHORTCUT->openShortcut(app_index)
+                    EventTypes.TOGGLE_FAVORITES->toggleFavorites()
+                }
                 Log.d("ingo", "onEventOccurred")
-                touched(event, app_index)
+
             }
         })
         global_view = view
@@ -121,20 +160,72 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         }
 
 
-        if (viewModel.currentMenuId == -1) {
-            goToPocetna()
-        } else {
-            refreshCurrentMenu()
-        }
+        goToPocetna()
 
         Log.d("ingo", "mainfragment created")
     }
 
-    private fun changeSettings(key: String, value: Float){
+    fun stopCountdown(){
+        countdown?.cancel()
+        Log.d("ingo", "job canceled")
+    }
+    fun startCountdown(){
+        countdown = lifecycleScope.launch(Dispatchers.IO) {
+            delay(250)
+            withContext(Dispatchers.Main){
+                val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                if(launcherApps.hasShortcutHostPermission()) {
+                    val app_index = circleView.getAppIndexImIn()
+                    if (app_index != null) {
+                        shortcuts = mactivity.getShortcutFromPackage(
+                            getApps()[app_index].packageName
+                        )
+                        circleView.showShortcuts(app_index, shortcuts)
+                        if(shortcuts.isEmpty()){
+                            view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+
+                        }
+                        Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
+                    }
+                }
+            }
+        }
+    }
+
+    fun openShortcut(index: Int){
+        val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        try {
+            launcherApps.startShortcut(
+                shortcuts[index].`package`,
+                shortcuts[index].id,
+                null,
+                null,
+                android.os.Process.myUserHandle()
+            )
+        } catch (e:IllegalStateException){
+            e.printStackTrace()
+        } catch (e:android.content.ActivityNotFoundException ){
+            e.printStackTrace()
+        }
+    }
+
+    fun toggleFavorites(){
+        changeSettings("onlyfavorites", !onlyfavorites)
+        onlyfavorites = !onlyfavorites
+        circleView.moveDistancedAccumulated = 0
+        circleView.onlyfavorites = onlyfavorites
+        prebaciMeni()
+    }
+
+    private fun changeSettings(key: String, value: Any){
         Log.d("ingo", "should write $key as $value")
         val sharedPreferences: SharedPreferences = activity!!.getPreferences(MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        editor.putFloat(key, value)
+        if(value::class == Boolean::class) {
+            editor.putBoolean(key, value as Boolean)
+        } else if(value::class == Float::class) {
+            editor.putFloat(key, value as Float)
+        }
         editor.apply()
     }
 
@@ -177,30 +268,14 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         refreshCurrentMenu()
     }
 
-    fun addNewAppHandler(){
-        mactivity.addNewApp(mactivity.addingNewAppEvent)
-        cancelAddingAppHandler()
-        Log.d("ingo", "trebalo je cancelat")
-    }
-
-    fun touched(event:MotionEvent, app_index:Int) {
+    fun touched(app_index:Int) {
         Log.d("ingo", "touched " + app_index)
         val launchIntent: Intent? =
-            viewModel.appsList.value?.get(app_index)
+            viewModel.appsList.value?.filter { if(onlyfavorites) it.favorite else true }?.get(app_index)
                 ?.let { requireContext().packageManager.getLaunchIntentForPackage(it.packageName) }
         if (launchIntent != null) {
             startActivity(launchIntent)
         }
-    }
-
-    fun enterSelected(){
-        if(viewModel.editSelected == -1) return
-        prebaciMeni(viewModel.trenutnoPrikazanaPolja[viewModel.editSelected].id, viewModel.editSelected)
-        deYellowAll()
-    }
-
-    fun collapseMenu(){
-        //bottomMenuView.collapse()
     }
 
     fun settings(){
@@ -210,112 +285,40 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     }
 
     interface IMyEventListener {
-        fun onEventOccurred(event: MotionEvent, counter:Int)
+        fun onEventOccurred(app: EventTypes, counter:Int)
     }
-
-    fun maxElementsPresent(): Boolean{
-        val currentSizeWithoutPlusButton = viewModel.trenutnoPrikazanaPolja.size - if(viewModel.trenutnoPrikazanaPolja.find{it.nextIntent == MainActivity.ACTION_ADD_PRECAC} != null) 1 else 0
-        return (circleView.amIHomeVar && currentSizeWithoutPlusButton >= 8) || (!circleView.amIHomeVar && currentSizeWithoutPlusButton >= 7)
-    }
-
-    fun addNew(){
-        Log.d("ingo", "it's add")
-        if(maxElementsPresent()) {
-            Toast.makeText(requireContext(), "Max. elements present. ", Toast.LENGTH_SHORT).show()
-        } else {
-            Log.d("ingo", "openaddmenu")
-            mactivity.openAddMenu()
-        }
-    }
-
     override fun refreshCurrentMenu(){
         circleView.updateDesign()
         circleView.invalidate()
-        prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
+        prebaciMeni()
         Log.d("ingo", "current menu refreshed")
     }
     override fun updateStuff() {
-        //findViewById<RecyclerView>(R.id.recycler_view).adapter?.notifyDataSetChanged()
-        //mactivity.radapter.notifyItemInserted(mactivity.radapter.getItemCount() - 1)
-        //mactivity.radapter.submitList(viewModel.appsList.value)
-        //mactivity.radapter.notifyDataSetChanged()
+
     }
     fun deYellowAll(){
         circleView.deselectAll()
         viewModel.editSelected = -1
     }
-    fun prebaciMeni(id:Int, counter:Int, nostack:Boolean=false, precaci:Boolean=false): KrugSAplikacijama? {
-        val polje = getPolje(id)
-        Log.d("ingo", "prebaciMeni " + id)
-        if(polje != null){
-            viewModel.currentMenu = polje
-            viewModel.currentMenuId = id
-            prikaziPoljaKruga(polje.id, counter)
-
-
-            if(!nostack){
-                viewModel.stack.add(Pair(viewModel.currentMenu.id, counter))
-                Log.d("ingo", "adding " + viewModel.currentMenu.text + " to viewModel.stack.")
-                //findViewById<Button>(R.id.back_button).isEnabled = true
-            }
-            return polje
-        } else {
-            Log.d("ingo", "prebaciMeni null!")
-        }
-        return null
+    fun prebaciMeni() {
+        prikaziPoljaKruga(onlyfavorites)
     }
 
-    /*fun putInAllApps(){
-        val polja = viewModel.appsList.value
-        //val krugovi = polja!!.map { KrugSAplikacijama(id=0, text=it.label, nextIntent = null, nextId = trenutnoPolje!!.nextIntent)}
-
-
-        circleView.setColorList(polja!!.map{ it.color })
-        circleView.setKrugSAplikacijamaList(polja)
-        Log.d("ingo", "currentSubmenuList " + viewModel.trenutnoPrikazanaPolja.map{it.text}.toString())
-        circleView.setPosDontDraw(-1)
-        viewModel.no_draw_position = -1
-        //viewModel.max_subcounter = (viewModel.trenutnoPrikazanaPolja).size
-    }*/
-    fun prikaziPoljaKruga(idKruga: Int, selected:Int){
-        var precaci:MutableList<KrugSAplikacijama> = mutableListOf()
-        val trenutnoPolje = getPolje(idKruga)
-        val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-        if(launcherApps.hasShortcutHostPermission()){
-            val precaci_info = trenutnoPolje?.let {
-                mactivity.getShortcutFromPackage(
-                    it.nextIntent
-                )
-            }
-            //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
-            precaci = precaci_info?.map{
-                KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
-            } as MutableList<KrugSAplikacijama>
-        }
-        if(idKruga == viewModel.pocetnaId){
-            circleView.amIHome(true)
+    fun getApps(): List<AppInfo>{
+        return if(!onlyfavorites) {
+            viewModel.appsList.value!!
         } else {
-            circleView.amIHome(false)
+            viewModel.appsList.value!!.filter { it.favorite }
         }
-        Log.d("ingo", "prikazi prečace " + precaci.map{ it.text + "->" + it.nextIntent + "->" + it.nextId }.toString())
-        var polja = getSubPolja(idKruga)
-        if(trenutnoPolje?.nextIntent != "" ) {
-            precaci.add(KrugSAplikacijama(id=0, text= "App info", nextIntent = MainActivity.ACTION_APPINFO, nextId = trenutnoPolje!!.nextIntent))
-        } else {
-            if(!(circleView.amIHomeVar && precaci.size+polja.size >= 8) && !(!circleView.amIHomeVar && precaci.size+polja.size >= 7))
-                //resources.getString(R.string.add_app)
-                polja.add(KrugSAplikacijama(id=0, text="", nextIntent = MainActivity.ACTION_ADD_PRECAC, nextId = trenutnoPolje!!.nextIntent))
-        }
-        viewModel.trenutnoPrikazanaPolja = precaci + polja
-        circleView.setColorList(IntArray(precaci.size) { Color.WHITE }.map{it.toString()} + polja.map{ it.color })
-        circleView.setKrugSAplikacijamaList(viewModel.appsList.value!!)
-        Log.d("ingo", "currentSubmenuList " + viewModel.trenutnoPrikazanaPolja.map{it.text}.toString())
-        circleView.setPosDontDraw(selected)
-        viewModel.no_draw_position = selected
-        viewModel.max_subcounter = (viewModel.trenutnoPrikazanaPolja).size
     }
-    fun getPolje(id:Int): KrugSAplikacijama?{
-        return viewModel.sviKrugovi.find{it.id == id}
+
+    fun prikaziPoljaKruga(onlyfavorites: Boolean){
+        if(viewModel.appsList.value == null) return
+        Log.d("ingo", viewModel.appsList.value.toString())
+        circleView.setColorList(getApps().map{ it.color })
+        circleView.setKrugSAplikacijamaList(getApps())
+        circleView.onlyfavorites = onlyfavorites
+        circleView.invalidate()
     }
     override fun toggleEditMode(){
         viewModel.editMode = !viewModel.editMode
@@ -331,24 +334,11 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     override fun goToPocetna(){
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
-        prebaciMeni(viewModel.pocetnaId, -1)
+        prebaciMeni()
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }
-    fun getSubPolja(id:Int):MutableList<KrugSAplikacijama>{
-        var lista:MutableList<KrugSAplikacijama> = mutableListOf()
-        var polje1 = getPolje(id)
-        if(polje1 != null) {
-            for (polje2 in viewModel.sviKrugovi) {
-                if(polje1.polja!!.contains(polje2.id)){
-                    //Log.d("ingo", "dodajem " + polje2.text)
-                    lista.add(polje2)
-                }
-            }
-            Log.d("ingo", "getSubPolja od " + id + " je " + lista.map{ it.text }.toString())
-            return lista
-        }
-        return mutableListOf()
-    }
 
 }
+
+enum class EventTypes{OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES}

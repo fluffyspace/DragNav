@@ -32,6 +32,8 @@ class ViewModel : ViewModel() {
     var pocetnaId:Int = -1
     var sviKrugovi:MutableList<KrugSAplikacijama> = mutableListOf()
 
+    var currentlyLoadingApps: MutableList<String> = mutableListOf()
+
     fun initialize(){
         _icons.postValue(mutableMapOf())
         _popis_aplikacija.postValue(mutableListOf())
