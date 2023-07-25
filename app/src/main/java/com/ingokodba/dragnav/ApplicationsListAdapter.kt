@@ -1,6 +1,5 @@
 package com.ingokodba.dragnav
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -26,6 +25,7 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
 
     var viewModel: ViewModel = viewModel
     var idOtvorenogMenija:Int = -1
+    var showAddToHomescreen: Boolean = true
 
     private val SHOW_MENU = 1
     private val HIDE_MENU = 2
@@ -102,9 +102,9 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         }
     }
 
-    fun dragAndDropApp(pos:Int, context: Context){
+    fun dragAndDropApp(pos:Int, appInfo: AppInfo){
         //Toast.makeText(context, context.getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
-        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, type = MessageEventType.DRAG_N_DROP, app = viewModel.appsList.value!![pos]))
+        EventBus.getDefault().post(MessageEvent(appInfo.label, pos, appInfo.packageName, appInfo.color, type = MessageEventType.DRAG_N_DROP, app = appInfo))
     }
 
     /**
@@ -117,10 +117,11 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         }catch (e: ArrayIndexOutOfBoundsException){
             return
         }
+        holder.itemView.visibility = if(appInfo.visible) View.VISIBLE else View.GONE
         if (holder is MarsPhotosViewHolder) {
             holder.bind(appInfo, viewModel)
-            if(viewModel.appsList.value!![pos].color != "") holder.textView.setBackgroundColor(viewModel.appsList.value!![pos].color.toInt())
-            holder.textView.text = viewModel.appsList.value!![pos].label + " - " + pos
+            if(appInfo.color != "") holder.textView.setBackgroundColor(appInfo.color.toInt())
+            holder.textView.text = appInfo.label + " - " + pos
             holder.itemView.setOnLongClickListener{ v ->
                 showMenu(pos)
                 return@setOnLongClickListener true
@@ -128,9 +129,9 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
             holder.itemView.setOnClickListener { v ->
                 val context = v.context
                 val launchIntent: Intent? =
-                    context.packageManager.getLaunchIntentForPackage(viewModel.appsList.value!![pos].packageName)
+                    context.packageManager.getLaunchIntentForPackage(appInfo.packageName)
                 if(launchIntent != null) {
-                    EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, app=viewModel.appsList.value!![pos], type = MessageEventType.LAUNCH_APP))
+                    EventBus.getDefault().post(MessageEvent(appInfo.label, pos, appInfo.packageName, appInfo.color, app=appInfo, type = MessageEventType.LAUNCH_APP))
                 } else {
                     Log.d("ingo", "No launch intent")
                 }
@@ -141,17 +142,17 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         }
 
         if (holder is MenuViewHolder) {
-            holder.favoriteimage.setImageResource((if (!viewModel.appsList.value!![pos].favorite) R.drawable.star_empty else R.drawable.star_fill))
+            holder.favoriteimage.setImageResource((if (!appInfo.favorite) R.drawable.star_empty else R.drawable.star_fill))
             //Menu Actions
             holder.favoritebutton.setOnClickListener{
-                toggleFavorite(pos)
+                toggleFavorite(pos, appInfo)
             }
-            holder.addappbutton.setOnClickListener { dragAndDropApp(pos, it.context) }
+            holder.addappbutton.setOnClickListener { dragAndDropApp(pos, appInfo) }
             holder.infobutton.setOnClickListener {
                 closeMenu()
                 val intent = Intent()
                 intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                val uri = Uri.fromParts("package", viewModel.appsList.value!![pos].packageName, null)
+                val uri = Uri.fromParts("package", appInfo.packageName, null)
                 intent.data = uri
                 it.context.startActivity(intent)
             }
@@ -159,14 +160,14 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
     }
 
     // return the size of languageList
-    override fun getItemCount(): Int {
-        return viewModel.appsList.value!!.size
-    }
+    /*override fun getItemCount(): Int {
+        return viewModel.appsListFiltered.value!!.size
+    }*/
 
-    fun toggleFavorite(pos: Int){
-        viewModel.appsList.value!![pos].favorite = !viewModel.appsList.value!![pos].favorite
+    fun toggleFavorite(pos: Int, appInfo: AppInfo){
+        appInfo.favorite = !appInfo.favorite
         notifyItemChanged(pos)
-        EventBus.getDefault().post(MessageEvent(viewModel.appsList.value!![pos].label, pos, viewModel.appsList.value!![pos].packageName, viewModel.appsList.value!![pos].color, type = MessageEventType.FAVORITE, app = viewModel.appsList.value!![pos]))
+        EventBus.getDefault().post(MessageEvent(appInfo.label, pos, appInfo.packageName, appInfo.color, type = MessageEventType.FAVORITE, app = appInfo))
     }
 
     fun showMenu(position: Int) {

@@ -110,6 +110,43 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     var favcirclerect: Rect? = null
     var limit: Double = 0.0
 
+    var flingMinVelocity = 20f
+    var flingMaxVelocity = 500f
+    var flingFriction = 2
+    var flingValue = 0f
+    var flingValueAccumulated = 0f
+    var flingOn = false
+
+    var lastTouchPoints: MutableList<Point> = mutableListOf()
+
+    var hasMoved = false
+
+    fun limit(number: Int): Boolean{
+        limit = -(app_list.size/2)*step_size - step_size*2
+        Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
+        if(limit < -Math.PI/2) {
+            return (number > 0 || (number) / 500f - Math.PI / 2 < limit)
+        }
+        return true
+    }
+    fun flingUpdate(){
+        if(!flingOn) return
+        Log.d("ingo", "fling update $flingValue $flingFriction")
+        flingValue -= if (flingValue > 0) flingFriction else -flingFriction
+        if(abs(flingValue) <= flingFriction || limit((flingValueAccumulated + flingValue + moveDistancedAccumulated).toInt())){
+            finishFling()
+            return
+        }
+        flingValueAccumulated += flingValue
+        moveAction(flingValueAccumulated.toInt())
+    }
+
+    fun finishFling(){
+        flingOn = false
+        moveDistancedAccumulated += flingValueAccumulated.toInt()
+        resetClicks()
+    }
+
     fun setColor(agcolor:String){
         try {
             gcolor = agcolor.toInt()
@@ -135,7 +172,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     fun showShortcuts(app_i: Int, shortcuts: List<ShortcutInfo>){
         this.shortcuts = shortcuts
         this.shortcuts_app = app_i
-        clickProcessed = true
+        clickIgnored = true
         invalidate()
     }
 
@@ -330,37 +367,41 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         }
     }
 
+    fun quickMove(point: Point){
+        var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
+            (point.x-size_width).toDouble()
+        )
+        var click = 0
+        clickProcessed = true
+        for(i in quickSwipeAngles.reversed().indices){
+            if(angle > quickSwipeAngles[i]){
+                click = i
+            }
+        }
+        val firstByThatLetter = app_list.firstOrNull{it.label[0].uppercaseChar() == app_list.distinctBy { it.label[0].uppercaseChar() }[click].label[0].uppercaseChar()}
+            ?: return
+
+        Log.d("ingo", "angle $angle ${firstByThatLetter.label} $click $quickSwipeAngles")
+        // saznati s kulko moramo pomnožiti
+        moveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
+        Log.d("ingo", "lol $moveDistancedAccumulated $limit")
+
+        if ((moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
+            //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
+            //offset = (moveDistancedAccumulated+moveDistance)/500f
+            moveDistancedAccumulated = ((limit + Math.PI / 2) * 500f).toInt()
+        }
+
+        invalidate()
+        Log.d("ingo", "lol $moveDistancedAccumulated ${app_list.indexOf(firstByThatLetter)}")
+    }
+
     fun checkForQuickMove(point: Point){
         val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - size_width).toDouble().pow(2) )
         Log.d("ingo", "distance $distance $radius $detectSize")
-        if(distance > radius*1.1f+detectSize){
+        if(distance >= radius*1.15f){
             quickSwipeEntered = true
-            var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
-                (point.x-size_width).toDouble()
-            )
-            var click = 0
-            clickProcessed = true
-            for(i in quickSwipeAngles.reversed().indices){
-                if(angle > quickSwipeAngles[i]){
-                    click = i
-                }
-            }
-            val firstByThatLetter = app_list.firstOrNull{it.label[0].uppercaseChar() == app_list.distinctBy { it.label[0].uppercaseChar() }[click].label[0].uppercaseChar()}
-                ?: return
-
-            Log.d("ingo", "angle $angle ${firstByThatLetter.label} $click $quickSwipeAngles")
-            // saznati s kulko moramo pomnožiti
-            moveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
-            Log.d("ingo", "lol $moveDistancedAccumulated $limit")
-
-            if ((moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
-                //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
-                //offset = (moveDistancedAccumulated+moveDistance)/500f
-                moveDistancedAccumulated = ((limit + Math.PI / 2) * 500f).toInt()
-            }
-
-            invalidate()
-            Log.d("ingo", "lol $moveDistancedAccumulated ${app_list.indexOf(firstByThatLetter)}")
+            quickMove(point)
         }
     }
 
@@ -368,12 +409,34 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 2)
     }
 
+    fun moveAction(change: Int){
+        limit = -(app_list.size/2)*step_size - step_size*2
+        if(!hasMoved && abs(change) > detectSize/2f){
+            mEventListener?.onEventOccurred(EventTypes.STOP_COUNTDOWN, 2)
+            hasMoved = true
+        }
+        if(limit < -Math.PI/2 && abs(change) > detectSize/4f) {
+            // we're moving
+            moveDistance = change
+            if(abs(moveDistance) > detectSize/4) clickIgnored = true
+            if (moveDistance + moveDistancedAccumulated > 0) {
+                moveDistance = -moveDistancedAccumulated
+            } else if ((moveDistance + moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
+                //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
+                //offset = (moveDistancedAccumulated+moveDistance)/500f
+                moveDistance = ((limit + Math.PI / 2) * 500f - moveDistancedAccumulated).toInt()
+            }
+            invalidate()
+        }
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if(event.action == MotionEvent.ACTION_DOWN){
+            if(flingOn) finishFling()
             touchStart = Point(event.x.toInt(), event.y.toInt())
             // only if inside app
             startOpenShortcutCountdown()
-            // check if clicked on fav
+            // if clicked on opened shortcut menu
             if(shortcuts_app != null) {
                 for (i in shortcuts_rects.indices) {
                     if (shortcuts_rects[i].contains(touchStart)) {
@@ -383,47 +446,54 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
                 }
                 shortcuts = mutableListOf()
                 shortcuts_app = null
-            }
-            if(favcirclerect != null && favcirclerect!!.contains(touchStart)){
+            // check if clicked on fav
+            } else if(favcirclerect != null && favcirclerect!!.contains(touchStart)){
                 mEventListener?.onEventOccurred(EventTypes.TOGGLE_FAVORITES, 1)
+            } else {
+                checkForQuickMove(touchStart)
             }
-            checkForQuickMove(touchStart)
         } else if(event.action == MotionEvent.ACTION_MOVE){
-            if(!clickProcessed){
+            if(quickSwipeEntered){
+                quickMove(Point(event.x.toInt(), event.y.toInt()))
+            } else if(!clickProcessed){
                 val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
-                limit = -(app_list.size/2)*step_size - step_size*2
-                if(abs(change) > detectSize/2f) mEventListener?.onEventOccurred(EventTypes.STOP_COUNTDOWN, 2)
-                if(limit < -Math.PI/2 && abs(change) > detectSize/4f) {
-                    // we're moving
-                    moveDistance = change
-                    if(abs(moveDistance) > detectSize/4) clickIgnored = true
-                    if (moveDistance + moveDistancedAccumulated > 0) {
-                        moveDistance = -moveDistancedAccumulated
-                    } else if ((moveDistance + moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
-                        //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
-                        //offset = (moveDistancedAccumulated+moveDistance)/500f
-                        moveDistance = ((limit + Math.PI / 2) * 500f - moveDistancedAccumulated).toInt()
-                    }
-                }
-            } else if(quickSwipeEntered){
-                checkForQuickMove(Point(event.x.toInt(), event.y.toInt()))
+                lastTouchPoints.add(Point(event.x.toInt(), event.y.toInt()))
+                moveAction(change)
             }
             //Log.d("ingo", "ne zaustavljam ${(moveDistance+moveDistancedAccumulated)/500f-Math.PI/2} ${limit}")
-            invalidate()
+
         } else if(event.action == MotionEvent.ACTION_UP){
-            Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
+            //Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
             if(!clickProcessed && !clickIgnored && abs(event.x - touchStart.x) + abs(event.y - touchStart.y) < detectSize/4){
                 val app_i = getAppIndexImIn()
                 if(app_i != null) mEventListener?.onEventOccurred(EventTypes.OPEN_APP, app_i!!)
             }
+            if(!quickSwipeEntered && lastTouchPoints.size > 3){
+                val moveSpeed = ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
+                Log.d("ingo", "moveSpeed " + moveSpeed)
+                if(abs(moveSpeed) > flingMinVelocity){
+                    flingOn = true
+                    flingValue = moveSpeed.toFloat()
+                    if(abs(moveSpeed) >= flingMaxVelocity){
+                        flingValue = if(flingValue > 0) flingMaxVelocity else -flingMaxVelocity
+                    }
+                    mEventListener?.onEventOccurred(EventTypes.START_FLING, 0)
+                }
+            }
             mEventListener?.onEventOccurred(EventTypes.STOP_COUNTDOWN, 2)
             moveDistancedAccumulated += moveDistance
-            moveDistance = 0
-            clickIgnored = false
-            clickProcessed = false
-            quickSwipeEntered = false
+            resetClicks()
         }
         return true
+    }
+
+    fun resetClicks(){
+        moveDistance = 0
+        clickIgnored = false
+        clickProcessed = false
+        quickSwipeEntered = false
+        hasMoved = false
+        flingValueAccumulated = 0f
     }
 
     var step_size:Double = Math.PI*0.05
@@ -480,7 +550,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
             offset = (moveDistancedAccumulated+moveDistance)/500f
 
             //drawText((moveDistancedAccumulated+moveDistance).toString(), (size/2).toFloat(), 50F, text_paint)
-            Log.d("ingo", "racunamo " + (app_list.size/2)*step_size + ", $offset, $moveDistancedAccumulated")
+            //Log.d("ingo", "racunamo " + (app_list.size/2)*step_size + ", $offset, $moveDistancedAccumulated")
 
             var counter = 0
             var offsetModulated = offset%step_size
@@ -662,28 +732,28 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         bitmap = icons[app_list[index].packageName]?.toBitmap()
         //Log.d("ingo", "crtam " + Gson().toJson(bitmap))
 
-            if(triang > highestIconAngleDrawn) highestIconAngleDrawn = triang
+        if(triang > highestIconAngleDrawn) highestIconAngleDrawn = triang
 
-            var xx = (sin(triang) * radius*radiusScale).toFloat()
-            var yy = (cos(triang) * radius*radiusScale).toFloat()
-            var draw_pointF = PointF( ((size_width+xx).toFloat()), ((size_height+yy).toFloat()) )
-            val rect = Rect(
-                (draw_pointF.x - detectSize).toInt(),
-                (draw_pointF.y - detectSize).toInt(),
-                (draw_pointF.x + detectSize).toInt(),
-                (draw_pointF.y + detectSize).toInt()
+        var xx = (sin(triang) * radius*radiusScale).toFloat()
+        var yy = (cos(triang) * radius*radiusScale).toFloat()
+        var draw_pointF = PointF( ((size_width+xx).toFloat()), ((size_height+yy).toFloat()) )
+        val rect = Rect(
+            (draw_pointF.x - detectSize).toInt(),
+            (draw_pointF.y - detectSize).toInt(),
+            (draw_pointF.x + detectSize).toInt(),
+            (draw_pointF.y + detectSize).toInt()
+        )
+        drawn_apps.add(DrawnApp(triang, app_list[index].label[0], index, rect))
+
+        if(smaller_text_size != 0f){
+            queued_texts.add(QueuedText(app_list[index].label, draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
+        }
+        if(app_list[index].hasShortcuts) {
+            canvas.drawCircle(
+                rect.right.toFloat(),
+                rect.bottom.toFloat(), detectSize / 8f, shortcut_indicator_paint
             )
-            drawn_apps.add(DrawnApp(triang, app_list[index].label[0], index, rect))
-
-            if(smaller_text_size != 0f){
-                queued_texts.add(QueuedText(app_list[index].label, draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
-            }
-            if(app_list[index].hasShortcuts) {
-                canvas.drawCircle(
-                    rect.right.toFloat(),
-                    rect.bottom.toFloat(), detectSize / 8f, shortcut_indicator_paint
-                )
-            }
+        }
         if(bitmap != null) {
             canvas.drawBitmap(
                 bitmap!!, null, rect, null

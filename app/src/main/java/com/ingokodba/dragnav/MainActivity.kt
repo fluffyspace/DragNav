@@ -72,7 +72,7 @@ import java.util.Collections.min
 
 class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
     val viewModel: ViewModel by viewModels()
-    var rightHandMode: UiDesignEnum = UiDesignEnum.CIRCLE
+    var uiDesignMode: UiDesignEnum = UiDesignEnum.CIRCLE
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
 
@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
         val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
         val ui_design_values = resources.let{it.getStringArray(R.array.ui_designs_values)}
-        rightHandMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
+        uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
             ui_design_values[0] -> UiDesignEnum.CIRCLE
             ui_design_values[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
             ui_design_values[2] -> UiDesignEnum.RAINBOW
@@ -240,8 +240,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             initializeRoom()
             withContext(Dispatchers.Main) {
                 mainFragment.iconsUpdated()
-                mainFragment.goToPocetna()
-                mainFragment.updateStuff();
+                mainFragment.goToHome()
+                //mainFragment.updateStuff();
             }
             if(circleViewLoadIcons) loadIcons()
             Log.d("ingo", "initializeRoom after loadicons")
@@ -278,12 +278,13 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     fun loadFragments(){
-        mainFragment = when(rightHandMode){
+        mainFragment = when(uiDesignMode){
             UiDesignEnum.CIRCLE -> MainFragment()
             UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand()
             UiDesignEnum.RAINBOW -> MainFragmentRainbow()
             UiDesignEnum.KEYPAD -> MainFragmentTipke()
         }
+
         searchFragment = SearchFragment()
         activitiesFragment = ActivitiesFragment()
         actionsFragment = ActionsFragment()
@@ -292,6 +293,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             .replace(R.id.settings_container, mainFragment.fragment, "main")
             .setReorderingAllowed(true)
             .commit()
+
+        if(uiDesignMode == UiDesignEnum.RAINBOW){
+            // TODO: provjeri da li se ovo postavi ili ne
+            activitiesFragment.radapter?.showAddToHomescreen = false
+        }
     }
 
     fun getPolje(id:Int): KrugSAplikacijama?{
@@ -575,6 +581,15 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
     }
 
+    fun isPackageNameOnDevice(packageName: String): Boolean{
+        return try{
+            packageManager.getApplicationInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException ){
+            false
+        }
+    }
+
     fun loadApp(packageName: String){
         if(viewModel.appsList.value!!.find{it.packageName == packageName} != null || viewModel.currentlyLoadingApps.contains(packageName)){
             Log.d("ingokodba", "app is already installed")
@@ -613,8 +628,8 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 val appDao: AppInfoDao = db.appInfoDao()
                 try {
                     appDao.insertAll(newApp)
-                }catch(exception: android.database.sqlite.SQLiteConstraintException){
-
+                } catch(exception: android.database.sqlite.SQLiteConstraintException){
+                    Log.d("ingo", exception.toString())
                 }
                 withContext(Dispatchers.Main) {
                     viewModel.addApps(mutableListOf(newApp))
@@ -723,6 +738,12 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     fun appDeleted(packageName: String){
         lifecycleScope.launch(Dispatchers.IO) {
+            delay(20000)
+            // check if app is really deleted
+            if(isPackageNameOnDevice(packageName)) {
+                Log.d("ingo", "package not deleted, it's still on the device")
+                return@launch
+            }
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
             val lista = appDao.getAll()
@@ -847,14 +868,17 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
 
     @SuppressWarnings("ResourceType")
     fun loadNewApps(): MutableList<AppInfo>{
-        Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
+        //Log.d("ingo5", "getinstalledpackages start")
+        //Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
         val gson = Gson()
         val newApps: MutableList<AppInfo> = mutableListOf()
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
         for (i in packs.indices) {
             val p = packs[i]
+            //Log.d("ingo4", "${p.packageName} getInstalledPackages")
             if (!isSystemPackage(p)) {
+                //Log.d("ingo3", "${p.packageName} not system")
                 //Log.d("ingokodba", "aplikacija ${gson.toJson(p)}")
                 if(isAppLoaded(p.applicationInfo.uid)) {
                     val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
@@ -865,8 +889,9 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                     }
                     continue
                 }
+                //Log.d("ingo3", "${p.packageName} not loaded")
                 val appName = p.applicationInfo.loadLabel(packageManager).toString()
-                Log.d("ingokodba", "discovered new app " + appName + " " + p.packageName)
+                //Log.d("ingokodba", "discovered new app " + appName + " " + p.packageName)
                 colorPrimary = Color.BLACK
                 val packageName = p.applicationInfo.packageName
                 if (appName != packageName.toString()) {
@@ -874,21 +899,24 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 }
             }
         }
+        //Log.d("ingo5", "getinstalledpackages finish")
 
         val i = Intent(Intent.ACTION_MAIN, null)
         i.addCategory(Intent.CATEGORY_LAUNCHER)
-        val allApps = packageManager.queryIntentActivities(i, 0)
-        for (ri in allApps) {
-            val uid = packageManager.getPackageUid(ri.activityInfo.packageName, 0)
+        val launcherIntentActivities = packageManager.queryIntentActivities(i, 0)
+        for (activity in launcherIntentActivities) {
+            //Log.d("ingo5", activity.activityInfo.packageName)
+            val uid = packageManager.getPackageUid(activity.activityInfo.packageName, 0)
             //Log.d("ingo", "uid " + uid)
             if(isAppLoaded(uid) || newApps.map{it.id}.contains(uid)) {
                 viewModel.appsList.value?.find { it.id == uid }?.installed = true
                 continue
             }
-            Log.d("ingokodba", "discovered new app2 " + ri.loadLabel(packageManager).toString() + " " + ri.activityInfo.packageName)
+            //Log.d("ingokodba", "discovered new app2 " + activity.loadLabel(packageManager).toString() + " " + activity.activityInfo.packageName)
             colorPrimary = 0
-            newApps.add(AppInfo(uid, ri.loadLabel(packageManager).toString(), ri.activityInfo.packageName, colorPrimary.toString(), installed = true))
+            newApps.add(AppInfo(uid, activity.loadLabel(packageManager).toString(), activity.activityInfo.packageName, colorPrimary.toString(), installed = true))
         }
+        //Log.d("ingo5", "queryIntentActivities finish")
         return newApps
     }
 
@@ -927,7 +955,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     fun toggleAppMenu(open:Int=-1){
-        mainFragment.updateStuff()
+        //mainFragment.updateStuff()
         selectAppMenuOpened = false
         when(open){
             -1 -> appListOpened = !appListOpened
@@ -952,7 +980,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             } else {
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
             }
-            mainFragment.updateStuff()
+            //mainFragment.updateStuff()
         }
         //super.onBackPressed()
     }

@@ -19,4 +19,5 @@ data class AppInfo (
     @ColumnInfo(defaultValue = "0") var lastLaunched: Long = 0,
     var favorite: Boolean = false,
     @ColumnInfo(defaultValue = "0") var hasShortcuts: Boolean = false,
+    @ColumnInfo(defaultValue = "1") var visible: Boolean = true,
 )

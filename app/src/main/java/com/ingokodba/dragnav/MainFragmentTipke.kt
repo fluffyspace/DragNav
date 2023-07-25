@@ -131,7 +131,6 @@ class MainFragmentTipke() : Fragment(), MainFragmentInterface {
         //circleView.icons = viewModel.icons.value!!
     }
 
-
     override fun selectedItemDeleted(){
 
     }
@@ -142,18 +141,14 @@ class MainFragmentTipke() : Fragment(), MainFragmentInterface {
 
     }
 
-
     override fun refreshCurrentMenu(){
-
-    }
-    override fun updateStuff() {
 
     }
 
     override fun toggleEditMode(){
 
     }
-    override fun goToPocetna(){
+    override fun goToHome(){
 
     }
 

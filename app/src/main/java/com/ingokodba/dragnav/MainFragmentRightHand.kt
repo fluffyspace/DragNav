@@ -165,7 +165,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         }
 
         if (viewModel.currentMenuId == -1) {
-            goToPocetna()
+            goToHome()
         } else {
             refreshCurrentMenu()
         }
@@ -244,11 +244,11 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
             /*viewModel.lastEnteredIntent = null
             viewModel.lastTextViewEnteredCounter = -1
             findViewById<TextView>(R.id.selected_text).text = viewModel.currentMenu.text*/
-            goToPocetna()
+            goToHome()
             return
         }
         if(redniBrojPolja == MainActivity.ACTION_HOME){
-            goToPocetna()
+            goToHome()
             return
         }
         if(event.action == MotionEvent.ACTION_UP && !viewModel.editMode && !viewModel.addNewAppMode){
@@ -337,7 +337,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         }
         viewModel.lastEnteredIntent = null
         //circleView.changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        goToPocetna()
+        goToHome()
     }
 
     fun enterSelected(){
@@ -422,12 +422,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
         Log.d("ingo", "current menu refreshed")
     }
-    override fun updateStuff() {
-        //findViewById<RecyclerView>(R.id.recycler_view).adapter?.notifyDataSetChanged()
-        //mactivity.radapter.notifyItemInserted(mactivity.radapter.getItemCount() - 1)
-        //mactivity.radapter.submitList(viewModel.appsList.value)
-        //mactivity.radapter.notifyDataSetChanged()
-    }
+
     fun deYellowAll(){
         circleView.deselectAll()
         viewModel.editSelected = -1
@@ -526,7 +521,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
             editMenu.visibility = View.GONE
         }
     }
-    override fun goToPocetna(){
+    override fun goToHome(){
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni(viewModel.pocetnaId, -1)

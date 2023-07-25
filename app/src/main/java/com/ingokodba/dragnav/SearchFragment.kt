@@ -226,7 +226,7 @@ class SearchFragment : Fragment() {
             //var slova_search = query.map{ it }
             val slova_search_lowercase = query.map{ it.lowercaseChar() }
             for(app in apps) {
-                var counter = 0
+                var score = 0
                 var index_counter = 0
                 // provjerava ako je svako koje je u query prisutno u labeli aplikacije. ako nije, preskače se aplikacija
                 for(slovo in app.label.lowercase()){
@@ -239,22 +239,22 @@ class SearchFragment : Fragment() {
                     continue
                 }
                 if(app.label.first().lowercaseChar() == slova_search_lowercase[0]){
-                    counter += 5
+                    score += 5
                     if(query.length == 2) {
                         // prvo i zadnje slovo
                         if (app.label.last().lowercaseChar() == slova_search_lowercase[1]) {
-                            counter += 10
+                            score += 10
                             Log.d("ingo", app.label + " ako počinje s prvim slovom i završava s drugim " + query)
                         }
                         // prva slova riječi odvojene razmakom
                         val splitano = app.label.split(" ")
                         if (splitano.size > 1 && splitano[1].first().lowercaseChar() == slova_search_lowercase[1]) {
-                            counter += 5
+                            score += 5
                             Log.d("ingo", app.label + " ako je prvo slovo prva riječ, drugo slovo druga riječ " + query)
                         }
                     }
                     if(app.label.lowercase().startsWith(query.lowercase())){
-                        counter += 5*query.length
+                        score += 5*query.length
                         Log.d("ingo", app.label + " startsWith " + query)
                     }
                 }
@@ -267,19 +267,19 @@ class SearchFragment : Fragment() {
                         counter2++
                         Log.d("ingo", app.label + " upper case contains " + query)
                     }
-                    if(counter2 == query.length) counter += 10
+                    if(counter2 == query.length) score += 10
                 }
                 if(query.length > 1) {
                     val matches = countMatches(app.label.lowercase(), query.lowercase())
                     if (matches == query.length) {
-                        counter += matches * 7
+                        score += matches * 7
                         Log.d(
                             "ingo",
                             "matches " + app.label.toString() + " " + query + " " + matches
                         )
                     }
                 }
-                if(counter > 0) search_lista_aplikacija.add(Pair(counter, app))
+                if(score > 0) search_lista_aplikacija.add(Pair(score, app))
             }
             search_lista_aplikacija.sortByDescending { it.first }
             return search_lista_aplikacija

@@ -71,16 +71,6 @@ class ActivitiesFragment : Fragment() {
             (activity as MainActivity).showLayout(MainActivity.Companion.Layouts.LAYOUT_SETTINGS)
         }
         recycler_view = view.findViewById(R.id.recycler_view)
-        val smoothScroller: RecyclerView.SmoothScroller =
-            object : LinearSmoothScroller(context) {
-                val scrollDuration = 500f;
-                override fun getVerticalSnapPreference(): Int {
-                    return SNAP_TO_START
-                }
-                override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics?): Float {
-                    return scrollDuration / recycler_view.computeVerticalScrollRange();
-                }
-            }
         radapter = ApplicationsListAdapter(viewModel)
         search_bar = view.findViewById(R.id.search_bar)
         recycle_scroller = view.findViewById<RecycleScroller>(R.id.recycle_scroller)
@@ -106,7 +96,8 @@ class ActivitiesFragment : Fragment() {
                 }
             }
         })
-        radapter?.submitList(viewModel.appsList.value!!)
+        viewModel.setFilteredApps(viewModel.appsList.value!!)
+        radapter?.submitList(viewModel.appsListFiltered.value!!)
         Log.d("ingo", "activities fragment onViewCreated")
         Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         search_bar.apply {
@@ -114,11 +105,21 @@ class ActivitiesFragment : Fragment() {
                 Log.d("ingo", "text changed to " + search_bar.text.toString())
                 // find apps
                 if (search_bar.text.toString().length == 0) {
+                    viewModel.setFilteredApps(viewModel.appsList.value!!)
+                    radapter?.submitList(viewModel.appsListFiltered.value!!)
                     return@addTextChangedListener
                 } else {
                     val search_lista_aplikacija =
                         SearchFragment.getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
-                    if (search_lista_aplikacija.size > 0) {
+                    /*for(app in viewModel.appsList.value!!){
+                        app.visible = (app in search_lista_aplikacija.map{it.second})
+                        Log.d("ingo", "${app.label} ${app.visible} ")
+                    }*/
+                    radapter?.submitList(search_lista_aplikacija.map{it.second}.toMutableList())
+                    radapter?.notifyDataSetChanged()
+                    recycler_view.scrollToPosition(0)
+                   // viewModel.setFilteredApps(search_lista_aplikacija.map{it.second}.toMutableList())
+                    /*if (search_lista_aplikacija.size > 0) {
                         for (i in 0..viewModel.appsList.value!!.size) {
                             if (viewModel.appsList.value!![i] == search_lista_aplikacija[0].second) {
                                 //recycler_view.scrollToPosition(i)
@@ -131,7 +132,7 @@ class ActivitiesFragment : Fragment() {
                                 break
                             }
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -191,6 +192,12 @@ class ActivitiesFragment : Fragment() {
             }
         val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
         itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))
+    }
+
+    fun setAllAsVisible(){
+        for(app in viewModel.appsList.value!!){
+            app.visible = true
+        }
     }
 
     companion object {

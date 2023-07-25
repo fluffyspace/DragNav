@@ -115,7 +115,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         }
 
         if (viewModel.currentMenuId == -1) {
-            goToPocetna()
+            goToHome()
         } else {
             refreshCurrentMenu()
         }
@@ -194,11 +194,11 @@ class MainFragment() : Fragment(), MainFragmentInterface {
             /*viewModel.lastEnteredIntent = null
             viewModel.lastTextViewEnteredCounter = -1
             findViewById<TextView>(R.id.selected_text).text = viewModel.currentMenu.text*/
-            goToPocetna()
+            goToHome()
             return
         }
         if(redniBrojPolja == MainActivity.ACTION_HOME){
-            goToPocetna()
+            goToHome()
             return
         }
         if(event.action == MotionEvent.ACTION_UP && !viewModel.editMode && !viewModel.addNewAppMode){
@@ -287,7 +287,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         }
         viewModel.lastEnteredIntent = null
         //circleView.changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        goToPocetna()
+        goToHome()
     }
 
     fun enterSelected(){
@@ -377,12 +377,6 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         circleView.invalidate()
         prebaciMeni(viewModel.currentMenuId, viewModel.no_draw_position)
         Log.d("ingo", "current menu refreshed")
-    }
-    override fun updateStuff() {
-        //findViewById<RecyclerView>(R.id.recycler_view).adapter?.notifyDataSetChanged()
-        //mactivity.radapter.notifyItemInserted(mactivity.radapter.getItemCount() - 1)
-        //mactivity.radapter.submitList(viewModel.appsList.value)
-        //mactivity.radapter.notifyDataSetChanged()
     }
     fun deYellowAll(){
         circleView.deselectAll()
@@ -478,7 +472,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
             bottomMenuView.postInvalidate()
         }
     }
-    override fun goToPocetna(){
+    override fun goToHome(){
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni(viewModel.pocetnaId, -1)

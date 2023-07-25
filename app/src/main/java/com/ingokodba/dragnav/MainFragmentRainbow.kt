@@ -6,36 +6,26 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
-import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.slider.Slider
-import com.google.gson.Gson
-import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
-import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.reflect.typeOf
 
 /**
  * A simple [Fragment] subclass.
@@ -50,6 +40,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     lateinit var mactivity:MainActivity
     lateinit var global_view:View
     var countdown: Job? = null
+    var fling: Job? = null
 
     override var fragment: Fragment = this
     var sliders = false
@@ -137,37 +128,46 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         }
         circleView.setEventListener(object :
             IMyEventListener {
-            override fun onEventOccurred(type:EventTypes, app_index: Int) {
-                when(type){
-                    EventTypes.OPEN_APP->touched(app_index)
+            override fun onEventOccurred(app:EventTypes, counter: Int) {
+                when(app){
+                    EventTypes.OPEN_APP->touched(counter)
                     EventTypes.START_COUNTDOWN->startCountdown()
                     EventTypes.STOP_COUNTDOWN->stopCountdown()
-                    EventTypes.OPEN_SHORTCUT->openShortcut(app_index)
+                    EventTypes.OPEN_SHORTCUT->openShortcut(counter)
                     EventTypes.TOGGLE_FAVORITES->toggleFavorites()
+                    EventTypes.START_FLING->startFlingAnimation()
                 }
-                Log.d("ingo", "onEventOccurred")
+                Log.d("ingo", "onEventOccurred " + app.toString())
 
             }
         })
         global_view = view
         relativeLayout.setOnClickListener {
-
             Log.d("ingo", "collapse?")
         }
         if(viewModel.icons.value != null){
             circleView.icons = viewModel.icons.value!!
             Log.d("ingo", "icons who??")
         }
-
-
-        goToPocetna()
-
+        goToHome()
         Log.d("ingo", "mainfragment created")
     }
 
     fun stopCountdown(){
         countdown?.cancel()
         Log.d("ingo", "job canceled")
+    }
+
+    fun startFlingAnimation(){
+        fling = lifecycleScope.launch(Dispatchers.IO) {
+            while(circleView.flingOn) {
+                delay(1000 / 100)
+                //Log.d("ingo", (1000/24).toString())
+                withContext(Dispatchers.Main) {
+                    circleView.flingUpdate()
+                }
+            }
+        }
     }
     fun startCountdown(){
         countdown = lifecycleScope.launch(Dispatchers.IO) {
@@ -183,7 +183,6 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
                         circleView.showShortcuts(app_index, shortcuts)
                         if(shortcuts.isEmpty()){
                             view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-
                         }
                         Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                     }
@@ -293,9 +292,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         prebaciMeni()
         Log.d("ingo", "current menu refreshed")
     }
-    override fun updateStuff() {
 
-    }
     fun deYellowAll(){
         circleView.deselectAll()
         viewModel.editSelected = -1
@@ -331,7 +328,13 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             deYellowAll()
         }
     }
-    override fun goToPocetna(){
+
+    override fun onPause() {
+        super.onPause()
+        countdown?.cancel()
+        fling?.cancel()
+    }
+    override fun goToHome(){
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni()
@@ -341,4 +344,4 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
 }
 
-enum class EventTypes{OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES}
+enum class EventTypes{OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES, START_FLING}
