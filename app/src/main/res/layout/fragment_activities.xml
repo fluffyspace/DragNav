@@ -32,12 +32,13 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintRight_toLeftOf="@id/settings"
                 app:layout_constraintLeft_toLeftOf="parent"
-                android:background="?attr/colorSurface"
-                android:textSize="23sp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/meni_jedno_polje_obrub"
+                android:textSize="20sp"
                 android:padding="10dp"
-                tools:text="Kako nahraniti papigu"
+                tools:text=""
                 android:inputType="text"
-                android:hint="@string/search_to_scroll"
+                android:hint="@string/search_apps_or_surf_internet"
                 android:imeOptions="actionGo"
                 android:layout_marginBottom="5dp"/>
             <ImageButton
@@ -54,9 +55,12 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <FrameLayout
+            android:id="@+id/popis_svih_aplikacija"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginTop="20dp"
+            android:visibility="visible">
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view"
                 android:layout_width="match_parent"
@@ -75,7 +79,30 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="right"/>
         </FrameLayout>
-
+        <LinearLayout
+            android:id="@+id/trazilica"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="top"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/applications"
+                android:textSize="18sp"
+                android:layout_marginTop="10dp"
+                android:textColor="?attr/colorOnSurface"/>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?attr/colorOnSurface"/>
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipgroup_aplikacije"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="horizontal"/>
+        </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>

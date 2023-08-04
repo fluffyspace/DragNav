@@ -1,15 +1,33 @@
 package com.ingokodba.dragnav
 
+import android.content.Context
+import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Browser
+import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowInsetsAnimation
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import androidx.appcompat.widget.ListPopupWindow
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -17,6 +35,12 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.ingokodba.dragnav.modeli.AppInfo
+import com.ingokodba.dragnav.modeli.MessageEvent
+import com.ingokodba.dragnav.modeli.MessageEventType
+import org.greenrobot.eventbus.EventBus
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -33,6 +57,11 @@ class ActivitiesFragment : Fragment() {
     private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
     lateinit var recycler_view: RecyclerView
+    lateinit var popis_svih_aplikacija: FrameLayout
+    lateinit var trazilica: LinearLayout
+    lateinit var chipGroup: ChipGroup
+    lateinit var imm: InputMethodManager
+    lateinit var shortcutPopup: PopupWindow
     lateinit var recycle_scroller: RecycleScroller
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -73,6 +102,10 @@ class ActivitiesFragment : Fragment() {
         recycler_view = view.findViewById(R.id.recycler_view)
         radapter = ApplicationsListAdapter(viewModel)
         search_bar = view.findViewById(R.id.search_bar)
+        popis_svih_aplikacija = view.findViewById(R.id.popis_svih_aplikacija)
+        trazilica = view.findViewById(R.id.trazilica)
+        chipGroup = view.findViewById<ChipGroup>(R.id.chipgroup_aplikacije)
+        imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         recycle_scroller = view.findViewById<RecycleScroller>(R.id.recycle_scroller)
         recycle_scroller.setCallback(::scrollRecyclerViewToPrecentage)
         recycler_view.adapter = radapter
@@ -96,43 +129,96 @@ class ActivitiesFragment : Fragment() {
                 }
             }
         })
-        viewModel.setFilteredApps(viewModel.appsList.value!!)
-        radapter?.submitList(viewModel.appsListFiltered.value!!)
-        Log.d("ingo", "activities fragment onViewCreated")
-        Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
+        //viewModel.setFilteredApps(viewModel.appsList.value!!)
+        if(viewModel.appsList.value != null){
+            radapter?.submitList(viewModel.appsList.value!!)
+            Log.d("ingo", "activities fragment onViewCreated")
+            Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
+        }
+
+        val decorView  = activity?.window?.decorView ?: return
+        ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
+            val showingKeyboard = insets.isVisible(WindowInsetsCompat.Type.ime())
+            if(showingKeyboard){
+                Log.d("ingo8", "keyboard shown")
+                popis_svih_aplikacija.visibility = View.GONE
+                trazilica.visibility = View.VISIBLE
+            } else {
+                Log.d("ingo8", "keyboard hidden")
+                popis_svih_aplikacija.visibility = View.VISIBLE
+                trazilica.visibility = View.GONE
+            }
+            insets
+        }
+
         search_bar.apply {
+            setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_GO) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + search_bar.text.toString()))
+                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.packageName)
+                    //intent.setPackage("com.android.chrome");
+                    startActivity(intent)
+                    (activity as MainActivity).showLayout(MainActivity.Companion.Layouts.LAYOUT_MAIN)
+                    search_bar.setText("")
+                    return@setOnEditorActionListener true
+                }
+                false
+            }
             addTextChangedListener {
                 Log.d("ingo", "text changed to " + search_bar.text.toString())
                 // find apps
-                if (search_bar.text.toString().length == 0) {
-                    viewModel.setFilteredApps(viewModel.appsList.value!!)
-                    radapter?.submitList(viewModel.appsListFiltered.value!!)
-                    return@addTextChangedListener
+                val search_lista_aplikacija: MutableList<Pair<Int, AppInfo>>
+                if(search_bar.text.toString().length == 0) {
+                    //val search_lista_aplikacija: MutableList<AppInfo> = mutableListOf()
+                    val sortirano = viewModel.appsList.value!!.filter{ it.frequency > 0 }.sortedByDescending { it.lastLaunched }
+                    val max = if (sortirano.size > 5) 5 else sortirano.size
+                    search_lista_aplikacija = (0 until max)
+                        .map { Pair(it, sortirano[it]) }.toMutableList()
                 } else {
-                    val search_lista_aplikacija =
-                        SearchFragment.getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
-                    /*for(app in viewModel.appsList.value!!){
-                        app.visible = (app in search_lista_aplikacija.map{it.second})
-                        Log.d("ingo", "${app.label} ${app.visible} ")
-                    }*/
-                    radapter?.submitList(search_lista_aplikacija.map{it.second}.toMutableList())
-                    radapter?.notifyDataSetChanged()
-                    recycler_view.scrollToPosition(0)
-                   // viewModel.setFilteredApps(search_lista_aplikacija.map{it.second}.toMutableList())
-                    /*if (search_lista_aplikacija.size > 0) {
-                        for (i in 0..viewModel.appsList.value!!.size) {
-                            if (viewModel.appsList.value!![i] == search_lista_aplikacija[0].second) {
-                                //recycler_view.scrollToPosition(i)
-                                smoothScroller.targetPosition = i
-                                (recycler_view.layoutManager)?.startSmoothScroll(smoothScroller)
-                                Log.d(
-                                    "ingo",
-                                    "scrolling for " + viewModel.appsList.value!![i].label
-                                )
-                                break
-                            }
+                    search_lista_aplikacija =
+                        SearchFragment.getAppsByQuery(
+                            viewModel.appsList.value!!,
+                            search_bar.text.toString()
+                        )
+                }
+                chipGroup.removeAllViews()
+                //var chips: MutableList<Chip> = mutableListOf()
+                for ((index,app) in search_lista_aplikacija.iterator().withIndex()) {
+                    if(index > 10) break
+                    val chip = layoutInflater.inflate(R.layout.chip_template, null) as Chip
+                    val chip_text = app.second.label.toString()
+                    chip.setText(chip_text)// + " " + app.first)
+                    chip.id = index
+                    try {
+                        chip.chipBackgroundColor = ColorStateList.valueOf(app.second.color.toInt())
+                    } catch (e:NumberFormatException){
+                        e.printStackTrace()
+                        Log.d("ingo", "neuspjela boja")
+                    }
+                    chip.setOnClickListener {
+                        Log.d(
+                            "ingo", chip.text.toString() + " " + chip.id.toString()
+                        )
+                        // otvori ovu aplikaciju
+                        val launchIntent: Intent? = requireContext().packageManager.getLaunchIntentForPackage(app.second.packageName.toString())
+                        if(launchIntent != null) {
+                            (activity as MainActivity).onMessageEvent(MessageEvent(search_lista_aplikacija[chip.id].second.label, 0, search_lista_aplikacija[chip.id].second.packageName, search_lista_aplikacija[chip.id].second.color, app=search_lista_aplikacija[chip.id].second, type= MessageEventType.LAUNCH_APP))
                         }
-                    }*/
+                        imm.hideSoftInputFromWindow(windowToken, 0)
+                        //startActivity(launchIntent)
+                    }
+                    chip.setOnLongClickListener{
+                        val contentView = createMenu(app.second)
+                        shortcutPopup = PopupWindow(contentView,
+                            ListPopupWindow.WRAP_CONTENT,
+                            ListPopupWindow.WRAP_CONTENT, true)
+                        //shortcutPopup?.animationStyle = R.style.PopupAnimation
+                        val location = locateView(chip)
+                        shortcutPopup?.showAtLocation(view, Gravity.TOP or Gravity.LEFT, location!!.left, location!!.bottom)
+                        return@setOnLongClickListener true
+                    }
+                    //chips.add(chip)
+                    chipGroup.addView(chip)
                 }
             }
         }
@@ -192,6 +278,41 @@ class ActivitiesFragment : Fragment() {
             }
         val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
         itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))
+    }
+
+    fun locateView(v: View?): Rect? {
+        val loc_int = IntArray(2)
+        if (v == null) return null
+        try {
+            v.getLocationOnScreen(loc_int)
+        } catch (npe: NullPointerException) {
+            //Happens when the view doesn't exist on screen anymore.
+            return null
+        }
+        val location = Rect()
+        location.left = loc_int[0]
+        location.top = loc_int[1]
+        location.right = location.left + v.width
+        location.bottom = location.top + v.height
+        return location
+    }
+
+    fun createMenu(app:AppInfo):View{
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.popup_app_info_or_add, null)
+        view.findViewById<LinearLayout>(R.id.open_appinfo).setOnClickListener{
+            val intent = Intent()
+            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            val uri = Uri.fromParts("package", app.packageName, null)
+            intent.data = uri
+            it.context.startActivity(intent)
+            shortcutPopup.dismiss()
+        }
+        view.findViewById<LinearLayout>(R.id.start_adding).setOnClickListener{
+            //Toast.makeText(context, getString(R.string.drag_and_drop_app), Toast.LENGTH_SHORT).show()
+            EventBus.getDefault().post(MessageEvent(app.label, 0, app.packageName, app.color, type = MessageEventType.DRAG_N_DROP, app = app))
+            shortcutPopup.dismiss()
+        }
+        return view
     }
 
     fun setAllAsVisible(){

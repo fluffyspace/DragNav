@@ -1,16 +1,13 @@
 package com.ingokodba.dragnav
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
+import android.util.Log
+import androidx.navigation.Navigation.findNavController
 import androidx.preference.*
 import com.example.dragnav.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-
+import kotlin.reflect.typeOf
 
 class MySettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
@@ -43,6 +40,37 @@ class MySettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
+        Log.d("ingo", settingsActivity::class.simpleName.toString())
+
+        val circle_preferences: Preference? = findPreference("circle_preferences")
+        circle_preferences?.setOnPreferenceClickListener { preference ->
+            //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
+            val action =
+                MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
+            settingsActivity.navController?.navigate(action)
+            true
+        }
+        val general_preferences: Preference? = findPreference("general_preferences")
+        general_preferences?.setOnPreferenceClickListener { preference ->
+            //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
+            val action =
+                MySettingsFragmentDirections.actionMySettingsFragmentToMyGeneralSettingsFragment()
+            settingsActivity.navController?.navigate(action)
+            true
+        }
+        val help: Preference? = findPreference("help")
+        help?.setOnPreferenceClickListener { preference ->
+            //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
+            val action =
+                MySettingsFragmentDirections.actionMySettingsFragmentToMyHelpSettingsFragment()
+            settingsActivity.navController?.navigate(action)
+            true
+        }
+        val defaultApps: Preference? = findPreference(DEFAULT_APPS)
+        defaultApps?.setOnPreferenceClickListener  {
+            settingsActivity.openDefaultApps()
+            return@setOnPreferenceClickListener true
+        }
     }
 
     fun composeEmail(addresses: Array<String?>?, subject: String?) {

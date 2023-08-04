@@ -12,12 +12,10 @@ class ViewModel : ViewModel() {
 
     // The internal MutableLiveData that stores the status of the most recent request
     private val _popis_aplikacija = MutableLiveData<MutableList<AppInfo>>()
-    private val _popis_aplikacija_filtered = MutableLiveData<MutableList<AppInfo>>()
     private var _icons = MutableLiveData<MutableMap<String, Drawable?>>()
 
     // The external immutable LiveData for the request status
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
-    val appsListFiltered: LiveData<MutableList<AppInfo>> = _popis_aplikacija_filtered
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
 
     lateinit var currentMenu: KrugSAplikacijama
@@ -51,15 +49,12 @@ class ViewModel : ViewModel() {
         initialize()
     }
 
-    fun setFilteredApps(apps: MutableList<AppInfo>){
-        _popis_aplikacija_filtered.postValue(apps)
-    }
+
 
     fun addApps(apps: MutableList<AppInfo>){
         var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
         concatenatedApps.sortBy { it.label.lowercase() }
         _popis_aplikacija.postValue(concatenatedApps)
-        _popis_aplikacija_filtered.postValue(concatenatedApps)
         for(app in concatenatedApps){
             //Log.d("ingo", app.label + "->" + app.packageName)
         }

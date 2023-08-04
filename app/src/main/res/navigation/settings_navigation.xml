@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/settings_navigation"
+    app:startDestination="@id/mySettingsFragment">
+
+    <fragment
+        android:id="@+id/mySettingsFragment"
+        android:name="com.ingokodba.dragnav.MySettingsFragment"
+        android:label="@string/preferences" >
+        <action
+            android:id="@+id/action_mySettingsFragment_to_circleSettingsFragment"
+            app:destination="@id/circleSettingsFragment" />
+        <action
+            android:id="@+id/action_mySettingsFragment_to_myGeneralSettingsFragment"
+            app:destination="@id/myGeneralSettingsFragment" />
+        <action
+            android:id="@+id/action_mySettingsFragment_to_myHelpSettingsFragment"
+            app:destination="@id/myHelpSettingsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/circleSettingsFragment"
+        android:name="com.ingokodba.dragnav.CircleSettingsFragment"
+        android:label="@string/circle_preferences" />
+    <fragment
+        android:id="@+id/myGeneralSettingsFragment"
+        android:name="com.ingokodba.dragnav.MyGeneralSettingsFragment"
+        android:label="@string/general_preferences" />
+    <fragment
+        android:id="@+id/myHelpSettingsFragment"
+        android:name="com.ingokodba.dragnav.MyHelpSettingsFragment"
+        android:label="@string/help" />
+</navigation>

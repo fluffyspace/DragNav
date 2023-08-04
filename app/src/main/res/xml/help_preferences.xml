@@ -4,10 +4,7 @@
     app:iconSpaceReserved="false"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <Preference
-        app:key="default_apps"
-        app:title="@string/open_default_apps"
-        app:summary="Set this launcher as default to get more shortcuts"/>
+
 
     <Preference
         app:key="restart"

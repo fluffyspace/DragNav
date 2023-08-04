@@ -55,7 +55,7 @@
     <string name="drag_and_drop_app">Odaberi kvačicu za dodavanje.</string>
     <string name="dark_mode">Tamni način</string>
     <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
-    <string name="open_default_apps">Otvori zadane aplikacije</string>
+    <string name="open_default_apps">Zadani pokretački zaslon</string>
     <string name="wizard_yes_no">Želite li koristiti Čarobjak za populiranje početnog zaslona aplikacijama?</string>
     <string name="odaberi_boju">Odaberi boju</string>
     <string name="adding_a_folder">Dodavanje mape</string>
@@ -67,6 +67,8 @@
     <string name="show_big_circle">Prikaži veliki krug</string>
     <string name="favorite">Omiljeno</string>
     <string name="add_to_home">Dodaj na početno</string>
+    <string name="preferences">Postavke</string>
     <string name="circle_preferences">Postavke kruga</string>
     <string name="general_preferences">Općenite postavke</string>
+    <string name="adjust_design">Adjust design</string>
 </resources>

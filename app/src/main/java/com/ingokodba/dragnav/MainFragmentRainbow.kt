@@ -41,6 +41,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     lateinit var global_view:View
     var countdown: Job? = null
     var fling: Job? = null
+    var app_index: Int? = null
 
     override var fragment: Fragment = this
     var sliders = false
@@ -175,12 +176,13 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             withContext(Dispatchers.Main){
                 val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
                 if(launcherApps.hasShortcutHostPermission()) {
-                    val app_index = circleView.getAppIndexImIn()
+                    app_index = circleView.getAppIndexImIn()
                     if (app_index != null) {
                         shortcuts = mactivity.getShortcutFromPackage(
-                            getApps()[app_index].packageName
+                            getApps()[app_index!!].packageName
                         )
-                        circleView.showShortcuts(app_index, shortcuts)
+                        val shortcuts_for_custom_view = shortcuts.map{it.shortLabel.toString()}.toMutableList().apply { add(if(getApps()[app_index!!].favorite) "Makni iz omiljenih" else "Dodaj u omiljene") }
+                        circleView.showShortcuts(app_index!!, shortcuts_for_custom_view)
                         if(shortcuts.isEmpty()){
                             view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                         }
@@ -192,6 +194,12 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
     }
 
     fun openShortcut(index: Int){
+        if(index >= shortcuts.size && app_index != null){
+            val app = getApps()[app_index!!]
+            app.favorite = !app.favorite
+            (activity as MainActivity).saveAppInfo(app)
+            return
+        }
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         try {
             launcherApps.startShortcut(
@@ -218,7 +226,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
     private fun changeSettings(key: String, value: Any){
         Log.d("ingo", "should write $key as $value")
-        val sharedPreferences: SharedPreferences = activity!!.getPreferences(MODE_PRIVATE)
+        val sharedPreferences: SharedPreferences = requireActivity().getPreferences(MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         if(value::class == Boolean::class) {
             editor.putBoolean(key, value as Boolean)

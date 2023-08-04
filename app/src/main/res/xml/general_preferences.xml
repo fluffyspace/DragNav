@@ -4,34 +4,41 @@
     app:iconSpaceReserved="false"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <ListPreference
+        android:key="ui_design"
+        android:title="Dizajn početnog zaslona"
+        android:entries="@array/ui_designs_entries"
+        android:entryValues="@array/ui_designs_values"
+        android:icon="@drawable/baseline_design_services_24"/>
+
     <SwitchPreference
         app:key="ui_language_toggle"
         app:title="English/Croatian"
-        app:defaultValue="false"/>
+        app:defaultValue="false"
+        android:icon="@drawable/baseline_language_24"/>
+
+
 
     <ListPreference
         app:defaultValue="@string/dark_mode_def_value"
         app:entries="@array/dark_mode_entries"
         app:entryValues="@array/dark_mode_values"
         app:key="@string/dark_mode"
-        app:title="@string/dark_mode" />
+        app:title="@string/dark_mode"
+        android:icon="@drawable/baseline_dark_mode_24"/>
 
-    <SwitchPreference
+    <!--<SwitchPreference
         app:key="ui_oneline_buttons_toggle"
         app:title="@string/one_line_bottom_menu_buttons"
-        app:defaultValue="false"/>
+        app:defaultValue="false"/>-->
 
-    <SwitchPreference
+    <!--<SwitchPreference
         app:key="ui_backbutton_toggle"
         app:title="@string/backbutton_title"
         app:summary="@string/backbutton_summary"
-        app:defaultValue="false"/>
+        app:defaultValue="false"/>-->
 
-    <ListPreference
-        android:key="ui_design"
-        android:title="Dizajn početnog zaslona"
-        android:entries="@array/ui_designs_entries"
-        android:entryValues="@array/ui_designs_values"/>
+
 
     <!--<PreferenceCategory
         app:key="export_category"

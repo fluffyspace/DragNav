@@ -50,11 +50,7 @@ class MyHelpSettingsFragment : PreferenceFragmentCompat() {
         settingsActivity = (activity as SettingsActivity)
 
 
-        val defaultApps: Preference? = findPreference(DEFAULT_APPS)
-        defaultApps?.setOnPreferenceClickListener  {
-            settingsActivity.openDefaultApps()
-            return@setOnPreferenceClickListener true
-        }
+
 
         val drop_database: Preference? = findPreference(DROP_DATABASE)
         drop_database?.setOnPreferenceClickListener  {

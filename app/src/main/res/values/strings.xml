@@ -56,7 +56,7 @@
     <string name="drag_and_drop_app">Adding new app shortcut</string>
     <string name="dark_mode">Dark Mode</string>
     <string name="dark_mode_def_value">MODE_NIGHT_FOLLOW_SYSTEM</string>
-    <string name="open_default_apps">Open default apps</string>
+    <string name="open_default_apps">Default launcher app</string>
     <string name="wizard_yes_no">Do you want to use Wizard to automatically populate home screen with apps?</string>
     <string name="odaberi_boju">Choose a color</string>
     <string name="adding_a_folder">Adding a folder</string>
@@ -67,5 +67,7 @@
     <string name="favorite">Favorite</string>
     <string name="add_to_home">Add to home</string>
     <string name="circle_preferences">Circle preferences</string>
+    <string name="preferences">Preferences</string>
     <string name="general_preferences">General preferences</string>
+    <string name="adjust_design">Adjust design</string>
 </resources>

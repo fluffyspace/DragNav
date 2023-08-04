@@ -4,10 +4,14 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.preference.*
+import androidx.preference.CheckBoxPreference
+import androidx.preference.ListPreference
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
+import androidx.preference.SwitchPreference
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DEFAULT_APPS

@@ -194,6 +194,7 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
             MIDDLE_BUTTON_CLOSE_INSIDE -> drawCloseButton(canvas, true)
             MIDDLE_BUTTON_HOME -> drawHomeButton(canvas)
             MIDDLE_BUTTON_CHECK -> drawCheckButton(canvas)
+            else -> Log.d("ingo", "middleButtonState else")
         }
         //drawEditButton(canvas)
         //drawCloseButton(canvas)

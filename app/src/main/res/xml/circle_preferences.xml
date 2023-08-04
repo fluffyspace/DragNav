@@ -2,9 +2,18 @@
 <PreferenceScreen
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:iconSpaceReserved="false"
-    app:iconSpaceReserved="false"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <Preference
+        app:key="ui_color"
+        app:title="@string/primary_color"
+        android:icon="@drawable/baseline_color_lens_24"/>
+
+    <EditTextPreference
+        app:key="ui_text_size"
+        app:title="@string/text_size"
+        app:defaultValue="30"
+        android:icon="@drawable/baseline_format_size_24"/>
 
     <SwitchPreference
         app:key="ui_circles_toggle"
@@ -31,19 +40,10 @@
         app:title="@string/shadow"
         app:defaultValue="true"/>
 
-    <Preference
-        app:key="ui_color"
-        app:title="@string/primary_color"/>
-
     <EditTextPreference
         app:key="ui_border_width"
         app:title="@string/border_width"
         app:defaultValue="4"/>
-
-    <EditTextPreference
-        app:key="ui_text_size"
-        app:title="@string/text_size"
-        app:defaultValue="30"/>
 
     <EditTextPreference
         app:key="ui_smaller_text_size"

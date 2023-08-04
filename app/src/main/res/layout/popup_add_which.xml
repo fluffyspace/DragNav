@@ -72,7 +72,7 @@
                 android:gravity="center_horizontal"
                 android:textColor="@color/tekst"/>
         </LinearLayout>
-        <LinearLayout
+        <!--<LinearLayout
             android:id="@+id/new_action"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -93,6 +93,6 @@
                 android:textAlignment="center"
                 android:gravity="center_horizontal"
                 android:textColor="@color/tekst"/>
-        </LinearLayout>
+        </LinearLayout>-->
     </LinearLayout>
 </LinearLayout>

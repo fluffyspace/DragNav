@@ -37,8 +37,6 @@ import androidx.core.graphics.red
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -70,7 +68,7 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback{
+class MainActivity : AppCompatActivity(){
     val viewModel: ViewModel by viewModels()
     var uiDesignMode: UiDesignEnum = UiDesignEnum.CIRCLE
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
@@ -290,7 +288,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
-            .replace(R.id.settings_container, mainFragment.fragment, "main")
+            .replace(R.id.fragment_container, mainFragment.fragment, "main")
             .setReorderingAllowed(true)
             .commit()
 
@@ -316,7 +314,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 R.anim.fadein,
                 R.anim.slidedown
             )
-            replace(R.id.settings_container, actionsFragment, "actions")
+            replace(R.id.fragment_container, actionsFragment, "actions")
             setReorderingAllowed(true)
             addToBackStack(null)
         }
@@ -330,7 +328,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 R.anim.fadein,
                 R.anim.slidedown
             )
-            replace(R.id.settings_container, activitiesFragment, "activities")
+            replace(R.id.fragment_container, activitiesFragment, "activities")
             setReorderingAllowed(true)
             addToBackStack("activities")
         }
@@ -344,7 +342,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
                 R.anim.fadein,
                 R.anim.slideout
             )
-            replace(R.id.settings_container, searchFragment, "search")
+            replace(R.id.fragment_container, searchFragment, "search")
             setReorderingAllowed(true)
             addToBackStack(null)
         }
@@ -518,6 +516,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
     }
 
     override fun onStart() {
+        Log.d("ingo", "onstart main")
         super.onStart()
         EventBus.getDefault().register(this);
     }
@@ -1041,11 +1040,11 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             //changeeditMode()
             //toggleAppMenu()
         }
-        view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
+        /*view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
             shortcutPopup?.dismiss()
             //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
             Toast.makeText(applicationContext, "Not implemented yet:(", Toast.LENGTH_SHORT).show()
-        }
+        }*/
         return view
     }
 
@@ -1158,7 +1157,7 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
         return null
     }
 
-    override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
+    /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
         // Instantiate the new Fragment
         val args = pref.extras
         val fragment = pref.fragment?.let {
@@ -1178,5 +1177,5 @@ class MainActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceS
             return true
         }
         return false
-    }
+    }*/
 }
