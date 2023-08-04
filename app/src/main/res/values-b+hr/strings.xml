@@ -69,6 +69,14 @@
     <string name="add_to_home">Dodaj na početno</string>
     <string name="preferences">Postavke</string>
     <string name="circle_preferences">Postavke kruga</string>
+    <string name="rainbow_preferences">Postavke duge</string>
     <string name="general_preferences">Općenite postavke</string>
-    <string name="adjust_design">Adjust design</string>
+    <string name="adjust_design">Prilagodi dizajn</string>
+    <string name="dizajn_po_etnog_zaslona">Stil početnog zaslona</string>
+    <string name="restart_application">Restartaj aplikaciju</string>
+    <string name="drop_database">Izbriši podatke aplikacije</string>
+    <string name="set_this_launcher_as_default_to_access_shortcuts">Postavi ovaj pokretački zaslon kao zadani da pristupiš prečacima</string>
+    <string name="color_text_size_border_width_hide_icons_hide_text">Boja, veličina teksta, debljina rubova, sakrij ikone, sakrij tekst</string>
+    <string name="jezik_vrsta_launchera_tamni_na_in">Jezik, stil pokretačkog zaslona, tamni način</string>
+    <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restartaj aplikaciju, pošalji povratnu informaciju, izbriši bazu podataka</string>
 </resources>

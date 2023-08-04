@@ -107,6 +107,8 @@ class MainActivity : AppCompatActivity(){
     var iconBitmap: Bitmap? = null
     var quality_icons = true
 
+    var newApps: MutableList<AppInfo> = mutableListOf()
+
     var loadIconBool:Boolean = true
     var circleViewLoadIcons:Boolean = true
     var dontLoadApps:Boolean = false
@@ -243,6 +245,7 @@ class MainActivity : AppCompatActivity(){
             }
             if(circleViewLoadIcons) loadIcons()
             Log.d("ingo", "initializeRoom after loadicons")
+            saveNewApps()
             withContext(Dispatchers.Main) {
                 Log.d("ingo", "vm.pocetna ima id " + viewModel.pocetnaId.toString())
                 mainFragment.iconsUpdated()
@@ -272,6 +275,22 @@ class MainActivity : AppCompatActivity(){
             Log.e("Util", "Package info not found for name: " + packageName, e)
             // Or throw an exception if you want
             false
+        }
+    }
+
+    fun saveNewApps(){
+        Log.d("ingo", "saveNewApps")
+        if(cache_apps && newApps.isNotEmpty()){
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val appDao: AppInfoDao = db.appInfoDao()
+            for(app in newApps){
+                Log.d("ingo", "newapp ${app.label} ${app.color}")
+                try {
+                    appDao.insertAll(app)
+                } catch (e:android.database.sqlite.SQLiteConstraintException) {
+                    Log.d("ingo", "caught exception with inserting app " + app.packageName)
+                }
+            }
         }
     }
 
@@ -448,6 +467,11 @@ class MainActivity : AppCompatActivity(){
                     Log.d("ingo", "dropDatabase")
                     dropDatabase()
                 }
+                if(data.hasExtra("loadIcons"))
+                {
+                    Log.d("ingo", "loadIcons")
+                    loadIcons()
+                }
             }
         }
     }
@@ -589,7 +613,7 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
-    fun loadApp(packageName: String){
+    fun loadApp(packageName: String){ // ovo poziva samo broadcast
         if(viewModel.appsList.value!!.find{it.packageName == packageName} != null || viewModel.currentlyLoadingApps.contains(packageName)){
             Log.d("ingokodba", "app is already installed")
             return
@@ -609,6 +633,7 @@ class MainActivity : AppCompatActivity(){
             )
             if (iconDrawable != null) {
                 colorPrimary = getBestPrimaryColor(iconDrawable!!)
+                Log.d("ingo", "icondrawable nije null getBestPrimaryColor $colorPrimary")
             }
             viewModel.icons.value!![packageName] = iconDrawable
             Log.d("ingokodba", packageName + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth)
@@ -683,8 +708,8 @@ class MainActivity : AppCompatActivity(){
         }
 
         Log.d("ingo", "initializeRoom before loadnewapps")
-        val newAppsInitialize = loadNewApps()
-        Log.d("ingo", "grgr " + newAppsInitialize.map{it.label}.toString())
+        newApps = loadNewApps()
+        Log.d("ingo", "grgr " + newApps.map{it.label}.toString())
 
         // potrebno izbaciti aplikacije koje su deinstalirane
         val remove_duplicates = true
@@ -708,25 +733,16 @@ class MainActivity : AppCompatActivity(){
             }
         }
 
-        Log.d("ingo", "initializeRoom before insertall")
-        if(cache_apps && newAppsInitialize.isNotEmpty()){
-            for(app in newAppsInitialize){
-                Log.d("ingo", "new app " + app.label)
-                try {
-                    appDao.insertAll(app)
-                } catch (e:android.database.sqlite.SQLiteConstraintException) {
-                    Log.d("ingo", "caught exception with inserting app " + app.packageName)
-                }
-            }
-        }
+        Log.d("ingo", "initializeRoom before loadIcon for each app")
         if(circleViewLoadIcons) {
             for (app in viewModel.sviKrugovi) {
                 loadIcon(app.nextIntent)
             }
         }
+
         Log.d("ingo", "initializeRoom before addall")
         withContext(Dispatchers.Main) {
-            viewModel.addApps(newAppsInitialize)
+            viewModel.addApps(newApps)
         }
         //radapter.appsList.sortBy { it.label.toString().lowercase() }
         //if(cache_apps){
@@ -790,7 +806,10 @@ class MainActivity : AppCompatActivity(){
                         iconBitmap = iconBitmap!!.scaleWith(300f/iconBitmap!!.width)
                         iconDrawable = BitmapDrawable(resources, iconBitmap!!)
                     }
-                    viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = getBestPrimaryColor(iconDrawable!!).toString()
+                    val color = getBestPrimaryColor(iconDrawable!!).toString()
+                    viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = color
+                    newApps.findLast { it.packageName == pname }?.color = color
+                    Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
                     viewModel.icons.value!![pname] = iconDrawable
                     Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
                 } else {

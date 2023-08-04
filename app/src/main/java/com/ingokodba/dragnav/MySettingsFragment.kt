@@ -4,10 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import androidx.navigation.Navigation.findNavController
 import androidx.preference.*
 import com.example.dragnav.R
-import kotlin.reflect.typeOf
 
 class MySettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
@@ -42,14 +40,35 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         settingsActivity = (activity as SettingsActivity)
         Log.d("ingo", settingsActivity::class.simpleName.toString())
 
-        val circle_preferences: Preference? = findPreference("circle_preferences")
-        circle_preferences?.setOnPreferenceClickListener { preference ->
-            //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
-            val action =
-                MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
-            settingsActivity.navController?.navigate(action)
-            true
+
+        val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
+        val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
+            UI_DESIGN, uiDesignValues[0]) })
+        when(uiDesignValueIndex){
+            0, 1 -> {
+                val circlePreferences: Preference? = findPreference("circle_preferences")
+                circlePreferences?.isVisible = true
+                circlePreferences?.setOnPreferenceClickListener { preference ->
+                    //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
+                    val action =
+                        MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
+                    settingsActivity.navController?.navigate(action)
+                    true
+                }
+            }
+            2 -> {
+                val circlePreferences: Preference? = findPreference("rainbow_preferences")
+                circlePreferences?.isVisible = true
+                circlePreferences?.setOnPreferenceClickListener { preference ->
+                    //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
+                    val action =
+                        MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
+                    settingsActivity.navController?.navigate(action)
+                    true
+                }
+            }
         }
+
         val general_preferences: Preference? = findPreference("general_preferences")
         general_preferences?.setOnPreferenceClickListener { preference ->
             //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"

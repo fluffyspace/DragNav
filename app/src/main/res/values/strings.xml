@@ -67,7 +67,15 @@
     <string name="favorite">Favorite</string>
     <string name="add_to_home">Add to home</string>
     <string name="circle_preferences">Circle preferences</string>
+    <string name="rainbow_preferences">Rainbow preferences</string>
     <string name="preferences">Preferences</string>
     <string name="general_preferences">General preferences</string>
     <string name="adjust_design">Adjust design</string>
+    <string name="dizajn_po_etnog_zaslona">Launcher style</string>
+    <string name="restart_application">Restart application</string>
+    <string name="drop_database">Drop application database</string>
+    <string name="set_this_launcher_as_default_to_access_shortcuts">Set this launcher as default to access shortcuts</string>
+    <string name="color_text_size_border_width_hide_icons_hide_text">Color, text size, border width, hide icons, hide text</string>
+    <string name="jezik_vrsta_launchera_tamni_na_in">Language, launcher style, dark mode</string>
+    <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restart application, send feedback, delete database</string>
 </resources>

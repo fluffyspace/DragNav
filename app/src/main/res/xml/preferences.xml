@@ -6,27 +6,34 @@
         android:key="default_apps"
         android:title="@string/open_default_apps"
         android:icon="@drawable/baseline_checklist_rtl_24"
-        android:summary="Set this launcher as default to access shortcuts"
+        android:summary="@string/set_this_launcher_as_default_to_access_shortcuts"
         />
 
     <Preference
         android:key="circle_preferences"
         android:title="@string/circle_preferences"
         android:icon="@drawable/circles"
-        android:summary="Color, text size, border width, hide icons, hide text"/>
+        android:summary="@string/color_text_size_border_width_hide_icons_hide_text"
+        app:isPreferenceVisible="false"/>
 
+    <Preference
+        android:key="rainbow_preferences"
+        android:title="@string/rainbow_preferences"
+        android:icon="@drawable/rainbow_2_"
+        android:summary="@string/color_text_size_border_width_hide_icons_hide_text"
+        app:isPreferenceVisible="false"/>
 
     <Preference
         android:key="general_preferences"
         android:title="@string/general_preferences"
         android:icon="@drawable/ic_baseline_settings_100"
-        android:summary="Jezik, vrsta launchera, tamni način"/>
+        android:summary="@string/jezik_vrsta_launchera_tamni_na_in"/>
 
     <Preference
         android:key="help"
         android:title="@string/help"
         android:icon="@drawable/ic_outline_info_75"
-        android:summary="Restartaj aplikaciju, pošalji povratnu informaciju, izbriši bazu podataka "/>
+        android:summary="@string/restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka"/>
 
     <!--<PreferenceCategory
         app:key="ui_design"

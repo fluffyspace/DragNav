@@ -2,16 +2,16 @@
 <resources>
     <!-- Dark Mode ListPreference -->
     <string-array name="dark_mode_entries">
-        <item>Follow System Dark Mode</item>
-        <item>Light Mode Selected</item>
-        <item>Dark Mode Selected</item>
-        <item>Auto Battery Dark Mode</item>
-    </string-array>
-
-    <string-array name="dark_mode_values">
         <item>Prati sustav</item>
         <item>Svjetli način</item>
-        <item>Noćni način</item>
+        <item>Tamni način</item>
         <item>Prati bateriju</item>
+    </string-array>
+
+    <string-array name="ui_designs_entries">
+        <item>Kružni</item>
+        <item>Kružni s desnom rukom</item>
+        <item>Duga</item>
+        <item>Brojčanik</item>
     </string-array>
 </resources>

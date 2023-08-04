@@ -6,7 +6,7 @@
 
     <ListPreference
         android:key="ui_design"
-        android:title="Dizajn početnog zaslona"
+        android:title="@string/dizajn_po_etnog_zaslona"
         android:entries="@array/ui_designs_entries"
         android:entryValues="@array/ui_designs_values"
         android:icon="@drawable/baseline_design_services_24"/>

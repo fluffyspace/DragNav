@@ -4,20 +4,21 @@
     app:iconSpaceReserved="false"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-
-
     <Preference
         app:key="restart"
-        app:title="Restart application"/>
+        app:title="@string/restart_application"
+        android:icon="@drawable/baseline_restart_alt_24"/>
 
     <Preference
         app:key="drop_database"
-        app:title="Drop database"/>
+        app:title="@string/drop_database"
+        android:icon="@drawable/baseline_delete_forever_24"/>
 
     <Preference
         app:key="feedback"
         app:summary="@string/feedback_summary"
-        app:title="@string/feedback_title"/>
+        app:title="@string/feedback_title"
+        android:icon="@drawable/baseline_email_24"/>
 
 
 </PreferenceScreen>

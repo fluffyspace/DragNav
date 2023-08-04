@@ -12,6 +12,7 @@ import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+import com.ingokodba.dragnav.CircleView.Companion.colorToHex
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
@@ -22,7 +23,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 
-class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
+class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private var middleButtonState:MiddleButtonStates = MIDDLE_BUTTON_HIDE
 
@@ -31,6 +32,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
     private val smaller_text_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val shortcuts_text_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val circle_paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val no_icon_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val empty_circle_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val thickLine = Paint(Paint.ANTI_ALIAS_FLAG)
     val clear_boja = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -194,7 +196,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         Log.d("ingo", "setPosDontDraw " + position)
     }
 
-    fun setKrugSAplikacijamaList(list:List<AppInfo>){
+    fun setAppInfoList(list:List<AppInfo>){
         app_list = list
         new_letter_apps.clear()
         var firstLetter: Char = '0'
@@ -249,6 +251,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         thickLine.style = Paint.Style.FILL_AND_STROKE
         empty_circle_paint.style = Paint.Style.STROKE
         circle_paint.style = Paint.Style.FILL
+        no_icon_paint.style = Paint.Style.FILL
         shortcut_indicator_paint.style = Paint.Style.FILL
         shortcut_indicator_paint.color = Color.RED
         favorite_indicator_paint.style = Paint.Style.FILL
@@ -290,6 +293,7 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
         thickLine.strokeWidth = border_width
         empty_circle_paint.strokeWidth = border_width
         circle_paint.strokeWidth = border_width
+        no_icon_paint.strokeWidth = border_width
 
         drawPolja(canvas)
         //drawEditButton(canvas)
@@ -576,7 +580,6 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
                     drawn = true
                 }
 
-
                 app_index = ((counter-offsetDivided2.toInt())*2+1)
                 if(app_index >= 0 && app_index < app_list.size){
                     //Log.d("ingo", "break $app_index")
@@ -649,85 +652,6 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
                     }
                 }
             }
-            /*
-            val appsGroupedByLetters = drawn_apps.distinctBy { it.letter.uppercaseChar() }
-
-            for(i in appsGroupedByLetters.indices){
-                var startAngle: Float = 0f
-                var stopAngle: Float = 0f
-                var nostart = false
-                var nostop = false
-
-                startAngle = Math.toDegrees(drawn_apps.first { it.letter.uppercaseChar() == appsGroupedByLetters[i].letter.uppercaseChar() }.startTrig - Math.PI/2f).toFloat()
-                stopAngle = Math.toDegrees(drawn_apps.last { it.letter.uppercaseChar() == appsGroupedByLetters[i].letter.uppercaseChar() }.startTrig - Math.PI/2f).toFloat()
-                if(i == 0){
-                    if(drawn_apps[0].app_index > app_list.indexOfFirst{it.label[0].uppercaseChar() == drawn_apps[0].letter.uppercaseChar()}){
-                        startAngle = 90f
-                        nostart = true
-                    }
-                }
-                if(i == appsGroupedByLetters.size-1){
-                    if(drawn_apps.last { it.letter.uppercaseChar() == appsGroupedByLetters[i].letter.uppercaseChar() }.app_index != app_list.indexOfLast { it.label[0].uppercaseChar() == appsGroupedByLetters[i].letter.uppercaseChar() }){
-                        stopAngle = 180f
-                        nostop = true
-                    }
-                }
-                if(stopAngle > 180f) stopAngle = 180f
-                if(startAngle > 180f) startAngle = 180f
-                if(stopAngle < 90f) stopAngle = 90f
-                if(startAngle < 90f) startAngle = 90f
-
-                drawArc(rectf,
-                    360-startAngle, (startAngle-stopAngle), false, empty_circle_paint)
-
-                val middleAngle = startAngle + (stopAngle-startAngle)/2
-                Log.d("ingo", "triang middleangle $middleAngle")
-
-                val point = myDraw(Math.toRadians(middleAngle.toDouble()) + Math.PI/2, radius*1.3f)
-                if(!nostart) {
-                    val pointstart =
-                        myDraw(Math.toRadians(startAngle.toDouble()) + Math.PI / 2, lineRadius)
-                    drawCircle(pointstart.x, pointstart.y, border_width*2f, circle_paint)
-                }
-                if(!nostop) {
-                    val pointent =
-                        myDraw(Math.toRadians(stopAngle.toDouble()) + Math.PI / 2, lineRadius)
-                    drawCircle(pointent.x, pointent.y, border_width * 2f, circle_paint)
-                }
-
-                canvas.drawText(appsGroupedByLetters[i].letter.uppercaseChar().toString(), point.x, point.y+text_size/2, text_paint)
-
-            }*/
-
-            /*for(line_index in 0 until drawn_apps.size){
-                //var xx = (sin(alphabetLines[line_index].startTrig)*radius).toFloat()
-                //var yy = (cos(alphabetLines[line_index].startTrig)*radius).toFloat()
-
-                var startAngle: Float = Math.toDegrees(drawn_apps[line_index].startTrig - Math.PI/2f).toFloat()
-                var stopAngle: Float = if(line_index != drawn_apps.size-1 ) Math.toDegrees(drawn_apps[line_index+1].startTrig - Math.PI/2f).toFloat() else 180f
-
-                if(line_index == 0 && drawn_apps[0].app_index != 0){
-                    if(app_list[drawn_apps[0].app_index-1].label[0].uppercaseChar() == drawn_apps[0].letter){
-                        startAngle = 90f
-                    }
-                } else if(line_index == drawn_apps.size-1 && app_list.size-1 == drawn_apps.last().app_index){
-                    stopAngle = Math.toDegrees(highestIconAngleDrawn - Math.PI/2).toFloat()
-                }
-                Log.d("ingo", "triang " + drawn_apps[line_index].letter + " " + startAngle + " " + stopAngle)
-
-                /*drawLine(
-                    size_width.toFloat(), size_height.toFloat(),
-                    size_width+xx, size_height+yy, empty_circle_paint
-                )*/
-                drawArc(rectf,
-                    360-startAngle-1, (startAngle-stopAngle)+1, true, empty_circle_paint)
-
-                val middleAngle = startAngle + (stopAngle-startAngle)/2
-                Log.d("ingo", "triang middleangle $middleAngle")
-                val point = myDrawCircle(Math.toRadians(middleAngle.toDouble()) + Math.PI/2, radius*1.2f, 10f, this)
-                drawCircle(point.x, point.y, 10f, empty_circle_paint)
-            }
-            Log.d("ingo", "triang ______________________")*/
         }
     }
 
@@ -764,45 +688,32 @@ class RightHandCircleView(context: Context, attrs: AttributeSet) : View(context,
                 rect.bottom.toFloat(), detectSize / 8f, favorite_indicator_paint
             )
         }
-        if(bitmap != null) {
+        if(bitmap != null && draw_icons) {
             canvas.drawBitmap(
                 bitmap!!, null, rect, null
             )
         } else {
-            if(questiondrawable != null) canvas.drawBitmap(
-                questiondrawable!!, null, rect, null
-            )
-            /*val firstletter = app_list[index].label[0].uppercaseChar()
-
-            val i: Int = alphabet_lines.indexOfFirst{it.letter == firstletter}
-            if(i != -1){
-                if(triang < alphabetLines[i].startTrig) alphabetLines[i].startTrig = triang
-            } else {
-                alphabetLines.add(AlphabetLine(triang, firstletter, index))
-            }*/
-
-            /*if(alphabetLines.last().letter == firstletter && alphabetLines.last().startTrig > triang){
-                // ovaj umjesto onoga
-                alphabetLines.last().startTrig = triang
-            }
-
-            if(alphabetLines.size == 0 || new_letter_apps.contains(index)){
-                alphabetLines.add(AlphabetLine(triang, app_list[index].label[0].uppercaseChar(), index))
-                //Log.d("ingo", "triang $triang")
-            } else if(alphabetLines.size == 1 && alphabetLines[0].startTrig > triang){
-                if(app_list[index].label[0].uppercaseChar() == alphabetLines[0].letter) {
-                    alphabetLines[0].startTrig = triang
+            Log.d("ingo", "boja za ${app_list[index].label} je ${app_list[index].color}")
+            try {
+                //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
+                if (app_list[index].color != ""){
+                    val boja = Color.valueOf(app_list[index].color.toInt())
+                    Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                    no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
+                    Log.d("ingo", "boja je ${no_icon_paint.color}")
                 } else {
-                    alphabetLines.add(0, AlphabetLine(triang, app_list[index].label[0].uppercaseChar(), index))
+                    no_icon_paint.color = Color.parseColor("#55000000")
+                    Log.d("ingo", "boja! je ${no_icon_paint.color}")
                 }
-            }*/
 
-            /*if(new_letter_apps.contains(index)){
-                val xxx = (sin(triang) * radius*1.2f).toFloat()
-                val yyy = (cos(triang) * radius*1.2f).toFloat()
-                val adrawPointF = PointF( ((size_width+xxx).toFloat()), ((size_height+yyy).toFloat()) )
-                canvas.drawText(app_list[index].label[0].uppercaseChar().toString(), adrawPointF.x, adrawPointF.y+text_size/2, text_paint)
-            }*/
+            } catch (e: NumberFormatException ){
+                no_icon_paint.color = Color.parseColor("#55000000")
+                Log.d("ingo", "boja nemoguće za dešifrirati1")
+            } catch (e: IllegalArgumentException ){
+                no_icon_paint.color = Color.parseColor("#55000000")
+                Log.d("ingo", "boja nemoguće za dešifrirati2")
+            }
+            canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
         }
 
     }

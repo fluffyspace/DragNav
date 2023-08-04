@@ -34,7 +34,7 @@
                 app:layout_constraintLeft_toLeftOf="parent"
                 android:layout_marginEnd="10dp"
                 android:background="@drawable/meni_jedno_polje_obrub"
-                android:textSize="20sp"
+                android:textSize="17sp"
                 android:padding="10dp"
                 tools:text=""
                 android:inputType="text"

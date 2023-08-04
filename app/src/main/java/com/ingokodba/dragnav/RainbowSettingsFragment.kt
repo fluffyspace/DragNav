@@ -1,6 +1,5 @@
 package com.ingokodba.dragnav
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
@@ -8,10 +7,9 @@ import androidx.preference.*
 import com.example.dragnav.R
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_BORDER_WIDTH
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_COLOR
-import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_ICONS_TOGGLE
 
 
-class CircleSettingsFragment : PreferenceFragmentCompat() {
+class RainbowSettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
 
     val data:Intent = Intent()
@@ -25,18 +23,6 @@ class CircleSettingsFragment : PreferenceFragmentCompat() {
             settingsActivity.startColorpicker()
             return@setOnPreferenceClickListener true
         }
-
-        val loadIcons: Preference? = findPreference(UI_ICONS_TOGGLE)
-        loadIcons?.setOnPreferenceChangeListener { preference, newValue ->
-                if (newValue == true) {
-                    val data = Intent()
-                    data.putExtra("loadIcons", true);
-                    (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
-                    (activity as SettingsActivity).finish()
-                }
-                return@setOnPreferenceChangeListener true
-        }
-
 
         val numberPreference: EditTextPreference? = findPreference(UI_BORDER_WIDTH)
         numberPreference?.summary = "" +
@@ -76,7 +62,7 @@ class CircleSettingsFragment : PreferenceFragmentCompat() {
         val numberPreference3: EditTextPreference? = findPreference(MySettingsFragment.UI_TRANSPARENCY)
         numberPreference3?.summary = "" +
                 context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
-                    MySettingsFragment.UI_TRANSPARENCY, "1.0") } + " (0.0 - 1.0)"
+                    MySettingsFragment.UI_TRANSPARENCY, "1.0") }
         numberPreference3?.setOnBindEditTextListener { editText ->
             editText.inputType = InputType.TYPE_NUMBER_FLAG_DECIMAL
         }

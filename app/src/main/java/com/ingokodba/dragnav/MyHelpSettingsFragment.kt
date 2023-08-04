@@ -49,9 +49,6 @@ class MyHelpSettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.help_preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
 
-
-
-
         val drop_database: Preference? = findPreference(DROP_DATABASE)
         drop_database?.setOnPreferenceClickListener  {
             data.putExtra("dropDatabase", true);

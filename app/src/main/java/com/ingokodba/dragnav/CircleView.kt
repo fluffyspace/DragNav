@@ -429,15 +429,18 @@ class CircleView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     }
 
-    fun colorToHex(color: Color): String? {
-        var hex = (
-            "%02x%02x%02x").format(
-            floor(color.red()*255).toInt(),
-            floor(color.green()*255).toInt(),
-            floor(color.blue()*255).toInt()
-        )
-        return hex.uppercase()
+    companion object{
+        fun colorToHex(color: Color): String? {
+            var hex = (
+                    "%02x%02x%02x").format(
+                floor(color.red()*255).toInt(),
+                floor(color.green()*255).toInt(),
+                floor(color.blue()*255).toInt()
+            )
+            return hex.uppercase()
+        }
     }
+
 
     private fun drawPolja(canvas: Canvas){
         val queued_texts: MutableList<QueuedText> = mutableListOf()

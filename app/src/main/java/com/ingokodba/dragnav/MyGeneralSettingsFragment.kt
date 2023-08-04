@@ -63,8 +63,9 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
         val darkMode: ListPreference? = findPreference(darkModeString)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
         val darkModeValuesHumanReadable = resources.getStringArray(R.array.dark_mode_entries)
-        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[3]) })
-        darkMode?.summary = darkModeValuesHumanReadable[if (darkModeValueIndex > 0) darkModeValueIndex else 0]
+        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[1]) })
+        darkMode?.setValueIndex(if (darkModeValueIndex > 0) darkModeValueIndex else 1)
+        darkMode?.summary = darkModeValuesHumanReadable[if (darkModeValueIndex > 0) darkModeValueIndex else 1]
         darkMode?.setOnPreferenceChangeListener { preference, newValue ->
             when (newValue) {
                 darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -83,6 +84,7 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
         val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
             UI_DESIGN, uiDesignValues[0]) })
         uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
+        uiDesign?.setValueIndex(uiDesignValueIndex)
         uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
             uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
             showRestartDialog()

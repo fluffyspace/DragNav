@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
  */
 class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
-    lateinit var circleView: RightHandCircleView
+    lateinit var circleView: Rainbow
     lateinit var relativeLayout: ConstraintLayout
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
@@ -321,7 +321,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         if(viewModel.appsList.value == null) return
         Log.d("ingo", viewModel.appsList.value.toString())
         circleView.setColorList(getApps().map{ it.color })
-        circleView.setKrugSAplikacijamaList(getApps())
+        circleView.setAppInfoList(getApps())
         circleView.onlyfavorites = onlyfavorites
         circleView.invalidate()
     }
