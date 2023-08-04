@@ -802,13 +802,17 @@ class MainActivity : AppCompatActivity(){
                 if(iconDrawable != null) {
                     iconBitmap = iconDrawable!!.toBitmap()
                     Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
-                    if(iconBitmap!!.width > 300){
-                        iconBitmap = iconBitmap!!.scaleWith(300f/iconBitmap!!.width)
+                    if(iconBitmap!!.width > 200){
+                        iconBitmap = iconBitmap!!.scaleWith(200f/iconBitmap!!.width)
                         iconDrawable = BitmapDrawable(resources, iconBitmap!!)
                     }
-                    val color = getBestPrimaryColor(iconDrawable!!).toString()
-                    viewModel.appsList.value!!.findLast { it.packageName == pname }?.color = color
-                    newApps.findLast { it.packageName == pname }?.color = color
+                    Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
+                    if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
+                        val color = getBestPrimaryColor(iconDrawable!!).toString()
+                        viewModel.appsList.value!!.findLast { it.packageName == pname }?.color =
+                            color
+                        newApps.findLast { it.packageName == pname }?.color = color
+                    }
                     Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
                     viewModel.icons.value!![pname] = iconDrawable
                     Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
