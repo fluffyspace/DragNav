@@ -519,7 +519,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         highestIconAngleDrawn = 0.0
         val inner_radius2 = (if(overrideDistance != null) overrideDistance!! else 0.87f)
         canvas.apply {
-
             // draw inner button
             var xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
             var yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
@@ -590,20 +589,21 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 if(!drawn) break
             }
 
-            var lineRadius = radius*1.15f
+            val lineRadius = radius*1.15f
             val rectf = RectF(size_width-lineRadius, size_height-lineRadius, size_width+lineRadius, size_height+lineRadius)
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
-            val appsGroupedByLetters = app_list.distinctBy { it.label[0].uppercaseChar() }
-            val divider = 90f/appsGroupedByLetters.size
-            for(i in appsGroupedByLetters.indices){
+            val appsGroupedByLetter = app_list.distinctBy { it.label[0].uppercaseChar() }
+            val divider = 90f/appsGroupedByLetter.size
+            for(i in appsGroupedByLetter.indices){
                 quickSwipeAngles.add(Math.toRadians((divider*i).toDouble()).toFloat())
-                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == appsGroupedByLetters[i].label[0].uppercaseChar() }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
+                //val first_drawn_app = drawn_apps.first().letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar()
+                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar() }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
                 drawArc(rectf,
                     (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
                 val point = myDraw(Math.toRadians(180+divider*i+divider/3.0), radius*1.3f)
-                canvas.drawText(appsGroupedByLetters[i].label[0].uppercaseChar().toString(), point.x, point.y+text_size/2, text_paint)
+                canvas.drawText(appsGroupedByLetter[i].label[0].uppercaseChar().toString(), point.x, point.y+text_size/2, text_paint)
             }
 
             for(queued_text in queued_texts){
@@ -647,8 +647,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                             shortcuts_rects.add(recttmp)
                             drawRect(recttmp, black_stroke_paint)
                         }
-                    } else {
-
                     }
                 }
             }
@@ -705,7 +703,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                     no_icon_paint.color = Color.parseColor("#55000000")
                     Log.d("ingo", "boja! je ${no_icon_paint.color}")
                 }
-
             } catch (e: NumberFormatException ){
                 no_icon_paint.color = Color.parseColor("#55000000")
                 Log.d("ingo", "boja nemoguće za dešifrirati1")

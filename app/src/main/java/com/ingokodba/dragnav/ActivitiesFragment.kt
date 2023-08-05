@@ -58,7 +58,7 @@ class ActivitiesFragment : Fragment() {
     lateinit var search_bar: EditText
     lateinit var recycler_view: RecyclerView
     lateinit var popis_svih_aplikacija: FrameLayout
-    lateinit var trazilica: LinearLayout
+    lateinit var trazilica: FrameLayout
     lateinit var chipGroup: ChipGroup
     lateinit var imm: InputMethodManager
     lateinit var shortcutPopup: PopupWindow

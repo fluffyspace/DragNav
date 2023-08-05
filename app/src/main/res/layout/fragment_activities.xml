@@ -3,8 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ingokodba.dragnav.ActivitiesFragment"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    >
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <LinearLayout
         android:id="@+id/recycle_container"
@@ -79,30 +78,36 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="right"/>
         </FrameLayout>
-        <LinearLayout
+        <FrameLayout
             android:id="@+id/trazilica"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="top"
+            android:orientation="horizontal"
+            android:layout_marginTop="20dp"
             android:visibility="gone">
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/applications"
-                android:textSize="18sp"
-                android:layout_marginTop="10dp"
-                android:textColor="?attr/colorOnSurface"/>
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="?attr/colorOnSurface"/>
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/chipgroup_aplikacije"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="horizontal"/>
-        </LinearLayout>
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="top">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/applications"
+                    android:textSize="18sp"
+                    android:layout_marginTop="10dp"
+                    android:textColor="?attr/colorOnSurface"/>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="?attr/colorOnSurface"/>
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipgroup_aplikacije"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="horizontal"/>
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
 
 </FrameLayout>
