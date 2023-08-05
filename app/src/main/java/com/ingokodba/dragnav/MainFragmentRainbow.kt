@@ -321,7 +321,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         if(viewModel.appsList.value == null) return
         Log.d("ingo", viewModel.appsList.value.toString())
         circleView.setColorList(getApps().map{ it.color })
-        circleView.setAppInfoList(getApps())
+        circleView.setAppInfoList(getApps().map{EncapsulatedAppInfoWithFolder(listOf(it), null)})
         circleView.onlyfavorites = onlyfavorites
         circleView.invalidate()
     }

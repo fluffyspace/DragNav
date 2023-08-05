@@ -12,6 +12,7 @@ import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+import com.google.gson.Gson
 import com.ingokodba.dragnav.CircleView.Companion.colorToHex
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
@@ -21,7 +22,6 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
-
 
 class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
@@ -48,7 +48,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     // View size in pixels
     private var size_width = 320
     private var size_height = 320
-    private var app_list:List<AppInfo> = listOf()
+    private var app_list:List<EncapsulatedAppInfoWithFolder> = listOf()
     private var color_list:List<String> = listOf()
     private var new_letter_apps:MutableList<Int> = mutableListOf()
     private var no_draw_position:Int = -1
@@ -196,16 +196,25 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         Log.d("ingo", "setPosDontDraw " + position)
     }
 
-    fun setAppInfoList(list:List<AppInfo>){
+    fun getFirstLetterOfApp(app: EncapsulatedAppInfoWithFolder): Char{
+        return if(app.folderName != null) app.folderName!!.first().uppercaseChar() else app.apps.first().label.first().uppercaseChar()
+    }
+
+    fun getNameOfApp(app: EncapsulatedAppInfoWithFolder): String{
+        return if(app.folderName != null) app.folderName!! else app.apps.first().label
+    }
+
+    fun setAppInfoList(list:List<EncapsulatedAppInfoWithFolder>){
         app_list = list
         new_letter_apps.clear()
         var firstLetter: Char = '0'
         var counter = 0
         for(app in app_list){
-            if(app.label[0].uppercaseChar() > firstLetter){
-                firstLetter = app.label[0].uppercaseChar()
+            val firstLetterOfApp = getFirstLetterOfApp(app)
+            if(firstLetterOfApp > firstLetter){
+                firstLetter = firstLetterOfApp
                 new_letter_apps.add(counter)
-                Log.d("ingo", "${app.label} $counter $firstLetter")
+                Log.d("ingo", "${Gson().toJson(app)} $counter $firstLetter")
             }
             counter++
         }
@@ -383,10 +392,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 click = i
             }
         }
-        val firstByThatLetter = app_list.firstOrNull{it.label[0].uppercaseChar() == app_list.distinctBy { it.label[0].uppercaseChar() }[click].label[0].uppercaseChar()}
+        val firstByThatLetter = app_list.firstOrNull{getFirstLetterOfApp(it) == getFirstLetterOfApp(app_list.distinctBy { getFirstLetterOfApp(it) }[click])}
             ?: return
 
-        Log.d("ingo", "angle $angle ${firstByThatLetter.label} $click $quickSwipeAngles")
+        Log.d("ingo", "angle $angle ${firstByThatLetter} $click $quickSwipeAngles")
         // saznati s kulko moramo pomnožiti
         moveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
         Log.d("ingo", "lol $moveDistancedAccumulated $limit")
@@ -594,16 +603,16 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
-            val appsGroupedByLetter = app_list.distinctBy { it.label[0].uppercaseChar() }
+            val appsGroupedByLetter = app_list.distinctBy { getFirstLetterOfApp(it) }
             val divider = 90f/appsGroupedByLetter.size
             for(i in appsGroupedByLetter.indices){
                 quickSwipeAngles.add(Math.toRadians((divider*i).toDouble()).toFloat())
                 //val first_drawn_app = drawn_apps.first().letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar()
-                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar() }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
+                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == getFirstLetterOfApp(appsGroupedByLetter[i]) }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
                 drawArc(rectf,
                     (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
                 val point = myDraw(Math.toRadians(180+divider*i+divider/3.0), radius*1.3f)
-                canvas.drawText(appsGroupedByLetter[i].label[0].uppercaseChar().toString(), point.x, point.y+text_size/2, text_paint)
+                canvas.drawText(getFirstLetterOfApp(appsGroupedByLetter[i]).toString(), point.x, point.y+text_size/2, text_paint)
             }
 
             for(queued_text in queued_texts){
@@ -655,7 +664,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun drawApp2(index: Int, triang: Double, radiusScale: Float, canvas: Canvas){
         //Log.d("ingo", "aplikacija " + app_list[index].label + " " + index)
-        bitmap = icons[app_list[index].packageName]?.toBitmap()
+        bitmap = if(app_list[index].folderName == null) icons[app_list[index].apps.first().packageName]?.toBitmap() else null
         //Log.d("ingo", "crtam " + Gson().toJson(bitmap))
 
         if(triang > highestIconAngleDrawn) highestIconAngleDrawn = triang
@@ -669,49 +678,56 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             (draw_pointF.x + detectSize).toInt(),
             (draw_pointF.y + detectSize).toInt()
         )
-        drawn_apps.add(DrawnApp(triang, app_list[index].label[0], index, rect))
+        drawn_apps.add(DrawnApp(triang, getFirstLetterOfApp(app_list[index]), index, rect))
 
         if(smaller_text_size != 0f){
-            queued_texts.add(QueuedText(app_list[index].label, draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
+            queued_texts.add(QueuedText(getNameOfApp(app_list[index]), draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
         }
-        if(app_list[index].hasShortcuts) {
+        if(app_list[index].folderName == null && app_list[index].apps.first().hasShortcuts) {
             canvas.drawCircle(
                 rect.right.toFloat(),
                 rect.bottom.toFloat(), detectSize / 8f, shortcut_indicator_paint
             )
         }
-        if(app_list[index].favorite) {
+        if(app_list[index].folderName == null && app_list[index].apps.first().favorite) {
             canvas.drawCircle(
                 rect.left.toFloat(),
                 rect.bottom.toFloat(), detectSize / 8f, favorite_indicator_paint
             )
         }
-        if(bitmap != null && draw_icons) {
-            canvas.drawBitmap(
-                bitmap!!, null, rect, null
-            )
-        } else {
-            Log.d("ingo", "boja za ${app_list[index].label} je ${app_list[index].color}")
-            try {
-                //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
-                if (app_list[index].color != ""){
-                    val boja = Color.valueOf(app_list[index].color.toInt())
-                    Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
-                    no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
-                    Log.d("ingo", "boja je ${no_icon_paint.color}")
-                } else {
-                    no_icon_paint.color = Color.parseColor("#55000000")
-                    Log.d("ingo", "boja! je ${no_icon_paint.color}")
-                }
-            } catch (e: NumberFormatException ){
-                no_icon_paint.color = Color.parseColor("#55000000")
-                Log.d("ingo", "boja nemoguće za dešifrirati1")
-            } catch (e: IllegalArgumentException ){
-                no_icon_paint.color = Color.parseColor("#55000000")
-                Log.d("ingo", "boja nemoguće za dešifrirati2")
-            }
+        if(app_list[index].folderName != null)
+        {
+            no_icon_paint.color = Color.parseColor("#55FFFFFF")
             canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
+        } else {
+            if(bitmap != null && draw_icons) {
+                canvas.drawBitmap(
+                    bitmap!!, null, rect, null
+                )
+            } else {
+                Log.d("ingo", "boja za ${app_list[index].apps.first().label} je ${app_list[index].apps.first().color}")
+                try {
+                    //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
+                    if (app_list[index].apps.first().color != ""){
+                        val boja = Color.valueOf(app_list[index].apps.first().color.toInt())
+                        Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                        no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
+                        Log.d("ingo", "boja je ${no_icon_paint.color}")
+                    } else {
+                        no_icon_paint.color = Color.parseColor("#55000000")
+                        Log.d("ingo", "boja! je ${no_icon_paint.color}")
+                    }
+                } catch (e: NumberFormatException ){
+                    no_icon_paint.color = Color.parseColor("#55000000")
+                    Log.d("ingo", "boja nemoguće za dešifrirati1")
+                } catch (e: IllegalArgumentException ){
+                    no_icon_paint.color = Color.parseColor("#55000000")
+                    Log.d("ingo", "boja nemoguće za dešifrirati2")
+                }
+                canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
+            }
         }
+
 
     }
 
@@ -727,4 +743,9 @@ class DrawnApp(startTrig: Double, letter: Char, app_index: Int, rect: Rect){
     var letter: Char = letter
     var app_index: Int = app_index
     var rect: Rect = rect
+}
+
+class EncapsulatedAppInfoWithFolder(apps: List<AppInfo>, folderName: String?){
+    var apps: List<AppInfo> = apps
+    var folderName: String? = folderName
 }
