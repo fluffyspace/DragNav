@@ -5,6 +5,7 @@
     <string name="close">Zatvori</string>
     <string name="add">Dodaj</string>
     <string name="add_folder">Dodaj mapu</string>
+    <string name="edit_folder">Uredi mapu</string>
     <string name="applications">Aplikacije</string>
     <string name="search_apps_or_surf_internet">Traži aplikacije ili surfaj</string>
     <string name="search">Traži</string>
@@ -59,6 +60,7 @@
     <string name="wizard_yes_no">Želite li koristiti Čarobjak za populiranje početnog zaslona aplikacijama?</string>
     <string name="odaberi_boju">Odaberi boju</string>
     <string name="adding_a_folder">Dodavanje mape</string>
+    <string name="editing_a_folder">Uređivanje mape</string>
     <string name="ui_show_app_names">Prikaži nazive aplikacija</string>
     <string name="text_size">Veličina teksta</string>
     <string name="smaller_text_size">Veličina manjeg teksta</string>
@@ -77,6 +79,6 @@
     <string name="drop_database">Izbriši podatke aplikacije</string>
     <string name="set_this_launcher_as_default_to_access_shortcuts">Postavi ovaj pokretački zaslon kao zadani da pristupiš prečacima</string>
     <string name="color_text_size_border_width_hide_icons_hide_text">Boja, veličina teksta, debljina rubova, sakrij ikone, sakrij tekst</string>
-    <string name="jezik_vrsta_launchera_tamni_na_in">Jezik, stil pokretačkog zaslona, tamni način</string>
+    <string name="jezik_vrsta_launchera_tamni_na_in">Jezik, tamni način</string>
     <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restartaj aplikaciju, pošalji povratnu informaciju, izbriši bazu podataka</string>
 </resources>

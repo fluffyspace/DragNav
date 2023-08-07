@@ -78,18 +78,6 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }
 
-        val uiDesign: ListPreference? = findPreference(UI_DESIGN)
-        val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
-        val uiDesignValuesHumanReadable = resources.getStringArray(R.array.ui_designs_entries)
-        val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
-            UI_DESIGN, uiDesignValues[0]) })
-        uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
-        uiDesign?.setValueIndex(uiDesignValueIndex)
-        uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
-            uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
-            showRestartDialog()
-            return@setOnPreferenceChangeListener true
-        }
 
         val defaultApps: Preference? = findPreference(DEFAULT_APPS)
         defaultApps?.setOnPreferenceClickListener  {

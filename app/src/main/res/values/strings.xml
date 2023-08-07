@@ -5,6 +5,7 @@
     <string name="add">Add</string>
     <string name="close">Close</string>
     <string name="add_folder">Add folder</string>
+    <string name="edit_folder">Edit folder</string>
     <string name="applications">Applications</string>
     <string name="search_apps_or_surf_internet">Search apps or surf internet</string>
     <string name="search">Search</string>
@@ -16,7 +17,7 @@
     <string name="delete">Delete</string>
     <string name="rename">Edit link</string>
     <string name="action">Action</string>
-    <string name="app">Aplikacija</string>
+    <string name="app">Application</string>
     <string name="folder">Folder</string>
     <string name="ime_linka">Link name</string>
     <string name="intent_linka">Link intent</string>
@@ -60,6 +61,7 @@
     <string name="wizard_yes_no">Do you want to use Wizard to automatically populate home screen with apps?</string>
     <string name="odaberi_boju">Choose a color</string>
     <string name="adding_a_folder">Adding a folder</string>
+    <string name="editing_a_folder">Editing folder</string>
     <string name="ui_show_app_names">Show application names</string>
     <string name="add_app">Add app</string>
     <string name="transparency">Transparency</string>
@@ -76,6 +78,6 @@
     <string name="drop_database">Drop application database</string>
     <string name="set_this_launcher_as_default_to_access_shortcuts">Set this launcher as default to access shortcuts</string>
     <string name="color_text_size_border_width_hide_icons_hide_text">Color, text size, border width, hide icons, hide text</string>
-    <string name="jezik_vrsta_launchera_tamni_na_in">Language, launcher style, dark mode</string>
+    <string name="jezik_vrsta_launchera_tamni_na_in">Language, dark mode</string>
     <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restart application, send feedback, delete database</string>
 </resources>

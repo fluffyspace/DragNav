@@ -45,6 +45,7 @@ import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
+import com.ingokodba.dragnav.baza.RainbowMapaDao
 import com.ingokodba.dragnav.modeli.*
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlinx.coroutines.Dispatchers
@@ -161,8 +162,21 @@ class MainActivity : AppCompatActivity(){
 
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
 
+        // ako ovo ne bi bilo prije super.onCreate(savedInstanceState), onCreate funkcija bi se pozivala dva puta i developer bi si počupao kosu jer ne bi znao zašto aplikacija ne radi kako treba
+        val darkModeString = getString(R.string.dark_mode)
+        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
+        val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
+        when (darkModePreference) {
+            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
+            else -> {}
+        }
+
+        super.onCreate(savedInstanceState)
+        Log.d("ingo", "oncreate mainactivity")
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
         //Thread.getDefaultUncaughtExceptionHandler()
 
@@ -206,9 +220,7 @@ class MainActivity : AppCompatActivity(){
         //SpectrumSoLoader.init(this);
         instance = this as MainActivity
 
-        val darkModeString = getString(R.string.dark_mode)
-        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
+
         val ui_design_values = resources.let{it.getStringArray(R.array.ui_designs_values)}
         uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
             ui_design_values[0] -> UiDesignEnum.CIRCLE
@@ -217,13 +229,7 @@ class MainActivity : AppCompatActivity(){
             ui_design_values[3] -> UiDesignEnum.KEYPAD
             else -> UiDesignEnum.CIRCLE
         }
-        when (darkModePreference) {
-            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
-            else -> {}
-        }
+
 
         viewModel.initialize()
         changeLocale(this)
@@ -676,6 +682,7 @@ class MainActivity : AppCompatActivity(){
             viewModel.currentMenuId = pocetna.id
             return
         }
+        rainbowMapaGetItems()
         val db = AppDatabase.getInstance(this)
         val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         var krugSAplikacijama:List<KrugSAplikacijama> = krugSAplikacijamaDao.getAll()
@@ -1007,8 +1014,30 @@ class MainActivity : AppCompatActivity(){
         //super.onBackPressed()
     }
 
-    fun openFolderNameMenu(view: View){
-        val contentView = createFolderNameMenu()
+    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, callback: (String) -> Unit){
+        gcolor = Color.GRAY
+        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
+        contentView.findViewById<TextView>(R.id.title).text = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
+        contentView.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
+            shortcutPopup?.dismiss()
+        }
+        contentView.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
+            startColorpicker()
+        }
+        contentView.findViewById<Button>(R.id.popup_folder_submit).apply {
+            text = if(addingOrEditing) getString(R.string.edit_folder) else getString(R.string.add_folder)
+            setOnClickListener {
+                val ime: String =
+                    contentView.findViewById<EditText>(R.id.popup_folder_name).text.toString()
+                if (ime != "") {
+                    Log.d("ingo", "usli")
+                    shortcutPopup?.dismiss()
+                    // create folder
+                    callback(ime)
+                }
+            }
+        }
+
         val locations = IntArray(2, {0})
         view.getLocationOnScreen(locations)
         shortcutPopup?.dismiss()
@@ -1043,31 +1072,17 @@ class MainActivity : AppCompatActivity(){
         val view = LayoutInflater.from(applicationContext).inflate(R.layout.popup_add_which, null)
         view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
             //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
-            openFolderNameMenu(view)
+            openFolderNameMenu(view, false){createCircleFolder(it)}
         }
         view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
             //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
             toggleAppMenu()
             selectAppMenuOpened = true
-            /*global_view.findViewById<TextView>(R.id.notification).apply{
-                text = "Choose an app from app list or search. Click here to cancel."
-                setOnClickListener {
-                    selectAppMenuOpened = false
-                    it.visibility = View.INVISIBLE
-                    recycle_view_label.visibility = View.GONE
-                }
-                visibility = View.VISIBLE
-            }*/
             shortcutPopup?.dismiss()
             showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
             //changeeditMode()
             //toggleAppMenu()
         }
-        /*view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
-            shortcutPopup?.dismiss()
-            //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
-            Toast.makeText(applicationContext, "Not implemented yet:(", Toast.LENGTH_SHORT).show()
-        }*/
         return view
     }
 
@@ -1094,37 +1109,65 @@ class MainActivity : AppCompatActivity(){
         colorResultLauncher.launch(intent)
     }
 
-    fun createFolderNameMenu():View{
-        gcolor = Color.GRAY
-        val view = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
-        view.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
-            shortcutPopup?.dismiss()
-        }
-        view.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
-            startColorpicker()
-        }
-        view.findViewById<Button>(R.id.popup_folder_submit).setOnClickListener{
-            val ime:String = view.findViewById<EditText>(R.id.popup_folder_name).text.toString()
-            if(ime != ""){
-                Log.d("ingo", "usli")
-                // create folder
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime, color = gcolor.toString()))
-                    val trenutnoPolje = getPolje(viewModel.currentMenu.id)
-                    if(trenutnoPolje != null && dodanoPolje != null){
-                        trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
-                        databaseUpdateItem(trenutnoPolje)
-                        Log.d("ingo", trenutnoPolje.polja.toString())
-                    }
-                    withContext(Dispatchers.Main){
-                        mainFragment.refreshCurrentMenu()
-                        shortcutPopup?.dismiss()
-                    }
-                }
-
+    fun createCircleFolder(ime: String){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val dodanoPolje = databaseAddNewPolje(
+                KrugSAplikacijama(
+                    id = 0,
+                    text = ime,
+                    color = gcolor.toString()
+                )
+            )
+            val trenutnoPolje = getPolje(viewModel.currentMenu.id)
+            if (trenutnoPolje != null && dodanoPolje != null) {
+                trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
+                databaseUpdateItem(trenutnoPolje)
+                Log.d("ingo", trenutnoPolje.polja.toString())
+            }
+            withContext(Dispatchers.Main) {
+                mainFragment.refreshCurrentMenu()
             }
         }
-        return view
+    }
+
+    fun rainbowMapaUpdateItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            rainbowMapaDao.update(polje)
+            Log.d("ingo", "updated " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaInsertItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            rainbowMapaDao.insertAll(polje)
+            Log.d("ingo", "inserted " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaDeleteItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            rainbowMapaDao.delete(polje)
+            Log.d("ingo", "deleted " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaGetItems(){
+        Log.d("ingo", "rainbowMapaGetItems")
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            val rainbowMape = rainbowMapaDao.getAll().toMutableList()
+            if(rainbowMape.size == 0) return@launch
+            withContext(Dispatchers.Main){
+                viewModel.addRainbowMape(rainbowMape)
+            }
+        }
     }
 
     fun databaseUpdateItem(polje: KrugSAplikacijama){

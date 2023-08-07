@@ -3,6 +3,7 @@ package com.ingokodba.dragnav.baza
 import androidx.room.*
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.RainbowMapa
 
 @Dao
 interface KrugSAplikacijamaDao {
@@ -23,6 +24,27 @@ interface KrugSAplikacijamaDao {
 
     @Delete
     fun delete(polje: KrugSAplikacijama)
+}
+
+@Dao
+interface RainbowMapaDao {
+    @Query("SELECT * FROM RainbowMapa")
+    fun getAll(): List<RainbowMapa>
+
+    @Query("SELECT * FROM RainbowMapa WHERE id = :id")
+    fun findById(id: Int): List<RainbowMapa>
+
+    @Insert
+    fun insertAll(vararg polja: RainbowMapa): List<Long>
+
+    @Update
+    fun update(polje: RainbowMapa)
+
+    @Query("SELECT * FROM RainbowMapa WHERE rowid = :rowId")
+    fun findByRowId(rowId: Long): List<RainbowMapa>
+
+    @Delete
+    fun delete(polje: RainbowMapa)
 }
 
 @Dao

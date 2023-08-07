@@ -7,12 +7,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.RainbowMapa
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class), version = 6, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 6, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun krugSAplikacijamaDao(): KrugSAplikacijamaDao
+    abstract fun rainbowMapaDao(): RainbowMapaDao
     abstract fun appInfoDao(): AppInfoDao
     //abstract fun meniPoljaDao(): MeniPoljaDao
 

@@ -55,6 +55,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var polja_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
     var questiondrawable: Bitmap? = null
+    var homeDrawable: Bitmap? = null
     //lateinit var radapter:RAdapter
     var bitmap: Bitmap? = null
 
@@ -82,6 +83,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var drawn_apps: MutableList<DrawnApp> = mutableListOf()
     var rect: Rect? = null
 
+    var inFolder: Boolean = false
     var editMode:Boolean = false
     var addAppMode:Boolean = false
     var icons:MutableMap<String, Drawable?> = mutableMapOf()
@@ -230,6 +232,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     init {
         questiondrawable = AppCompatResources.getDrawable(context, R.drawable.baseline_question_mark_24)?.toBitmap()
+        homeDrawable = AppCompatResources.getDrawable(context, R.drawable.ic_baseline_home_100)?.toBitmap()
         updateDesign()
         context.theme.obtainStyledAttributes(
             attrs,
@@ -455,7 +458,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             if(shortcuts_app != null) {
                 for (i in shortcuts_rects.indices) {
                     if (shortcuts_rects[i].contains(touchStart)) {
-                        mEventListener?.onEventOccurred(EventTypes.OPEN_SHORTCUT, i)
+                        //mEventListener?.onEventOccurred(EventTypes.OPEN_SHORTCUT, i)
                         clickProcessed = true
                     }
                 }
@@ -469,8 +472,13 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 checkForQuickMove(touchStart)
             }
         } else if(event.action == MotionEvent.ACTION_MOVE){
-            if(quickSwipeEntered){
+            if(quickSwipeEntered) {
                 quickMove(Point(event.x.toInt(), event.y.toInt()))
+            } else if(shortcuts_app != null){
+                val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
+                if(abs(change) > 20){
+                    // skrolaj po izborniku za aplikacije
+                }
             } else if(!clickProcessed){
                 val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
                 lastTouchPoints.add(Point(event.x.toInt(), event.y.toInt()))
@@ -540,7 +548,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             )*/
             drawCircle(draw_pointF.x, draw_pointF.y, radius*inner_radius2/6f, circle_paint)
 
-            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
+            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(inFolder) R.drawable.ic_baseline_home_100 else if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
             drawable?.setTint(Color.BLACK)
             val bitmap: Bitmap? = drawable?.toBitmap()
             if (bitmap != null) {
@@ -664,7 +672,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun drawApp2(index: Int, triang: Double, radiusScale: Float, canvas: Canvas){
         //Log.d("ingo", "aplikacija " + app_list[index].label + " " + index)
-        bitmap = if(app_list[index].folderName == null) icons[app_list[index].apps.first().packageName]?.toBitmap() else null
+
         //Log.d("ingo", "crtam " + Gson().toJson(bitmap))
 
         if(triang > highestIconAngleDrawn) highestIconAngleDrawn = triang
@@ -689,7 +697,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 rect.bottom.toFloat(), detectSize / 8f, shortcut_indicator_paint
             )
         }
-        if(app_list[index].folderName == null && app_list[index].apps.first().favorite) {
+        if((app_list[index].folderName == null && app_list[index].apps.first().favorite) || (app_list[index].folderName != null && app_list[index].favorite == true)) {
             canvas.drawCircle(
                 rect.left.toFloat(),
                 rect.bottom.toFloat(), detectSize / 8f, favorite_indicator_paint
@@ -699,7 +707,25 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         {
             no_icon_paint.color = Color.parseColor("#55FFFFFF")
             canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
+            for(i in 0..1){
+                for(j in 0..1){
+                    Log.d("ingo", "i: $i j: $j")
+                    if(i*2 + j >= app_list[index].apps.size) break
+                    bitmap = icons[app_list[index].apps[i*2+j].packageName]?.toBitmap()
+                    if(bitmap != null) {
+                        canvas.drawBitmap(
+                            bitmap!!, null, Rect(
+                                (draw_pointF.x - detectSize + detectSize * i).toInt(),
+                                (draw_pointF.y - detectSize + detectSize * j).toInt(),
+                                (draw_pointF.x + detectSize * i).toInt(),
+                                (draw_pointF.y + detectSize * j).toInt()
+                            ), null
+                        )
+                    }
+                }
+            }
         } else {
+            bitmap = if(app_list[index].folderName == null) icons[app_list[index].apps.first().packageName]?.toBitmap() else null
             if(bitmap != null && draw_icons) {
                 canvas.drawBitmap(
                     bitmap!!, null, rect, null
@@ -745,7 +771,8 @@ class DrawnApp(startTrig: Double, letter: Char, app_index: Int, rect: Rect){
     var rect: Rect = rect
 }
 
-class EncapsulatedAppInfoWithFolder(apps: List<AppInfo>, folderName: String?){
+class EncapsulatedAppInfoWithFolder(apps: List<AppInfo>, folderName: String?, favorite: Boolean?){
     var apps: List<AppInfo> = apps
     var folderName: String? = folderName
+    var favorite: Boolean? = favorite
 }

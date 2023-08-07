@@ -1,11 +1,13 @@
 package com.ingokodba.dragnav
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.preference.*
 import com.example.dragnav.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MySettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
@@ -69,6 +71,16 @@ class MySettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
+        val uiDesign: ListPreference? = findPreference(UI_DESIGN)
+        val uiDesignValuesHumanReadable = resources.getStringArray(R.array.ui_designs_entries)
+        uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
+        uiDesign?.setValueIndex(uiDesignValueIndex)
+        uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
+            uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
+            showRestartDialog()
+            return@setOnPreferenceChangeListener true
+        }
+
         val general_preferences: Preference? = findPreference("general_preferences")
         general_preferences?.setOnPreferenceClickListener { preference ->
             //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
@@ -100,5 +112,20 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         if (intent.resolveActivity(settingsActivity.packageManager) != null) {
             startActivity(intent)
         }
+    }
+
+    fun showRestartDialog(){
+        MaterialAlertDialogBuilder(requireContext(),
+            androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
+            .setMessage(MainActivity.resources2.getString(R.string.restart_required))
+            .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
+                // Respond to negative button press
+            }
+            .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
+                data.putExtra("restart", true);
+                (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+                (activity as SettingsActivity).finish()
+            }
+            .show()
     }
 }
