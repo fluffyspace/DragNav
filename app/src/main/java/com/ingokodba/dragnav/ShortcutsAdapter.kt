@@ -1,10 +1,12 @@
 package com.ingokodba.dragnav
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
@@ -13,7 +15,7 @@ import com.ingokodba.dragnav.modeli.OnActionClick
 
 
 class ShortcutsAdapter(c: Context, onShortcutClick: OnShortcutClick) : RecyclerView.Adapter<ShortcutsAdapter.ViewHolder>() {
-    var actionsList: List<String> = listOf()
+    var actionsList: List<ShortcutAction> = listOf()
     var context:Context
     var onShortcutClick:OnShortcutClick
     init {
@@ -23,6 +25,7 @@ class ShortcutsAdapter(c: Context, onShortcutClick: OnShortcutClick) : RecyclerV
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
         View.OnClickListener {
+        var action_icon: ImageView
         var action_title: TextView
         override fun onClick(v: View) {
             val pos = adapterPosition
@@ -34,6 +37,7 @@ class ShortcutsAdapter(c: Context, onShortcutClick: OnShortcutClick) : RecyclerV
         //'holds the views' for us to show on each row
         init {
             //Finds the views from our row.xml
+            action_icon = itemView.findViewById(R.id.action_icon) as ImageView
             action_title = itemView.findViewById(R.id.action_title) as TextView
             itemView.setOnClickListener(this)
         }
@@ -42,8 +46,8 @@ class ShortcutsAdapter(c: Context, onShortcutClick: OnShortcutClick) : RecyclerV
     override fun onBindViewHolder(viewHolder: ViewHolder, i: Int) {
         //Here we use the information in the list we created to define the views
         //val appIcon:Drawable? = icons.get(appsList[i].packageName)
-        viewHolder.action_title.text = actionsList[i]
-
+        viewHolder.action_title.text = actionsList[i].label
+        if(actionsList[i].icon != null) viewHolder.action_icon.setImageDrawable(actionsList[i].icon)
     }
 
     override fun getItemCount(): Int {
@@ -64,3 +68,8 @@ class ShortcutsAdapter(c: Context, onShortcutClick: OnShortcutClick) : RecyclerV
     }
 
 }
+
+data class ShortcutAction(
+    var label: String = "",
+    var icon: Drawable? = null,
+)

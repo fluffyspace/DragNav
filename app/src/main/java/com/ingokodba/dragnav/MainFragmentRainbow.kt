@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -17,6 +18,7 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.widget.ListPopupWindow
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -217,7 +219,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
                             Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                         } else {
                             Log.d("ingo", "držali smo mapu")
-                            val actions = listOf("Preimenuj mapu", "Izbriši mapu", if(thing.favorite == true) "Makni iz omiljenih" else "Dodaj pod omiljeno")
+                            val actions = listOf(ShortcutAction("Preimenuj mapu", getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24)), ShortcutAction("Izbriši mapu", getDrawable(R.drawable.ic_baseline_delete_24)), if(thing.favorite == true) ShortcutAction("Makni iz omiljenih", getDrawable(R.drawable.star_fill)) else ShortcutAction("Dodaj u omiljene", getDrawable(R.drawable.star_empty)))
                             dialogState = DialogStates.FOLDER_OPTIONS
                             showDialogWithActions(actions)
                         }
@@ -258,8 +260,8 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
                     } else {
                         Log.d("ingo", "prikazivanje novog izbornika")
                         dialogState = DialogStates.ADDING_TO_FOLDER
-                        showDialogWithActions(viewModel.rainbowMape.value!!.map { it.folderName }.toMutableList()
-                            .apply { add("Nova mapa") })
+                        showDialogWithActions(viewModel.rainbowMape.value!!.map { ShortcutAction(it.folderName, getDrawable(R.drawable.baseline_folder_24)) }.toMutableList()
+                            .apply { add(ShortcutAction("Nova mapa", getDrawable(R.drawable.ic_baseline_create_new_folder_50))) })
                     }
                 }
                 return
@@ -287,12 +289,13 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
         return viewModel.rainbowMape.value!!.find { mape -> mape.apps.find{ app -> app.packageName == whatApp.packageName} != null } != null
     }
 
-    fun showDialogWithActions(actions: List<String>){
+    fun showDialogWithActions(actions: List<ShortcutAction>){
         val contentView = LayoutInflater.from(context).inflate(R.layout.popup_shortcut, null)
         radapter = ShortcutsAdapter(requireContext(), this)
         shortcuts_recycler_view = contentView.findViewById(R.id.shortcutList)
         radapter?.actionsList = actions
         shortcuts_recycler_view?.adapter = radapter
+        shortcuts_recycler_view?.addItemDecoration(SimpleDivider(requireContext()))
 
         shortcutPopup?.dismiss()
         shortcutPopup = PopupWindow(contentView,
@@ -303,12 +306,17 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
     }
 
     fun openShortcutsMenu(){
-        val actions = shortcuts.map{it.shortLabel.toString()}.toMutableList().apply {
-            add(if(viewModel.rainbowAll.value!![app_index!!].apps.first().favorite) "Makni iz omiljenih" else "Dodaj u omiljene")
-            add(if(isAppAlreadyInMap(viewModel.rainbowAll.value!![app_index!!].apps.first())) "Makni iz mape" else "Dodaj u mapu")
+        val appDrawable = viewModel.icons.value!![viewModel.rainbowAll.value!![app_index!!].apps.first().packageName]
+        val actions = shortcuts.map{ShortcutAction(it.shortLabel.toString(), appDrawable)}.toMutableList().apply {
+            add(if(viewModel.rainbowAll.value!![app_index!!].apps.first().favorite) ShortcutAction("Makni iz omiljenih", getDrawable(R.drawable.star_fill)) else ShortcutAction("Dodaj u omiljene", getDrawable(R.drawable.star_empty)))
+            add(if(isAppAlreadyInMap(viewModel.rainbowAll.value!![app_index!!].apps.first())) ShortcutAction("Makni iz mape", getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction("Dodaj u mapu", getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
         }
         dialogState = DialogStates.APP_SHORTCUTS
         showDialogWithActions(actions)
+    }
+
+    fun getDrawable(resourceId: Int): Drawable?{
+        return ResourcesCompat.getDrawable(resources, resourceId, null)?.apply { setTint(Color.BLACK) }
     }
 
     fun addAppToMap(map_index: Int){
