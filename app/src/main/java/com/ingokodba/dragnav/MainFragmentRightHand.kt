@@ -24,7 +24,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
  * Use the [MainFragmentRightHand.newInstance] factory method to
  * create an instance of this fragment.
  */
-class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
+class MainFragmentRightHand(leftOrRight: Boolean) : Fragment(), MainFragmentInterface {
 
     lateinit var circleView: CircleView
     lateinit var bottomMenuView: BottomMenuView
@@ -49,14 +49,16 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
     lateinit var cancelButton: ImageButton
 
     override var fragment: Fragment = this
+    var leftOrRight: Boolean
 
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+    init {
+        this.leftOrRight = leftOrRight
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mactivity = (activity as MainActivity)
+
         //MainActivity.changeLocale(requireContext())
     }
 
@@ -178,7 +180,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main_right_hand, container, false)
+        return inflater.inflate(if(leftOrRight) R.layout.fragment_main_right_hand else R.layout.fragment_main_left_hand, container, false)
     }
 
     companion object {
@@ -192,8 +194,8 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            MainFragmentRightHand().apply {
+        fun newInstance(leftOrRight: Boolean) =
+            MainFragmentRightHand(leftOrRight).apply {
 
             }
     }

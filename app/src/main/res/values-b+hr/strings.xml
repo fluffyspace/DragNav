@@ -33,7 +33,7 @@
     <string name="show_circles">Prikaži prazne krugove</string>
     <string name="primary_color">Primarna boja</string>
     <string name="shadow">Prikaži sjene</string>
-    <string name="border_width">Debljina okvira krugova</string>
+    <string name="circle_border_width">Debljina okvira krugova</string>
     <string name="icons">Prikaži ikone aplikacija</string>
     <string name="settings_im_ex">Uvoz/izvoz postavki</string>
     <string name="feedback_summary">Prijavi poteškoće ili predloži nove značajke</string>
@@ -65,6 +65,7 @@
     <string name="text_size">Veličina teksta</string>
     <string name="smaller_text_size">Veličina manjeg teksta</string>
     <string name="add_app">Dodaj</string>
+    <string name="app_info">Informacije aplikacije</string>
     <string name="transparency">Prozirnost</string>
     <string name="show_big_circle">Prikaži veliki krug</string>
     <string name="favorite">Omiljeno</string>
@@ -81,4 +82,13 @@
     <string name="color_text_size_border_width_hide_icons_hide_text">Boja, veličina teksta, debljina rubova, sakrij ikone, sakrij tekst</string>
     <string name="jezik_vrsta_launchera_tamni_na_in">Jezik, tamni način</string>
     <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restartaj aplikaciju, pošalji povratnu informaciju, izbriši bazu podataka</string>
+    <string name="rename_folder">Preimenuj mapu</string>
+    <string name="delete_folder">Izbriši mapu</string>
+    <string name="remove_from_favorites">Makni iz omiljenih</string>
+    <string name="add_to_favorites">Dodaj u omiljene</string>
+    <string name="add_to_folder">Dodaj u mapu</string>
+    <string name="remove_from_folder">Makni iz mape</string>
+    <string name="debljina_ruba">Debljina ruba</string>
+    <string name="alphabet_font_size">Veličina fonta abecede</string>
+    <string name="application_names_font_size">Veličina fonta naziva aplikacija</string>
 </resources>

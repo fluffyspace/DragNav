@@ -51,8 +51,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var app_list:List<EncapsulatedAppInfoWithFolder> = listOf()
     private var color_list:List<String> = listOf()
     private var new_letter_apps:MutableList<Int> = mutableListOf()
-    private var no_draw_position:Int = -1
-    private var polja_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
     var questiondrawable: Bitmap? = null
     var homeDrawable: Bitmap? = null
@@ -124,6 +122,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     var hasMoved = false
 
+    var leftOrRight: Boolean = true
+
     fun limit(number: Int): Boolean{
         limit = -(app_list.size/2)*step_size - step_size*2
         Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
@@ -140,13 +140,13 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             finishFling()
             return
         }
-        flingValueAccumulated += flingValue
+        flingValueAccumulated += if(leftOrRight) flingValue else -flingValue
         moveAction(flingValueAccumulated.toInt())
     }
 
     fun finishFling(){
         flingOn = false
-        moveDistancedAccumulated += flingValueAccumulated.toInt()
+        moveDistancedAccumulated += moveDistance
         resetClicks()
     }
 
@@ -158,18 +158,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         } catch (e:NumberFormatException){
             e.printStackTrace()
         }
-    }
-
-    fun setStepSize(size:Float){
-        step_size = Math.PI*size // s 0.225 ih je 9 na ekranu, s 0.25 ih je 8
-        if(step_size < 0.1) step_size = 0.1
-        invalidate()
-    }
-
-    fun selectPolje(id:Int){
-        selected = id
-        changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        invalidate()
     }
 
     fun showShortcuts(app_i: Int, shortcuts: List<String>){
@@ -190,12 +178,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             changeMiddleButtonState(MIDDLE_BUTTON_HOME)
         }
         invalidate()
-    }
-
-    fun setPosDontDraw(position:Int){
-        no_draw_position = position
-        polja_points.clear()
-        Log.d("ingo", "setPosDontDraw " + position)
     }
 
     fun getFirstLetterOfApp(app: EncapsulatedAppInfoWithFolder): Char{
@@ -386,8 +368,9 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun quickMove(point: Point){
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
-            (point.x-size_width).toDouble()
+            (point.x - if(leftOrRight) size_width else 0).toDouble()
         )
+        if(!leftOrRight) angle = -angle
         var click = 0
         clickProcessed = true
         for(i in quickSwipeAngles.reversed().indices){
@@ -400,13 +383,14 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         Log.d("ingo", "angle $angle ${firstByThatLetter} $click $quickSwipeAngles")
         // saznati s kulko moramo pomnožiti
-        moveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
+        val futureFoveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
         Log.d("ingo", "lol $moveDistancedAccumulated $limit")
 
-        if ((moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
-            //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
-            //offset = (moveDistancedAccumulated+moveDistance)/500f
+        // prešli smo preko
+        if ((futureFoveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
             moveDistancedAccumulated = ((limit + Math.PI / 2) * 500f).toInt()
+        } else {
+            moveDistancedAccumulated = futureFoveDistancedAccumulated
         }
 
         invalidate()
@@ -414,8 +398,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun checkForQuickMove(point: Point){
-        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - size_width).toDouble().pow(2) )
-        Log.d("ingo", "distance $distance $radius $detectSize")
+        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - if(leftOrRight) size_width else 0).toDouble().pow(2) )
+        Log.d("ingo", "distance $distance ${radius*1.15f} $detectSize")
         if(distance >= radius*1.15f){
             quickSwipeEntered = true
             quickMove(point)
@@ -474,13 +458,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         } else if(event.action == MotionEvent.ACTION_MOVE){
             if(quickSwipeEntered) {
                 quickMove(Point(event.x.toInt(), event.y.toInt()))
-            } else if(shortcuts_app != null){
-                val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
-                if(abs(change) > 20){
-                    // skrolaj po izborniku za aplikacije
-                }
             } else if(!clickProcessed){
-                val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
+                val change = if(leftOrRight){
+                    (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
+                } else {
+                    (event.y - touchStart.y).toInt() - (touchStart.x - event.x).toInt()
+                }
                 lastTouchPoints.add(Point(event.x.toInt(), event.y.toInt()))
                 moveAction(change)
             }
@@ -493,7 +476,11 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 if(app_i != null) mEventListener?.onEventOccurred(EventTypes.OPEN_APP, app_i!!)
             }
             if(!quickSwipeEntered && lastTouchPoints.size > 3){
-                val moveSpeed = ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
+                val moveSpeed = if(leftOrRight) {
+                    ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
+                } else {
+                    -((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (lastTouchPoints[lastTouchPoints.size-4].x - event.x).toInt())/3
+                }
                 Log.d("ingo", "moveSpeed " + moveSpeed)
                 if(abs(moveSpeed) > flingMinVelocity){
                     flingOn = true
@@ -530,16 +517,15 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         detectSizeDivider = 10.0
         detectSize = if(overrideDetectSize != null) overrideDetectSize!!.toInt() else 50
         quickSwipeAngles.clear()
-        polja_points.clear()
         drawn_apps.clear()
         shortcuts_rects.clear()
         highestIconAngleDrawn = 0.0
         val inner_radius2 = (if(overrideDistance != null) overrideDistance!! else 0.87f)
         canvas.apply {
             // draw inner button
-            var xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
-            var yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
-            var draw_pointF = PointF( ((size_width+xx)), ((size_height+yy)) )
+            val xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
+            val yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
+            val draw_pointF = PointF( (if(leftOrRight) (size_width+xx) else -xx), ((size_height+yy)) )
             /*val rect = Rect(
                 (draw_pointF.x - detectSize).toInt(),
                 (draw_pointF.y - detectSize).toInt(),
@@ -577,8 +563,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             //Log.d("ingo", "racunamo " + (app_list.size/2)*step_size + ", $offset, $moveDistancedAccumulated")
 
             var counter = 0
-            var offsetModulated = offset%step_size
-            var offsetDivided = offset/step_size
+            val offsetModulated = offset%step_size
+            val offsetDivided = offset/step_size
 
             val offset2 = offset+(step_size/2f).toFloat()
             val offsetDivided2 = offset2/step_size
@@ -607,7 +593,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             }
 
             val lineRadius = radius*1.15f
-            val rectf = RectF(size_width-lineRadius, size_height-lineRadius, size_width+lineRadius, size_height+lineRadius)
+            val rectf = RectF(if(leftOrRight) size_width-lineRadius else -lineRadius, size_height-lineRadius, if(leftOrRight) size_width+lineRadius else lineRadius, size_height+lineRadius)
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
@@ -616,9 +602,15 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             for(i in appsGroupedByLetter.indices){
                 quickSwipeAngles.add(Math.toRadians((divider*i).toDouble()).toFloat())
                 //val first_drawn_app = drawn_apps.first().letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar()
-                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == getFirstLetterOfApp(appsGroupedByLetter[i]) }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
-                drawArc(rectf,
-                    (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
+                empty_circle_paint.strokeWidth = border_width + border_width*4*(drawn_apps.filter { it.letter.uppercaseChar() == getFirstLetterOfApp(appsGroupedByLetter[i]) }.size.toFloat()/drawn_apps.size.toFloat())
+                if(leftOrRight){
+                    drawArc(rectf,
+                        (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
+                } else {
+                    drawArc(rectf,
+                        (-90+divider*i), divider/1.2f, false, empty_circle_paint)
+                }
+
                 val point = myDraw(Math.toRadians(180+divider*i+divider/3.0), radius*1.3f)
                 canvas.drawText(getFirstLetterOfApp(appsGroupedByLetter[i]).toString(), point.x, point.y+text_size/2, text_paint)
             }
@@ -679,7 +671,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         var xx = (sin(triang) * radius*radiusScale).toFloat()
         var yy = (cos(triang) * radius*radiusScale).toFloat()
-        var draw_pointF = PointF( ((size_width+xx).toFloat()), ((size_height+yy).toFloat()) )
+        var draw_pointF = PointF( (if(leftOrRight) (size_width+xx) else -xx), ((size_height+yy).toFloat()) )
         val rect = Rect(
             (draw_pointF.x - detectSize).toInt(),
             (draw_pointF.y - detectSize).toInt(),
@@ -688,7 +680,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         )
         drawn_apps.add(DrawnApp(triang, getFirstLetterOfApp(app_list[index]), index, rect))
 
-        if(smaller_text_size != 0f){
+        if(smaller_text_size != 0f && show_app_names){
             queued_texts.add(QueuedText(getNameOfApp(app_list[index]), draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
         }
         if(app_list[index].folderName == null && app_list[index].apps.first().hasShortcuts) {
@@ -753,14 +745,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
             }
         }
-
-
     }
 
     fun myDraw(triang: Double, distance: Float): PointF{
         val xxx = (sin(triang) * distance).toFloat()
         val yyy = (cos(triang) * distance).toFloat()
-        return PointF( ((size_width+xxx).toFloat()), ((size_height+yyy).toFloat()) )
+        return PointF( (if(leftOrRight) (size_width+xxx) else -xxx), ((size_height+yyy).toFloat()) )
     }
 }
 

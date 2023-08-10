@@ -17,6 +17,9 @@
         <action
             android:id="@+id/action_mySettingsFragment_to_myHelpSettingsFragment"
             app:destination="@id/myHelpSettingsFragment" />
+        <action
+            android:id="@+id/action_mySettingsFragment_to_rainbowSettingsFragment"
+            app:destination="@id/rainbowSettingsFragment" />
     </fragment>
     <fragment
         android:id="@+id/circleSettingsFragment"
@@ -30,4 +33,8 @@
         android:id="@+id/myHelpSettingsFragment"
         android:name="com.ingokodba.dragnav.MyHelpSettingsFragment"
         android:label="@string/help" />
+    <fragment
+        android:id="@+id/rainbowSettingsFragment"
+        android:name="com.ingokodba.dragnav.RainbowSettingsFragment"
+        android:label="@string/rainbow_preferences" />
 </navigation>

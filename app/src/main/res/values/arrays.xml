@@ -16,16 +16,20 @@
     </string-array>
 
     <string-array name="ui_designs_entries">
+        <item>Rainbow right hand</item>
+        <item>Rainbow left hand</item>
         <item>Circle</item>
         <item>Circle with right hand</item>
-        <item>Rainbow</item>
+        <item>Circle with left hand</item>
         <item>Keypad</item>
     </string-array>
 
     <string-array name="ui_designs_values">
+        <item>rainbow_right</item>
+        <item>rainbow_left</item>
         <item>circle</item>
         <item>circle_right_hand</item>
-        <item>rainbow</item>
+        <item>circle_left_hand</item>
         <item>keypad</item>
     </string-array>
 </resources>

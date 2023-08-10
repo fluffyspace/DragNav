@@ -42,7 +42,7 @@
 
     <EditTextPreference
         app:key="ui_border_width"
-        app:title="@string/border_width"
+        app:title="@string/circle_border_width"
         app:defaultValue="4"/>
 
     <EditTextPreference

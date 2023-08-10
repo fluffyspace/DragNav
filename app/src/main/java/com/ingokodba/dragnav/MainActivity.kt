@@ -69,7 +69,7 @@ import java.util.Collections.min
 
 class MainActivity : AppCompatActivity(){
     val viewModel: ViewModel by viewModels()
-    var uiDesignMode: UiDesignEnum = UiDesignEnum.CIRCLE
+    var uiDesignMode: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
 
@@ -217,16 +217,16 @@ class MainActivity : AppCompatActivity(){
 
         instance = this as MainActivity
 
-
         val ui_design_values = resources.let{it.getStringArray(R.array.ui_designs_values)}
         uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
-            ui_design_values[0] -> UiDesignEnum.CIRCLE
-            ui_design_values[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
-            ui_design_values[2] -> UiDesignEnum.RAINBOW
-            ui_design_values[3] -> UiDesignEnum.KEYPAD
+            ui_design_values[0] -> UiDesignEnum.RAINBOW_RIGHT
+            ui_design_values[1] -> UiDesignEnum.RAINBOW_LEFT
+            ui_design_values[2] -> UiDesignEnum.CIRCLE
+            ui_design_values[3] -> UiDesignEnum.CIRCLE_RIGHT_HAND
+            ui_design_values[4] -> UiDesignEnum.CIRCLE_LEFT_HAND
+            ui_design_values[5] -> UiDesignEnum.KEYPAD
             else -> UiDesignEnum.CIRCLE
         }
-
 
         viewModel.initialize()
         changeLocale(this)
@@ -264,23 +264,6 @@ class MainActivity : AppCompatActivity(){
         registerReceiver(br, intentFilter)
     }
 
-    fun packageIsGame(context: Context, packageName: String): Boolean {
-        return try {
-            val info: ApplicationInfo = context.packageManager.getApplicationInfo(packageName, 0)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                info.category == ApplicationInfo.CATEGORY_GAME
-            } else {
-                // We are suppressing deprecation since there are no other options in this API Level
-                @Suppress("DEPRECATION")
-                (info.flags and ApplicationInfo.FLAG_IS_GAME) == ApplicationInfo.FLAG_IS_GAME
-            }
-        } catch (e: PackageManager.NameNotFoundException) {
-            Log.e("Util", "Package info not found for name: " + packageName, e)
-            // Or throw an exception if you want
-            false
-        }
-    }
-
     fun saveNewApps(){
         Log.d("ingo", "saveNewApps")
         if(cache_apps && newApps.isNotEmpty()){
@@ -300,8 +283,10 @@ class MainActivity : AppCompatActivity(){
     fun loadFragments(){
         mainFragment = when(uiDesignMode){
             UiDesignEnum.CIRCLE -> MainFragment()
-            UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand()
-            UiDesignEnum.RAINBOW -> MainFragmentRainbow()
+            UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand(true)
+            UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragmentRightHand(false)
+            UiDesignEnum.RAINBOW_RIGHT -> MainFragmentRainbow(true)
+            UiDesignEnum.RAINBOW_LEFT -> MainFragmentRainbow(false)
             UiDesignEnum.KEYPAD -> MainFragmentTipke()
         }
 
@@ -314,7 +299,7 @@ class MainActivity : AppCompatActivity(){
             .setReorderingAllowed(true)
             .commit()
 
-        if(uiDesignMode == UiDesignEnum.RAINBOW){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
             // TODO: provjeri da li se ovo postavi ili ne
             activitiesFragment.radapter?.showAddToHomescreen = false
         }

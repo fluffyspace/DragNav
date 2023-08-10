@@ -32,7 +32,7 @@
     <string name="show_circles">Show empty circles</string>
     <string name="primary_color">Primary color</string>
     <string name="shadow">Show shadow</string>
-    <string name="border_width">Circles border width</string>
+    <string name="circle_border_width">Circles border width</string>
     <string name="text_size">Text size</string>
     <string name="smaller_text_size">Smaller text size</string>
     <string name="icons">Show icons</string>
@@ -64,6 +64,7 @@
     <string name="editing_a_folder">Editing folder</string>
     <string name="ui_show_app_names">Show application names</string>
     <string name="add_app">Add app</string>
+    <string name="app_info">App info</string>
     <string name="transparency">Transparency</string>
     <string name="show_big_circle">Show big circle</string>
     <string name="favorite">Favorite</string>
@@ -80,4 +81,14 @@
     <string name="color_text_size_border_width_hide_icons_hide_text">Color, text size, border width, hide icons, hide text</string>
     <string name="jezik_vrsta_launchera_tamni_na_in">Language, dark mode</string>
     <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restart application, send feedback, delete database</string>
+    <string name="rename_folder">Rename folder</string>
+    <string name="delete_folder">Delete folder</string>
+    <string name="remove_from_favorites">Remove from favorites</string>
+    <string name="add_to_favorites">Add to favorites</string>
+    <string name="add_to_folder">Add to folder</string>
+    <string name="remove_from_folder">Remove from folder</string>
+    <string name="debljina_ruba">Border width</string>
+    <string name="alphabet_font_size">Alphabet font size</string>
+    <string name="application_names_font_size">Application names font size</string>
+
 </resources>

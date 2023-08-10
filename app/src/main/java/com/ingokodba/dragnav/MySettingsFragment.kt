@@ -42,12 +42,11 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         settingsActivity = (activity as SettingsActivity)
         Log.d("ingo", settingsActivity::class.simpleName.toString())
 
-
         val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
         val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
             UI_DESIGN, uiDesignValues[0]) })
         when(uiDesignValueIndex){
-            0, 1 -> {
+            2, 3, 4 -> {
                 val circlePreferences: Preference? = findPreference("circle_preferences")
                 circlePreferences?.isVisible = true
                 circlePreferences?.setOnPreferenceClickListener { preference ->
@@ -58,13 +57,13 @@ class MySettingsFragment : PreferenceFragmentCompat() {
                     true
                 }
             }
-            2 -> {
+            0, 1 -> {
                 val circlePreferences: Preference? = findPreference("rainbow_preferences")
                 circlePreferences?.isVisible = true
                 circlePreferences?.setOnPreferenceClickListener { preference ->
                     //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
                     val action =
-                        MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
+                        MySettingsFragmentDirections.actionMySettingsFragmentToRainbowSettingsFragment()
                     settingsActivity.navController?.navigate(action)
                     true
                 }

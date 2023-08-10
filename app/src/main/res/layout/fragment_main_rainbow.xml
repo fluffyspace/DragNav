@@ -13,26 +13,17 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/settings"/>
-        <ImageButton
-            android:id="@+id/settings"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_baseline_settings_100"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
-            android:visibility="gone"/>
+            app:layout_constraintTop_toBottomOf="@id/sliders"/>
         <ImageButton
             android:id="@+id/sliders"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/adjust_design"
             android:src="@drawable/width_fill0_wght400_grad0_opsz48"
             android:background="@color/white_semi_transparent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toRightOf="@id/settings"/>
+            app:layout_constraintRight_toRightOf="parent"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/detectSize"
             android:layout_width="match_parent"
@@ -40,7 +31,7 @@
             android:layout_marginTop="50dp"
             android:valueFrom="0"
             android:valueTo="200"
-            app:layout_constraintTop_toBottomOf="@id/settings"
+            app:layout_constraintTop_toBottomOf="@id/sliders"
             android:visibility="gone"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/distance"

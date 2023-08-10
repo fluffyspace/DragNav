@@ -15,7 +15,7 @@ class RainbowSettingsFragment : PreferenceFragmentCompat() {
     val data:Intent = Intent()
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.circle_preferences, rootKey)
+        setPreferencesFromResource(R.xml.rainbow_preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
 
         val colorPick: Preference? = findPreference(UI_COLOR)

@@ -10,20 +10,21 @@
         android:icon="@drawable/baseline_color_lens_24"/>
 
     <EditTextPreference
-        app:key="ui_text_size"
-        app:title="@string/text_size"
+        app:key="ui_smaller_text_size"
+        app:title="@string/application_names_font_size"
         app:defaultValue="30"
         android:icon="@drawable/baseline_format_size_24"/>
 
-    <SwitchPreference
-        app:key="ui_circles_toggle"
-        app:title="@string/show_circles"
-        app:defaultValue="true"/>
+    <EditTextPreference
+        app:key="ui_text_size"
+        app:title="@string/alphabet_font_size"
+        app:defaultValue="30"
+        android:icon="@drawable/baseline_format_size_24"/>
 
-    <SwitchPreference
-        app:key="ui_big_circle"
-        app:title="@string/show_big_circle"
-        app:defaultValue="true"/>
+    <EditTextPreference
+        app:key="ui_border_width"
+        app:title="@string/debljina_ruba"
+        app:defaultValue="4"/>
 
     <SwitchPreference
         app:key="ui_icons_toggle"
@@ -40,19 +41,7 @@
         app:title="@string/shadow"
         app:defaultValue="true"/>
 
-    <EditTextPreference
-        app:key="ui_border_width"
-        app:title="@string/border_width"
-        app:defaultValue="4"/>
 
-    <EditTextPreference
-        app:key="ui_smaller_text_size"
-        app:title="@string/smaller_text_size"
-        app:defaultValue="30"/>
 
-    <EditTextPreference
-        app:key="ui_transparency"
-        app:title="@string/transparency"
-        app:defaultValue="1.0"/>
 
 </PreferenceScreen>

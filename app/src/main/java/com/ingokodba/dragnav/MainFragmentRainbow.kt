@@ -8,7 +8,9 @@ import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -41,7 +43,7 @@ import kotlinx.coroutines.withContext
  * Use the [MainFragmentRainbow.newInstance] factory method to
  * create an instance of this fragment.
  */
-class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick {
+class MainFragmentRainbow(leftOrRight: Boolean) : Fragment(), MainFragmentInterface, OnShortcutClick {
 
     lateinit var circleView: Rainbow
     lateinit var relativeLayout: ConstraintLayout
@@ -64,10 +66,11 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
     var sliders = false
     var onlyfavorites = false
     var shortcuts: List<ShortcutInfo> = listOf()
+    var leftOrRight: Boolean
 
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+    init {
+        this.leftOrRight = leftOrRight
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +81,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
+        circleView.leftOrRight = leftOrRight
         relativeLayout = view.findViewById(R.id.relativelayout)
 
         Log.d(
@@ -141,9 +145,6 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
             }
         }
 
-        view.findViewById<ImageButton>(R.id.settings).setOnClickListener {
-            settings()
-        }
         circleView.setEventListener(object :
             IMyEventListener {
             override fun onEventOccurred(app:EventTypes, counter: Int) {
@@ -185,6 +186,9 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
                     circleView.flingUpdate()
                 }
             }
+            withContext(Dispatchers.Main) {
+                circleView.invalidate()
+            }
         }
     }
 
@@ -202,32 +206,38 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
         countdown = lifecycleScope.launch(Dispatchers.IO) {
             delay(250)
             withContext(Dispatchers.Main){
-                val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-                if(launcherApps.hasShortcutHostPermission()) {
-                    app_index = circleView.getAppIndexImIn()
-                    if (app_index != null) {
-                        // je li mapa ili aplikacija
-                        val thing = viewModel.rainbowAll.value!![app_index!!]
-                        if(thing.folderName == null) {
+                app_index = circleView.getAppIndexImIn()
+                if (app_index != null) {
+                    // je li mapa ili aplikacija
+                    val thing = viewModel.rainbowAll.value!![app_index!!]
+                    if(thing.folderName == null) {
+                        val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                        if(launcherApps.hasShortcutHostPermission()) {
                             shortcuts = mactivity.getShortcutFromPackage(
                                 thing.apps.first().packageName
                             )
-                            openShortcutsMenu()
-                            if (shortcuts.isEmpty()) {
-                                view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            }
-                            Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                         } else {
-                            Log.d("ingo", "držali smo mapu")
-                            val actions = listOf(ShortcutAction("Preimenuj mapu", getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24)), ShortcutAction("Izbriši mapu", getDrawable(R.drawable.ic_baseline_delete_24)), if(thing.favorite == true) ShortcutAction("Makni iz omiljenih", getDrawable(R.drawable.star_fill)) else ShortcutAction("Dodaj u omiljene", getDrawable(R.drawable.star_empty)))
-                            dialogState = DialogStates.FOLDER_OPTIONS
-                            showDialogWithActions(actions)
+                            shortcuts = listOf()
                         }
-                        circleView.clickIgnored = true
+                        openShortcutsMenu()
+                        if (shortcuts.isEmpty()) {
+                            view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        }
+                        Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
+                    } else {
+                        Log.d("ingo", "držali smo mapu")
+                        val actions = listOf(ShortcutAction(getTranslatedString(R.string.rename_folder), getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24)), ShortcutAction(getTranslatedString(R.string.delete_folder), getDrawable(R.drawable.ic_baseline_delete_24)), if(thing.favorite == true) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
+                        dialogState = DialogStates.FOLDER_OPTIONS
+                        showDialogWithActions(actions)
                     }
+                    circleView.clickIgnored = true
                 }
             }
         }
+    }
+
+    fun getTranslatedString(id: Int): String{
+        return MainActivity.resources2.getString(id)
     }
 
     fun openShortcut(index: Int){
@@ -235,6 +245,16 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
         if(thing.folderName == null) {
             if (index >= shortcuts.size) {
                 if (index == shortcuts.size) {
+                    // app info
+                    Log.d("ingo", "app info")
+                    val app = thing.apps.first()
+                    val intent = Intent()
+                    intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    val uri = Uri.fromParts("package", app.packageName, null)
+                    intent.data = uri
+                    startActivity(intent)
+                    shortcutPopup?.dismiss()
+                } else if (index == shortcuts.size + 1) {
                     // toggle app as favorite
                     Log.d("ingo", "toggle map as favorite")
                     val app = thing.apps.first()
@@ -242,8 +262,7 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
                     (activity as MainActivity).saveAppInfo(app)
                     circleView.invalidate()
                     shortcutPopup?.dismiss()
-                }
-                if (index == shortcuts.size + 1) {
+                } else if (index == shortcuts.size + 2) {
                     Log.d("ingo", "dodavanje u mapu")
                     // dodavanje u mapu (prikaži novi dijalog s opcijama "Nova mapa" i popis svih ostalih mapa) ili micanje iz mape
                     if (isAppAlreadyInMap(thing.apps.first())) {
@@ -308,8 +327,9 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
     fun openShortcutsMenu(){
         val appDrawable = viewModel.icons.value!![viewModel.rainbowAll.value!![app_index!!].apps.first().packageName]
         val actions = shortcuts.map{ShortcutAction(it.shortLabel.toString(), appDrawable)}.toMutableList().apply {
-            add(if(viewModel.rainbowAll.value!![app_index!!].apps.first().favorite) ShortcutAction("Makni iz omiljenih", getDrawable(R.drawable.star_fill)) else ShortcutAction("Dodaj u omiljene", getDrawable(R.drawable.star_empty)))
-            add(if(isAppAlreadyInMap(viewModel.rainbowAll.value!![app_index!!].apps.first())) ShortcutAction("Makni iz mape", getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction("Dodaj u mapu", getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
+            add(ShortcutAction(getTranslatedString(R.string.app_info), getDrawable(R.drawable.ic_outline_info_75)))
+            add(if(viewModel.rainbowAll.value!![app_index!!].apps.first().favorite) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
+            add(if(isAppAlreadyInMap(viewModel.rainbowAll.value!![app_index!!].apps.first())) ShortcutAction(getTranslatedString(R.string.remove_from_folder), getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction(getTranslatedString(R.string.add_to_folder), getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
         }
         dialogState = DialogStates.APP_SHORTCUTS
         showDialogWithActions(actions)
@@ -381,8 +401,8 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface, OnShortcutClick
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            MainFragmentRainbow().apply {
+        fun newInstance(leftOrRight: Boolean) =
+            MainFragmentRainbow(leftOrRight).apply {
 
             }
     }
