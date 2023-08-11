@@ -270,7 +270,7 @@ class MainActivity : AppCompatActivity(){
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
             for(app in newApps){
-                Log.d("ingo", "newapp ${app.label} ${app.color}")
+                //Log.d("ingo", "newapp ${app.label} ${app.color}")
                 try {
                     appDao.insertAll(app)
                 } catch (e:android.database.sqlite.SQLiteConstraintException) {
@@ -291,7 +291,7 @@ class MainActivity : AppCompatActivity(){
         }
 
         searchFragment = SearchFragment()
-        activitiesFragment = ActivitiesFragment()
+        activitiesFragment = ActivitiesFragment(uiDesignMode)
         actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
@@ -790,24 +790,24 @@ class MainActivity : AppCompatActivity(){
                 )
                 if(iconDrawable != null) {
                     iconBitmap = iconDrawable!!.toBitmap()
-                    Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
+                    //Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
                     if(iconBitmap!!.width > 200){
                         iconBitmap = iconBitmap!!.scaleWith(200f/iconBitmap!!.width)
                         iconDrawable = BitmapDrawable(resources, iconBitmap!!)
                     }
-                    Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
+                    //Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
                     if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
                         val color = getBestPrimaryColor(iconDrawable!!).toString()
                         viewModel.appsList.value!!.findLast { it.packageName == pname }?.color =
                             color
                         newApps.findLast { it.packageName == pname }?.color = color
                     }
-                    Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
+                    //Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
                     viewModel.icons.value!![pname] = iconDrawable
-                    Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
+                    //Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
                 } else {
                     viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
-                    Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
+                    //Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
                 }
             } catch (e: Resources.NotFoundException){}
         } catch (e: PackageManager.NameNotFoundException){}

@@ -52,7 +52,7 @@ private const val ARG_PARAM2 = "param2"
  * Use the [ActivitiesFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class ActivitiesFragment : Fragment() {
+class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
 
     private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
@@ -63,18 +63,17 @@ class ActivitiesFragment : Fragment() {
     lateinit var imm: InputMethodManager
     lateinit var shortcutPopup: PopupWindow
     lateinit var recycle_scroller: RecycleScroller
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+
     var radapter: ApplicationsListAdapter? = null
     var rowsVisibleCounter = 0
+    var design: UiDesignEnum
+    init {
+        this.design = design
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
+
     }
 
     override fun onCreateView(
@@ -100,7 +99,7 @@ class ActivitiesFragment : Fragment() {
             (activity as MainActivity).showLayout(MainActivity.Companion.Layouts.LAYOUT_SETTINGS)
         }
         recycler_view = view.findViewById(R.id.recycler_view)
-        radapter = ApplicationsListAdapter(viewModel)
+        radapter = ApplicationsListAdapter(viewModel, design)
         search_bar = view.findViewById(R.id.search_bar)
         popis_svih_aplikacija = view.findViewById(R.id.popis_svih_aplikacija)
         trazilica = view.findViewById(R.id.trazilica)
@@ -332,12 +331,9 @@ class ActivitiesFragment : Fragment() {
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            ActivitiesFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+        fun newInstance(design: UiDesignEnum) =
+            ActivitiesFragment(design).apply {
+
             }
     }
 }

@@ -198,7 +198,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             if(firstLetterOfApp > firstLetter){
                 firstLetter = firstLetterOfApp
                 new_letter_apps.add(counter)
-                Log.d("ingo", "${Gson().toJson(app)} $counter $firstLetter")
+                //Log.d("ingo", "${Gson().toJson(app)} $counter $firstLetter")
             }
             counter++
         }

@@ -485,12 +485,12 @@ class MainFragmentRainbow(leftOrRight: Boolean) : Fragment(), MainFragmentInterf
     fun prikaziPoljaKruga(onlyfavorites: Boolean){
         if(viewModel.appsList.value == null) return
         viewModel.updateRainbowAll(onlyfavorites)
-
+/*
         Log.d("ingo", "viewModel.appslist ${viewModel.appsList.value.toString()}")
         for(enc in viewModel.rainbowAll.value!!.map{it.apps}){
             Log.d("ingo", "rainbowAll $enc")
         }
-
+*/
         circleView.inFolder = false
         circleView.onlyfavorites = onlyfavorites
         if(onlyfavorites){

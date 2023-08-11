@@ -1,13 +1,19 @@
 package com.ingokodba.dragnav.baza
 
 import android.content.Context
+import android.os.Environment
+import android.util.Log
 import androidx.room.*
-import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.lang.ref.WeakReference
+
 
 @Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 6, exportSchema = true)
 @TypeConverters(Converters::class)
@@ -18,27 +24,31 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun appInfoDao(): AppInfoDao
     //abstract fun meniPoljaDao(): MeniPoljaDao
 
-    companion object {
+    fun setInstanceToNull(){
+        instance = WeakReference(null)
+    }
 
+    companion object {
+        var DATABASE_NAME: String = "database-name"
         // For Singleton instantiation
-        @Volatile private var instance: AppDatabase? = null
+        @Volatile private var instance: WeakReference<AppDatabase> = WeakReference(null)
 
         fun getInstance(context: Context): AppDatabase {
-            return instance ?: synchronized(this) {
-                instance ?: buildDatabase(context).also { instance = it }
+            return instance.get() ?: synchronized(this) {
+                instance.get() ?: buildDatabase(context).also { instance = WeakReference(it) }
             }
         }
 
-        fun replaceInstance(replace: AppDatabase){
-            if(instance != null) {
-                instance = replace
-            }
+        fun renewInstance(context: Context): AppDatabase {
+            return buildDatabase(context).also { instance = WeakReference(it) }
         }
+
+
 
         // Create and pre-populate the database. See this article for more details:
         // https://medium.com/google-developers/7-pro-tips-for-room-fbadea4bfbd1#4785
         private fun buildDatabase(context: Context): AppDatabase {
-            return Room.databaseBuilder(context, AppDatabase::class.java, "database-name")
+            return Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
                     /*.addCallback(
                             object : RoomDatabase.Callback() {
                                 override fun onCreate(db: SupportSQLiteDatabase) {

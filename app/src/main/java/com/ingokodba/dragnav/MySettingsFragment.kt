@@ -31,6 +31,9 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val EXPORT = "export"
         val FEEDBACK = "feedback"
         val RESTART = "restart"
+        val FROM_BACKUP = "from_backup"
+        val TO_BACKUP = "to_backup"
+        val RENEW_INSTANCE = "renew_instance"
         val DROP_DATABASE = "drop_database"
         val DEFAULT_APPS = "default_apps"
     }

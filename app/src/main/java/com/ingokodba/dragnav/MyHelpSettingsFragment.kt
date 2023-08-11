@@ -4,24 +4,24 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
 import com.example.dragnav.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.ingokodba.dragnav.MySettingsFragment.Companion.DEFAULT_APPS
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DROP_DATABASE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.FEEDBACK
+import com.ingokodba.dragnav.MySettingsFragment.Companion.FROM_BACKUP
+import com.ingokodba.dragnav.MySettingsFragment.Companion.RENEW_INSTANCE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.RESTART
+import com.ingokodba.dragnav.MySettingsFragment.Companion.TO_BACKUP
+import com.ingokodba.dragnav.baza.AppDatabase
+import kotlinx.coroutines.launch
 
 
 class MyHelpSettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
 
     val data:Intent = Intent()
-
-
 
     /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
         // Instantiate the new Fragment
@@ -69,6 +69,28 @@ class MyHelpSettingsFragment : PreferenceFragmentCompat() {
             (activity as SettingsActivity).finish()
             return@setOnPreferenceClickListener true
         }
+
+        val to_backup: Preference? = findPreference(TO_BACKUP)
+        to_backup?.setOnPreferenceClickListener  {
+            (activity as SettingsActivity).to_backup()
+            Toast.makeText(requireContext(), "To backup", Toast.LENGTH_SHORT).show()
+            return@setOnPreferenceClickListener true
+        }
+
+        val from_backup: Preference? = findPreference(FROM_BACKUP)
+        from_backup?.setOnPreferenceClickListener  {
+            (activity as SettingsActivity).from_backup()
+            Toast.makeText(requireContext(), "From backup", Toast.LENGTH_SHORT).show()
+            return@setOnPreferenceClickListener true
+        }
+
+        /*val renew_instance: Preference? = findPreference(RENEW_INSTANCE)
+        renew_instance?.setOnPreferenceClickListener  {
+            val db = AppDatabase.getInstance(requireContext())
+            db.(requireContext())
+            Toast.makeText(requireContext(), "From backup", Toast.LENGTH_SHORT).show()
+            return@setOnPreferenceClickListener true
+        }*/
 
     }
 

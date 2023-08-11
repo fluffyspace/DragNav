@@ -1,9 +1,11 @@
 package com.ingokodba.dragnav
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.MenuItem
@@ -16,6 +18,12 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import androidx.navigation.ui.setupActionBarWithNavController
+import com.ingokodba.dragnav.baza.AppDatabase
+import com.ingokodba.dragnav.baza.AppDatabase.Companion.DATABASE_NAME
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.lang.ref.WeakReference
 
 class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
     var navController: NavController? = null
@@ -66,6 +74,64 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
         val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
+    }
+
+    fun to_backup() {
+        val db = AppDatabase.getInstance(this)
+        try {
+            db.close()
+            val data = Environment.getDataDirectory()
+            val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
+            Log.e("ingo", currentDBPath)
+            Log.d("TAG", "DatabaseHandler: can write in sd")
+            //Replace with YOUR_PACKAGE_NAME and YOUR_DB_NAME
+            //Replace with YOUR_FOLDER_PATH and TARGET_DB_NAME in the SD card
+            val copieDBPath = "${DATABASE_NAME}_backup"
+            val currentDB = File(currentDBPath)
+            val copieDB = File(this.filesDir, copieDBPath)
+            if (currentDB.exists()) {
+                Log.d("TAG", "DatabaseHandler: DB exist")
+                val src = FileInputStream(currentDB).channel
+                val dst = FileOutputStream(copieDB).channel
+                dst.transferFrom(src, 0, src.size())
+                src.close()
+                dst.close()
+            } else {
+                Log.e("ingo", "currentDB doesnt exist")
+            }
+            db.setInstanceToNull()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun from_backup() {
+        val db = AppDatabase.getInstance(this)
+        try {
+            db.close()
+            val data = Environment.getDataDirectory()
+            Log.d("TAG", "DatabaseHandler: can write in sd")
+            //Replace with YOUR_PACKAGE_NAME and YOUR_DB_NAME
+            val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
+
+            //Replace with YOUR_FOLDER_PATH and TARGET_DB_NAME in the SD card
+            val copieDBPath = "${DATABASE_NAME}_backup"
+            val currentDB = File(currentDBPath)
+            val copieDB = File(this.filesDir, copieDBPath)
+            if (copieDB.exists()) {
+                Log.d("TAG", "DatabaseHandler: DB exist")
+                val src = FileInputStream(copieDB).channel
+                val dst = FileOutputStream(currentDB).channel
+                dst.transferFrom(src, 0, src.size())
+                src.close()
+                dst.close()
+            } else {
+                Log.e("ingo", "copieDB doesnt exist")
+            }
+            db.setInstanceToNull()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
