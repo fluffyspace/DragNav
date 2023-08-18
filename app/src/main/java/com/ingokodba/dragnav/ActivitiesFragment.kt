@@ -135,7 +135,7 @@ class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
             Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         }
 
-        val decorView  = activity?.window?.decorView ?: return
+        /*val decorView  = activity?.window?.decorView ?: return
         ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
             val showingKeyboard = insets.isVisible(WindowInsetsCompat.Type.ime())
             if(showingKeyboard){
@@ -148,7 +148,7 @@ class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
                 trazilica.visibility = View.GONE
             }
             insets
-        }
+        }*/
 
         search_bar.apply {
             setOnEditorActionListener { _, actionId, _ ->
@@ -168,12 +168,16 @@ class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
                 // find apps
                 val search_lista_aplikacija: MutableList<Pair<Int, AppInfo>>
                 if(search_bar.text.toString().length == 0) {
+                    popis_svih_aplikacija.visibility = View.VISIBLE
+                    trazilica.visibility = View.GONE
                     //val search_lista_aplikacija: MutableList<AppInfo> = mutableListOf()
                     val sortirano = viewModel.appsList.value!!.filter{ it.frequency > 0 }.sortedByDescending { it.lastLaunched }
                     val max = if (sortirano.size > 5) 5 else sortirano.size
                     search_lista_aplikacija = (0 until max)
                         .map { Pair(it, sortirano[it]) }.toMutableList()
                 } else {
+                    popis_svih_aplikacija.visibility = View.GONE
+                    trazilica.visibility = View.VISIBLE
                     search_lista_aplikacija =
                         SearchFragment.getAppsByQuery(
                             viewModel.appsList.value!!,
@@ -277,6 +281,11 @@ class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
             }
         val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
         itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))
+    }
+
+    override fun onPause() {
+        super.onPause()
+        search_bar.setText("")
     }
 
     fun locateView(v: View?): Rect? {

@@ -50,11 +50,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var size_height = 320
     private var app_list:List<EncapsulatedAppInfoWithFolder> = listOf()
     private var color_list:List<String> = listOf()
-    private var new_letter_apps:MutableList<Int> = mutableListOf()
-    private var hovered_over:Int = -1
     var questiondrawable: Bitmap? = null
     var homeDrawable: Bitmap? = null
-    //lateinit var radapter:RAdapter
     var bitmap: Bitmap? = null
 
     var gcolor = Color.parseColor("#FBB8AC")
@@ -99,15 +96,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var detectSizeDivider = 1.0
     var detectSize = 0
     var offset: Float = 0f
-    var last_abc: Char = '0'
-    var new_abc: Char = '0'
     var app_index: Int = 0
     val queued_texts: MutableList<QueuedText> = mutableListOf()
 
     var clickIgnored = false
     var clickProcessed = false
 
-    var sredina_processed = false
     var favcirclerect: Rect? = null
     var limit: Double = 0.0
 
@@ -119,9 +113,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var flingOn = false
 
     var lastTouchPoints: MutableList<Point> = mutableListOf()
-
     var hasMoved = false
-
     var leftOrRight: Boolean = true
 
     fun limit(number: Int): Boolean{
@@ -190,26 +182,18 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun setAppInfoList(list:List<EncapsulatedAppInfoWithFolder>){
         app_list = list
-        new_letter_apps.clear()
-        var firstLetter: Char = '0'
+        var firstLetter = '0'
         var counter = 0
         for(app in app_list){
             val firstLetterOfApp = getFirstLetterOfApp(app)
             if(firstLetterOfApp > firstLetter){
                 firstLetter = firstLetterOfApp
-                new_letter_apps.add(counter)
                 //Log.d("ingo", "${Gson().toJson(app)} $counter $firstLetter")
             }
             counter++
         }
-
-        hovered_over = -1
         invalidate()
         //Log.d("ingo", "circleviewb setTextList " + list.map{it.text})
-    }
-
-    fun setColorList(list:List<String>){
-        color_list = list
     }
 
     init {
@@ -300,11 +284,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         this.mEventListener = mEventListener
     }
 
-    fun lala(){
-        Log.d("ingo", "invalidatedd")
-        invalidate()
-    }
-
     fun amIHome(ami:Boolean?){
         if(ami != null) amIHomeVar=ami
         if(!addAppMode) {
@@ -367,6 +346,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun quickMove(point: Point){
+        if(app_list.size == drawn_apps.size) return
+        limit = -(app_list.size/2)*step_size - step_size*2
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
             (point.x - if(leftOrRight) size_width else 0).toDouble()
         )
@@ -381,7 +362,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         val firstByThatLetter = app_list.firstOrNull{getFirstLetterOfApp(it) == getFirstLetterOfApp(app_list.distinctBy { getFirstLetterOfApp(it) }[click])}
             ?: return
 
-        Log.d("ingo", "angle $angle ${firstByThatLetter} $click $quickSwipeAngles")
+        Log.d("ingo", "angle $angle ${Gson().toJson(firstByThatLetter)} $click $quickSwipeAngles")
         // saznati s kulko moramo pomnožiti
         val futureFoveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
         Log.d("ingo", "lol $moveDistancedAccumulated $limit")
@@ -534,7 +515,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             )*/
             drawCircle(draw_pointF.x, draw_pointF.y, radius*inner_radius2/6f, circle_paint)
 
-            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(inFolder) R.drawable.ic_baseline_home_100 else if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
+            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(inFolder) R.drawable.ic_baseline_arrow_back_24 else if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
             drawable?.setTint(Color.BLACK)
             val bitmap: Bitmap? = drawable?.toBitmap()
             if (bitmap != null) {
@@ -570,7 +551,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             val offsetDivided2 = offset2/step_size
             val offsetModulated2 = offset2%step_size
 
-            last_abc = '0'
             while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*(3f/2f)) < 0) {
                 var drawn = false
                 currentStepValue += step_size
@@ -707,10 +687,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                     if(bitmap != null) {
                         canvas.drawBitmap(
                             bitmap!!, null, Rect(
-                                (draw_pointF.x - detectSize + detectSize * i).toInt(),
-                                (draw_pointF.y - detectSize + detectSize * j).toInt(),
-                                (draw_pointF.x + detectSize * i).toInt(),
-                                (draw_pointF.y + detectSize * j).toInt()
+                                (draw_pointF.x - detectSize + detectSize * j).toInt(),
+                                (draw_pointF.y - detectSize + detectSize * i).toInt(),
+                                (draw_pointF.x + detectSize * j).toInt(),
+                                (draw_pointF.y + detectSize * i).toInt()
                             ), null
                         )
                     }

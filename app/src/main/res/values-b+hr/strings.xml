@@ -33,7 +33,7 @@
     <string name="show_circles">Prikaži prazne krugove</string>
     <string name="primary_color">Primarna boja</string>
     <string name="shadow">Prikaži sjene</string>
-    <string name="circle_border_width">Debljina okvira krugova</string>
+    <string name="circle_border_width">Debljina obruba krugova</string>
     <string name="icons">Prikaži ikone aplikacija</string>
     <string name="settings_im_ex">Uvoz/izvoz postavki</string>
     <string name="feedback_summary">Prijavi poteškoće ili predloži nove značajke</string>

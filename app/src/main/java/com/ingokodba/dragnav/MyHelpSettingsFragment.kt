@@ -73,14 +73,14 @@ class MyHelpSettingsFragment : PreferenceFragmentCompat() {
         val to_backup: Preference? = findPreference(TO_BACKUP)
         to_backup?.setOnPreferenceClickListener  {
             (activity as SettingsActivity).to_backup()
-            Toast.makeText(requireContext(), "To backup", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Backup successful", Toast.LENGTH_SHORT).show()
             return@setOnPreferenceClickListener true
         }
 
         val from_backup: Preference? = findPreference(FROM_BACKUP)
         from_backup?.setOnPreferenceClickListener  {
+            Toast.makeText(requireContext(), "Backup restored", Toast.LENGTH_SHORT).show()
             (activity as SettingsActivity).from_backup()
-            Toast.makeText(requireContext(), "From backup", Toast.LENGTH_SHORT).show()
             return@setOnPreferenceClickListener true
         }
 

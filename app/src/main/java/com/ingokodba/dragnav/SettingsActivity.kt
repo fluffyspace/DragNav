@@ -80,7 +80,6 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
         val db = AppDatabase.getInstance(this)
         try {
             db.close()
-            val data = Environment.getDataDirectory()
             val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
             Log.e("ingo", currentDBPath)
             Log.d("TAG", "DatabaseHandler: can write in sd")
@@ -109,7 +108,6 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
         val db = AppDatabase.getInstance(this)
         try {
             db.close()
-            val data = Environment.getDataDirectory()
             Log.d("TAG", "DatabaseHandler: can write in sd")
             //Replace with YOUR_PACKAGE_NAME and YOUR_DB_NAME
             val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
@@ -129,6 +127,10 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
                 Log.e("ingo", "copieDB doesnt exist")
             }
             db.setInstanceToNull()
+            val data = Intent()
+            data.putExtra("reload_apps", true);
+            this.setResult(Activity.RESULT_OK, data);
+            this.finish()
         } catch (e: Exception) {
             e.printStackTrace()
         }

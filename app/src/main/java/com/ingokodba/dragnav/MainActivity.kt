@@ -18,6 +18,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
@@ -36,9 +37,11 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
+import com.ingokodba.dragnav.MainFragmentRainbow.Companion.getTranslatedString
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -67,7 +70,7 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(){
+class MainActivity : AppCompatActivity(), OnShortcutClick{
     val viewModel: ViewModel by viewModels()
     var uiDesignMode: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
@@ -128,12 +131,72 @@ class MainActivity : AppCompatActivity(){
         Action(title="TIMER", description = "Timer", type = ActionTypes.ACTION_SEND_TO_APP),
     )
 
+    // shortcuts dialog
+    var shortcuts_recycler_view: RecyclerView? = null
+    var radapter: ShortcutsAdapter? = null
+    var shortcuts: List<ShortcutInfo> = listOf()
+    var dialogState: DialogStates? = null
+
+
     var import_export_action:Int = 0
 
     lateinit var mainFragment:MainFragmentInterface
     lateinit var searchFragment:SearchFragment
     lateinit var activitiesFragment:ActivitiesFragment
     lateinit var actionsFragment:ActionsFragment
+
+    fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
+        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
+        radapter = ShortcutsAdapter(this, onShortcutClick)
+        shortcuts_recycler_view = contentView.findViewById(R.id.shortcutList)
+        radapter?.actionsList = actions
+        shortcuts_recycler_view?.adapter = radapter
+        shortcuts_recycler_view?.addItemDecoration(SimpleDivider(this))
+
+        shortcutPopup?.dismiss()
+        shortcutPopup = PopupWindow(contentView,
+            ListPopupWindow.WRAP_CONTENT,
+            ListPopupWindow.WRAP_CONTENT, true)
+        //shortcutPopup?.animationStyle = R.style.PopupAnimation
+        shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
+    }
+
+    fun openShortcutsMenu(app_index: Int){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
+            var app = viewModel.rainbowAll.value!!.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+            if(app == -1){
+                // tu treba proći po mapama + app_index ne vrijedi zato jer se u rainbow fragmentu računa samo ona mapa koja je otvorena.
+                app = viewModel.rainbowAll.value!!.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+            }
+            if (app != -1) {
+                (mainFragment as MainFragmentRainbow).app_index = app
+                (mainFragment as MainFragmentRainbow).openShortcutsMenu(viewModel.rainbowAll.value!![app])
+            } else {
+                Log.e("ingo", "openShortcutsMenu returned null")
+            }
+        }
+        if(uiDesignMode == UiDesignEnum.CIRCLE || uiDesignMode == UiDesignEnum.CIRCLE_LEFT_HAND || uiDesignMode == UiDesignEnum.CIRCLE_RIGHT_HAND){
+
+        }
+    }
+
+    fun openShortcut(index: Int){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
+            (mainFragment as MainFragmentRainbow).openShortcut(index)
+        }
+    }
+
+    fun isAppAlreadyInMap(whatApp: AppInfo): Boolean{
+        return viewModel.rainbowMape.value!!.find { mape -> mape.apps.find{ app -> app.packageName == whatApp.packageName} != null } != null
+    }
+
+    override fun onShortcutClick(index: Int) {
+        Log.d("ingo", "clicked on shortcut...")
+        when(dialogState){
+            DialogStates.APP_SHORTCUTS -> openShortcut(index)
+            else -> {}
+        }
+    }
 
     fun changeLocale(c:Context){
         val config = c.resources.configuration
@@ -158,7 +221,6 @@ class MainActivity : AppCompatActivity(){
         backButtonAction = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_BACKBUTTON, false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
 
         // ako ovo ne bi bilo prije super.onCreate(savedInstanceState), onCreate funkcija bi se pozivala dva puta i developer bi si počupao kosu jer ne bi znao zašto aplikacija ne radi kako treba
@@ -282,9 +344,9 @@ class MainActivity : AppCompatActivity(){
 
     fun loadFragments(){
         mainFragment = when(uiDesignMode){
-            UiDesignEnum.CIRCLE -> MainFragment()
-            UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand(true)
-            UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragmentRightHand(false)
+            UiDesignEnum.CIRCLE, UiDesignEnum.CIRCLE_RIGHT_HAND, UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragment()
+            //UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand(true)
+            //UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragmentRightHand(false)
             UiDesignEnum.RAINBOW_RIGHT -> MainFragmentRainbow(true)
             UiDesignEnum.RAINBOW_LEFT -> MainFragmentRainbow(false)
             UiDesignEnum.KEYPAD -> MainFragmentTipke()
@@ -442,6 +504,15 @@ class MainActivity : AppCompatActivity(){
                 {
                     mainFragment.refreshCurrentMenu()
                 }
+                if(data.hasExtra("reload_apps"))
+                {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                    initializeRoom()
+                        withContext(Dispatchers.Main){
+                            mainFragment.refreshCurrentMenu()
+                        }
+                    }
+                }
                 if(data.hasExtra("backButtonAction"))
                 {
                     backButtonAction = data.getBooleanExtra("backButtonAction", false)
@@ -577,8 +648,8 @@ class MainActivity : AppCompatActivity(){
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
             appDao.update(application)
-            val lol = appDao.getAll()
-            Log.d("ingo", lol.map { it.label + " " + it.frequency }.toString())
+            //val lol = appDao.getAll()
+            //Log.d("ingo", lol.map { it.label + " " + it.frequency }.toString())
         }
     }
 
@@ -588,8 +659,8 @@ class MainActivity : AppCompatActivity(){
         application.frequency++// = application.frequency!! + 1
         application.lastLaunched = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
         appDao.update(application)
-        val lol = appDao.getAll()
-        Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
+        //val lol = appDao.getAll()
+        //Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
     }
 
     fun isPackageNameOnDevice(packageName: String): Boolean{
@@ -658,6 +729,13 @@ class MainActivity : AppCompatActivity(){
 
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
+        viewModel.sviKrugovi = mutableListOf()
+        if(viewModel.appsList.value?.size!! > 0) {
+            withContext(Dispatchers.Main) {
+                viewModel.clearApps()
+            }
+        }
+        viewModel.highestId = 0
         if(dontLoadApps){
             viewModel.sviKrugovi += pocetna
             viewModel.pocetnaId = pocetna.id
@@ -796,12 +874,12 @@ class MainActivity : AppCompatActivity(){
                         iconDrawable = BitmapDrawable(resources, iconBitmap!!)
                     }
                     //Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
-                    if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
+                    //if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
                         val color = getBestPrimaryColor(iconDrawable!!).toString()
                         viewModel.appsList.value!!.findLast { it.packageName == pname }?.color =
                             color
                         newApps.findLast { it.packageName == pname }?.color = color
-                    }
+                    //}
                     //Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
                     viewModel.icons.value!![pname] = iconDrawable
                     //Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
@@ -857,6 +935,8 @@ class MainActivity : AppCompatActivity(){
         return viewModel.appsList.value!!.find{ it.id == guid } != null
     }
 
+
+
     fun getBestPrimaryColor(icon:Drawable): Int{
         val bitmap: Bitmap = icon.toBitmap(5, 5, Bitmap.Config.RGB_565)
         var best_diff_j = 0
@@ -881,7 +961,8 @@ class MainActivity : AppCompatActivity(){
     fun loadNewApps(): MutableList<AppInfo>{
         //Log.d("ingo5", "getinstalledpackages start")
         //Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
-        val gson = Gson()
+
+
         val newApps: MutableList<AppInfo> = mutableListOf()
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
@@ -961,6 +1042,8 @@ class MainActivity : AppCompatActivity(){
                 }
             } else if(event.type == MessageEventType.FAVORITE){
                 saveAppInfo(event.app)
+            } else if(event.type == MessageEventType.LONG_HOLD){
+                openShortcutsMenu(event.pos)
             }
         }
     }
@@ -996,10 +1079,11 @@ class MainActivity : AppCompatActivity(){
         //super.onBackPressed()
     }
 
-    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, callback: (String) -> Unit){
+    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, callback: (String) -> Unit){
         gcolor = Color.GRAY
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
         contentView.findViewById<TextView>(R.id.title).text = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
+        contentView.findViewById<TextView>(R.id.popup_folder_name).text = name
         contentView.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
             shortcutPopup?.dismiss()
         }
@@ -1054,7 +1138,7 @@ class MainActivity : AppCompatActivity(){
         val view = LayoutInflater.from(applicationContext).inflate(R.layout.popup_add_which, null)
         view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
             //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
-            openFolderNameMenu(view, false){createCircleFolder(it)}
+            openFolderNameMenu(view, false, ""){createCircleFolder(it)}
         }
         view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
             //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
@@ -1125,7 +1209,12 @@ class MainActivity : AppCompatActivity(){
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.getInstance(this@MainActivity)
             val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
-            rainbowMapaDao.insertAll(polje)
+            val roomId = rainbowMapaDao.insert(polje)
+            withContext(Dispatchers.Main){
+                viewModel.addRainbowMape(mutableListOf(polje.apply { id = roomId.toInt() }))
+                (mainFragment as MainFragmentRainbow).saveCurrentMoveDistance()
+                (mainFragment as MainFragmentRainbow).prebaciMeni()
+            }
             Log.d("ingo", "inserted " + polje.folderName + "(" + polje.id + ")")
         }
     }
@@ -1204,26 +1293,10 @@ class MainActivity : AppCompatActivity(){
         }
         return null
     }
+}
 
-    /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
-        // Instantiate the new Fragment
-        val args = pref.extras
-        val fragment = pref.fragment?.let {
-            supportFragmentManager.fragmentFactory.instantiate(
-                classLoader,
-                it
-            )
-        }
-        if (fragment != null) {
-            fragment.arguments = args
-            fragment.setTargetFragment(caller, 0)
-            // Replace the existing Fragment with the new Fragment
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.settings_container, fragment)
-                .addToBackStack(null)
-                .commit()
-            return true
-        }
-        return false
-    }*/
+enum class DialogStates{APP_SHORTCUTS, ADDING_TO_FOLDER, FOLDER_OPTIONS}
+
+interface OnShortcutClick {
+    fun onShortcutClick(index: Int)
 }

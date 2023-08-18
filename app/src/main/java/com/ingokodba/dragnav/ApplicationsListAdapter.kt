@@ -37,7 +37,6 @@ class ApplicationsListAdapter(viewModel: ViewModel, designEnum: UiDesignEnum) :
         var addappbutton:LinearLayout = view.findViewById(R.id.addappbutton)
         var favoritebutton:LinearLayout = view.findViewById(R.id.favoritebutton)
         var favoriteimage:ImageView = view.findViewById(R.id.favoriteimage)
-
     }
 
     /**
@@ -124,7 +123,8 @@ class ApplicationsListAdapter(viewModel: ViewModel, designEnum: UiDesignEnum) :
             if(appInfo.color != "") holder.textView.setBackgroundColor(appInfo.color.toInt())
             holder.textView.text = if(designEnum != UiDesignEnum.KEYPAD) appInfo.label else appInfo.label + " - " + pos
             holder.itemView.setOnLongClickListener{ v ->
-                showMenu(pos)
+                EventBus.getDefault().post(MessageEvent(appInfo.label, pos, appInfo.packageName, appInfo.color, type = MessageEventType.LONG_HOLD, app = appInfo))
+                //showMenu(pos)
                 return@setOnLongClickListener true
             }
             holder.itemView.setOnClickListener { v ->

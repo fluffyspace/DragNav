@@ -57,6 +57,7 @@
                     android:scaleType="centerCrop"
                     android:padding="0dp"
                     android:background="@android:color/transparent"
+                    style="@style/TextShadowStyle2"
                     android:src="@drawable/ic_baseline_settings_100" />
                 <ImageButton
                     android:id="@+id/edit"

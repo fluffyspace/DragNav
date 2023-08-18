@@ -37,6 +37,9 @@ interface RainbowMapaDao {
     @Insert
     fun insertAll(vararg polja: RainbowMapa): List<Long>
 
+    @Insert
+    fun insert(polje: RainbowMapa): Long
+
     @Update
     fun update(polje: RainbowMapa)
 

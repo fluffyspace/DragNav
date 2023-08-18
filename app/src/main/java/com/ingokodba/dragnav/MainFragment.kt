@@ -27,7 +27,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 class MainFragment() : Fragment(), MainFragmentInterface {
 
     lateinit var circleView: CircleView
-    lateinit var bottomMenuView: BottomMenuView
+    var bottomMenuView: BottomMenuView? = null
     lateinit var relativeLayout: LinearLayout
     private val viewModel: ViewModel by activityViewModels()
     lateinit var mactivity:MainActivity
@@ -38,6 +38,9 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     lateinit var addApp: Button
 
     override var fragment: Fragment = this
+
+    var editMenu: LinearLayout? = null
+    var normalMenu: LinearLayout? = null
 
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -52,10 +55,41 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         circleView = view.findViewById(R.id.circleview)
-        bottomMenuView = view.findViewById(R.id.bottomMenuView)
+        if(mactivity.uiDesignMode == UiDesignEnum.CIRCLE) bottomMenuView = view.findViewById(R.id.bottomMenuView)
         relativeLayout = view.findViewById(R.id.relativelayout)
 
-        bottomMenuView.updateTexts(listOf(MainActivity.resources2.getString(R.string.rename), MainActivity.resources2.getString(R.string.delete), MainActivity.resources2.getString(R.string.enter), MainActivity.resources2.getString(R.string.cancel)))
+        if(mactivity.uiDesignMode == UiDesignEnum.CIRCLE_RIGHT_HAND || mactivity.uiDesignMode == UiDesignEnum.CIRCLE_LEFT_HAND) {
+            editMenu = view.findViewById(R.id.editMenu)
+            normalMenu = view.findViewById(R.id.normalMenu)
+
+            view.findViewById<ImageButton>(R.id.search).setOnClickListener {
+                mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SEARCH)
+            }
+            view.findViewById<ImageButton>(R.id.list).setOnClickListener {
+                mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
+            }
+            view.findViewById<ImageButton>(R.id.edit).setOnClickListener {
+                toggleEditMode()
+            }
+            view.findViewById<ImageButton>(R.id.settings).setOnClickListener {
+                settings()
+            }
+
+            view.findViewById<ImageButton>(R.id.rename).setOnClickListener {
+                mactivity.showMyDialog(viewModel.editSelected)
+            }
+            view.findViewById<ImageButton>(R.id.delete).setOnClickListener {
+                mactivity.deleteSelectedItem(viewModel.editSelected)
+            }
+            view.findViewById<ImageButton>(R.id.enter).setOnClickListener {
+                enterSelected()
+            }
+            view.findViewById<ImageButton>(R.id.cancel).setOnClickListener {
+                toggleEditMode()
+            }
+        }
+
+        bottomMenuView?.updateTexts(listOf(MainActivity.resources2.getString(R.string.rename), MainActivity.resources2.getString(R.string.delete), MainActivity.resources2.getString(R.string.enter), MainActivity.resources2.getString(R.string.cancel)))
 
         addingMenuCancelOk = view.findViewById(R.id.addingMenuCancelOk)
         cancelAddingApp = view.findViewById(R.id.cancelAddingApp)
@@ -82,7 +116,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
                 touched(event, redniBrojPolja, current)
             }
         })
-        bottomMenuView.setEventListener(object :
+        bottomMenuView?.setEventListener(object :
             BottomMenuView.IMyOtherEventListener {
             override fun onEventOccurred(event: MotionEvent, counter: Int) {
                 touched2(event, counter)
@@ -94,7 +128,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
             setMargins(0, 0, 0, (bottomMenuView.detectSize*2+bottomMenuView.padding*3).toInt())
         }*/
         relativeLayout.setOnClickListener {
-            bottomMenuView.collapse()
+            bottomMenuView?.collapse()
             Log.d("ingo", "collapse?")
         }
         if(viewModel.icons.value != null){
@@ -105,12 +139,12 @@ class MainFragment() : Fragment(), MainFragmentInterface {
             circleView.addAppMode = viewModel.addNewAppMode
             if(viewModel.addNewAppMode) {
                 circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
-                bottomMenuView.visibility = View.GONE
+                bottomMenuView?.visibility = View.GONE
                 addingMenuCancelOk.visibility = View.VISIBLE
             } else {
                 circleView.amIHome(null)
                 addingMenuCancelOk.visibility = View.GONE
-                bottomMenuView.visibility = View.VISIBLE
+                bottomMenuView?.visibility = View.VISIBLE
             }
         }
 
@@ -128,7 +162,12 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main, container, false)
+        return inflater.inflate(
+            when(mactivity.uiDesignMode){
+                UiDesignEnum.CIRCLE_RIGHT_HAND -> R.layout.fragment_main_right_hand
+                UiDesignEnum.CIRCLE_LEFT_HAND -> R.layout.fragment_main_left_hand
+                else -> R.layout.fragment_main
+            }, container, false)
     }
 
     companion object {
@@ -170,7 +209,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
 
     fun touched(event:MotionEvent, redniBrojPolja:Int, no_draw_position:Int){
         Log.d("ingo", "touched " + event.action.toString() + " " + redniBrojPolja + " " + no_draw_position)
-        bottomMenuView.collapse()
+        bottomMenuView?.collapse()
         //Log.d("ingo", "pozvalo me")
         var sublist_counter = redniBrojPolja
         // redniBrojPolja govori koji po redu je oznacen, a sublist_counter govori koji textview je oznacen
@@ -243,8 +282,8 @@ class MainFragment() : Fragment(), MainFragmentInterface {
                 Log.d("ingo", "well its true")
                 if (viewModel.editSelected == -1 || viewModel.editSelected != redniBrojPolja) {
                     viewModel.editSelected = redniBrojPolja
-                    bottomMenuView.selectedId = viewModel.editSelected
-                    bottomMenuView.invalidate()
+                    bottomMenuView?.selectedId = viewModel.editSelected
+                    bottomMenuView?.invalidate()
                     circleView.selectPolje(redniBrojPolja)
                     //Log.d("ingo", "selected " + sublist_counter + " " + viewModel.currentSubmenuList[sublist_counter].text + " " + viewModel.currentSubmenuList[sublist_counter].id)
                     //textView?.setBackgroundColor(Color.YELLOW)
@@ -325,7 +364,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     }
 
     fun collapseMenu(){
-        bottomMenuView.collapse()
+        bottomMenuView?.collapse()
     }
 
     fun settings(){
@@ -364,12 +403,12 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         circleView.addAppMode = viewModel.addNewAppMode
         if(viewModel.addNewAppMode) {
             circleView.changeMiddleButtonState(MIDDLE_BUTTON_CHECK)
-            bottomMenuView.visibility = View.GONE
+            bottomMenuView?.visibility = View.GONE
             addingMenuCancelOk.visibility = View.VISIBLE
         } else {
             circleView.amIHome(null)
             addingMenuCancelOk.visibility = View.GONE
-            bottomMenuView.visibility = View.VISIBLE
+            bottomMenuView?.visibility = View.VISIBLE
         }
     }
     override fun refreshCurrentMenu(){
@@ -381,8 +420,8 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     fun deYellowAll(){
         circleView.deselectAll()
         viewModel.editSelected = -1
-        bottomMenuView.selectedId = -1
-        bottomMenuView.invalidate()
+        bottomMenuView?.selectedId = -1
+        bottomMenuView?.invalidate()
     }
     fun prebaciMeni(id:Int, counter:Int, nostack:Boolean=false, precaci:Boolean=false): KrugSAplikacijama? {
         val polje = getPolje(id)
@@ -429,7 +468,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
             }
             //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
             precaci = precaci_info?.map{
-                KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
+                KrugSAplikacijama(id=0, text= it.shortLabel.toString(), nextIntent = it.`package`, nextId = it.id, shortcut = true)
             } as MutableList<KrugSAplikacijama>
         }
         if(idKruga == viewModel.pocetnaId){
@@ -463,13 +502,17 @@ class MainFragment() : Fragment(), MainFragmentInterface {
         circleView.changeMiddleButtonState(MIDDLE_BUTTON_EDIT)
         circleView.invalidate()
         if(viewModel.editMode){
-            bottomMenuView.editMode = true
-            bottomMenuView.postInvalidate()
+            bottomMenuView?.editMode = true
+            bottomMenuView?.postInvalidate()
             circleView.invalidate()
+            normalMenu?.visibility = View.GONE
+            editMenu?.visibility = View.VISIBLE
         } else {
             deYellowAll()
-            bottomMenuView.editMode = false
-            bottomMenuView.postInvalidate()
+            bottomMenuView?.editMode = false
+            bottomMenuView?.postInvalidate()
+            normalMenu?.visibility = View.VISIBLE
+            editMenu?.visibility = View.GONE
         }
     }
     override fun goToHome(){

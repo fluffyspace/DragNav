@@ -8,4 +8,10 @@
     android:textSize="20sp"
     android:padding="30dp"
     android:textColor="@color/white"
-    android:background="@color/black"/>
+    android:textAppearance="@style/TextShadowStyle2"
+    android:shadowRadius="2"
+    android:shadowColor="@color/black"
+    android:shadowDx="0"
+    android:shadowDy="0"
+    android:outlineAmbientShadowColor="@color/black"
+    android:outlineSpotShadowColor="@color/black"/>

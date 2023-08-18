@@ -6,6 +6,7 @@ import androidx.compose.ui.text.toLowerCase
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.google.gson.Gson
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
@@ -42,8 +43,8 @@ class ViewModel : ViewModel() {
     var currentlyLoadingApps: MutableList<String> = mutableListOf()
 
     fun initialize(){
-        _icons.postValue(mutableMapOf())
-        _popis_aplikacija.postValue(mutableListOf())
+        _icons.value = mutableMapOf()
+        _popis_aplikacija.value = mutableListOf()
         _rainbow_mape.value = mutableListOf()
         _rainbow_all.value = mutableListOf()
         trenutnoPrikazanaPolja = listOf()
@@ -71,6 +72,7 @@ class ViewModel : ViewModel() {
             sortBy { if(it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() }
         }
         _rainbow_all.value = sve
+        Log.d("ingo22", Gson().toJson(sve.map{sveit -> sveit.apps.map{appit -> appit.label}}))
     }
 
     fun getApps(): List<AppInfo>{
@@ -85,7 +87,8 @@ class ViewModel : ViewModel() {
         val newapps = apps.toMutableList()
         for(rainbowMapa in rainbowMape.value!!){
             for(app in rainbowMapa.apps){
-                newapps.remove(app)
+                newapps.remove(newapps.find{it.packageName == app.packageName})
+                Log.d("ingo", "removing $app")
             }
         }
         return newapps
@@ -94,6 +97,7 @@ class ViewModel : ViewModel() {
     fun addRainbowMape(mape: MutableList<RainbowMapa>){
         Log.d("ingo", "mape $mape")
         if(mape.size != 0) _rainbow_mape.value = (_rainbow_mape.value!!.plus(mape).toMutableList())
+        Log.d("ingo", "rainbowmape ${_rainbow_mape.value}")
     }
 
     fun updateRainbowMapa(mapa: RainbowMapa){
@@ -112,6 +116,10 @@ class ViewModel : ViewModel() {
         for(app in concatenatedApps){
             //Log.d("ingo", app.label + "->" + app.packageName)
         }
+    }
+
+    fun clearApps(){
+        _popis_aplikacija.value = mutableListOf()
     }
 
     fun removeApp(app: AppInfo){

@@ -476,7 +476,7 @@ class MainFragmentRightHand(leftOrRight: Boolean) : Fragment(), MainFragmentInte
             }
             //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
             precaci = precaci_info?.map{
-                KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
+                KrugSAplikacijama(id=0, text= it.shortLabel.toString(), nextIntent = it.`package`, nextId = it.id, shortcut = true)
             } as MutableList<KrugSAplikacijama>
         }
         if(idKruga == viewModel.pocetnaId){

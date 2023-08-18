@@ -27,9 +27,9 @@
     <Preference
         android:key="rainbow_preferences"
         android:title="@string/rainbow_preferences"
-        android:icon="@drawable/rainbow_3_"
+        android:icon="@drawable/rainbow2"
         android:summary="@string/color_text_size_border_width_hide_icons_hide_text"
-        app:isPreferenceVisible="false"/>
+        app:isPreferenceVisible="false" />
 
     <Preference
         android:key="general_preferences"
