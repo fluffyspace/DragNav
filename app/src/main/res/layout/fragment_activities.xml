@@ -1,9 +1,12 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout
+
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.ingokodba.dragnav.ActivitiesFragment"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/frame_layout">
 
     <LinearLayout
         android:id="@+id/recycle_container"
@@ -101,11 +104,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="?attr/colorOnSurface"/>
-                <com.google.android.material.chip.ChipGroup
+                <com.google.android.flexbox.FlexboxLayout
                     android:id="@+id/chipgroup_aplikacije"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:scrollbars="horizontal"/>
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    app:flexWrap="wrap"
+                    app:alignItems="flex_start"
+                    app:alignContent="flex_start"/>
             </LinearLayout>
         </FrameLayout>
     </LinearLayout>

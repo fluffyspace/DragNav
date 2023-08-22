@@ -18,8 +18,8 @@ android {
         applicationId "com.ingokodba.dragnav"
         minSdk 26
         targetSdk 34
-        versionCode 12
-        versionName "0.8.4"
+        versionCode 13
+        versionName "0.8.5"
         resConfigs 'en', 'hr'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -105,5 +105,5 @@ dependencies {
     // Jetpack Compose Integration
     implementation "androidx.navigation:navigation-compose:$nav_version"
 
-
+    implementation 'com.google.android.flexbox:flexbox:3.0.0'
 }

@@ -15,17 +15,15 @@ import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.ListPopupWindow
@@ -40,8 +38,6 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.gson.Gson
-import com.ingokodba.dragnav.MainFragmentRainbow.Companion.getTranslatedString
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -1079,22 +1075,29 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         //super.onBackPressed()
     }
 
-    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, callback: (String) -> Unit){
+    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, showPickColor: Boolean, callback: (String) -> Unit){
         gcolor = Color.GRAY
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
+        val popupFolderName = contentView.findViewById<TextView>(R.id.popup_folder_name)
         contentView.findViewById<TextView>(R.id.title).text = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
-        contentView.findViewById<TextView>(R.id.popup_folder_name).text = name
+        popupFolderName.text = name
         contentView.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
             shortcutPopup?.dismiss()
         }
-        contentView.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
-            startColorpicker()
+        contentView.findViewById<Button>(R.id.pick_folder_color).apply {
+            if(showPickColor) {
+                setOnClickListener {
+                    startColorpicker()
+                }
+            } else {
+                visibility = View.GONE
+            }
         }
         contentView.findViewById<Button>(R.id.popup_folder_submit).apply {
             text = if(addingOrEditing) getString(R.string.edit_folder) else getString(R.string.add_folder)
             setOnClickListener {
                 val ime: String =
-                    contentView.findViewById<EditText>(R.id.popup_folder_name).text.toString()
+                    popupFolderName.text.toString()
                 if (ime != "") {
                     Log.d("ingo", "usli")
                     shortcutPopup?.dismiss()
@@ -1112,6 +1115,10 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
         shortcutPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
+        //popupFolderName.requestFocus()
+        val inputMethodManager: InputMethodManager =
+            this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.showSoftInput(popupFolderName, InputMethodManager.SHOW_IMPLICIT)
     }
 
     fun showIntroPopup(){
@@ -1138,7 +1145,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         val view = LayoutInflater.from(applicationContext).inflate(R.layout.popup_add_which, null)
         view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
             //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
-            openFolderNameMenu(view, false, ""){createCircleFolder(it)}
+            openFolderNameMenu(view, false, "", false){createCircleFolder(it)}
         }
         view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
             //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()

@@ -187,8 +187,8 @@ class MainFragmentRainbow(leftOrRight: Boolean) : Fragment(), MainFragmentInterf
     }
 
     fun openCreateFolderDialog(){
-        (activity as MainActivity).openFolderNameMenu(this.circleView, false, "") {
-            val novaMapa = RainbowMapa(0, it, mutableListOf(viewModel.rainbowAll.value!![app_index!!].apps.first()))
+        (activity as MainActivity).openFolderNameMenu(this.circleView, false, "", false) {
+            val novaMapa = RainbowMapa(0, it, mutableListOf(viewModel.rainbowAll.value!![app_index!!].apps.first()), true)
             (activity as MainActivity).rainbowMapaInsertItem(novaMapa)
         }
     }
@@ -510,7 +510,7 @@ class MainFragmentRainbow(leftOrRight: Boolean) : Fragment(), MainFragmentInterf
             0 -> {
                 // uredi mapu (preimenuj)
                 val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowAll.value!![app_index!!].folderName }
-                (activity as MainActivity).openFolderNameMenu(this.circleView, true, mapa!!.folderName){ime ->
+                (activity as MainActivity).openFolderNameMenu(this.circleView, true, mapa!!.folderName, false){ime ->
                     val nova_mapa = mapa?.copy(folderName = ime)
                     if (nova_mapa != null) {
                         viewModel.updateRainbowMapa(nova_mapa)

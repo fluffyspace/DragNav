@@ -99,7 +99,9 @@ class SearchFragment : Fragment() {
                         .map { Pair(it, sortirano[it]) }.toMutableList()
                 } else {
                     search_lista_aplikacija =
-                        getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString())
+                        getAppsByQuery(viewModel.appsList.value!!, search_bar.text.toString()).apply{
+                            sortByDescending { it.second.lastLaunched }
+                        }
                 }
 
                 /*chipGroup.setOnClickListener{
@@ -226,6 +228,39 @@ class SearchFragment : Fragment() {
             //var slova_search = query.map{ it }
             val slova_search_lowercase = query.map{ it.lowercaseChar() }
             for(app in apps) {
+                // novi algoritam
+                // ime aplikacije podijeliš na riječi
+                var words = app.label.split(Regex("(?=[A-Z])"), 0)//.plus(app.packageName.substring(app.packageName.indexOf('.')+1))
+                words = words.filter{it != ""}
+                var count = 0
+                var score = 0
+                var pos = 0
+                for((i,word) in words.withIndex()){
+                    if(pos >= query.length) break
+                    // ako započinje
+                    for(letter in word.lowercase()){
+                        if(letter == slova_search_lowercase[pos]){
+                            count++
+                            score += 10-i
+                            pos++
+                            if(pos >= query.length) break
+                        } else {
+                            break
+                        }
+                    }
+                }
+                if(count > 0){
+                    Log.e("ingo", "${app.label} $count $words")
+                }
+                if(count == query.length) search_lista_aplikacija.add(Pair(score, app))
+
+
+
+            //World Geography    woge
+
+
+/*
+
                 var score = 0
                 var index_counter = 0
                 // provjerava ako je svako koje je u query prisutno u labeli aplikacije. ako nije, preskače se aplikacija
@@ -279,7 +314,7 @@ class SearchFragment : Fragment() {
                         )
                     }
                 }
-                if(score > 0) search_lista_aplikacija.add(Pair(score, app))
+                if(score > 0) search_lista_aplikacija.add(Pair(score, app))*/
             }
             search_lista_aplikacija.sortByDescending { it.first }
             return search_lista_aplikacija

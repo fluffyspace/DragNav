@@ -6,11 +6,14 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.Settings
 import android.util.Log
 import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.Preference
@@ -22,12 +25,20 @@ import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppDatabase.Companion.DATABASE_NAME
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.io.IOException
 import java.lang.ref.WeakReference
 
 class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
     var navController: NavController? = null
     var navHostFragment: NavHostFragment? = null
+
+    companion object{
+        const val CREATE_BACKUP_FILE = 1
+        const val OPEN_BACKUP_FILE = 2
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setSupportActionBar(findViewById(R.id.settings_toolbar))
@@ -77,6 +88,76 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
     }
 
     fun to_backup() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            putExtra(Intent.EXTRA_TITLE, "backup.sqlite")
+            type = "application/x-sqlite3"
+        }
+        startActivityForResult(intent, CREATE_BACKUP_FILE)
+    }
+
+    override fun onActivityResult(
+        requestCode: Int, resultCode: Int, resultData: Intent?) {
+        super.onActivityResult(requestCode, resultCode, resultData)
+        if (requestCode == CREATE_BACKUP_FILE && resultCode == Activity.RESULT_OK) {
+            // The result data contains a URI for the document or directory that
+            // the user selected.
+            resultData?.data?.also { uri ->
+                val db = AppDatabase.getInstance(this)
+                try {
+                    db.close()
+                    val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
+                    Log.e("ingo", currentDBPath)
+                    Log.d("TAG", "DatabaseHandler: can write in sd")
+                    val currentDB = File(currentDBPath)
+
+                    contentResolver.openFileDescriptor(uri, "w")?.use {
+                        FileOutputStream(it.fileDescriptor).use { fos ->
+                            FileInputStream(currentDB).use { fis ->
+                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
+                            }
+                        }
+                    }
+                } catch (e: FileNotFoundException) {
+                    e.printStackTrace()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+                db.setInstanceToNull()
+            }
+        } else if (requestCode == OPEN_BACKUP_FILE && resultCode == Activity.RESULT_OK) {
+            // The result data contains a URI for the document or directory that
+            // the user selected.
+            resultData?.data?.also { uri ->
+                val db = AppDatabase.getInstance(this)
+                try {
+                    db.close()
+                    val currentDBPath = this.getDatabasePath(DATABASE_NAME).path
+                    Log.e("ingo", currentDBPath)
+                    Log.d("TAG", "DatabaseHandler: can write in sd")
+                    val currentDB = File(currentDBPath)
+                    contentResolver.openFileDescriptor(uri, "r")?.use {
+                        FileInputStream(it.fileDescriptor).use { fis ->
+                            FileOutputStream(currentDB).use { fos ->
+                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
+                            }
+                        }
+                    }
+                } catch (e: FileNotFoundException) {
+                    e.printStackTrace()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+                db.setInstanceToNull()
+                val data = Intent()
+                data.putExtra("restart", true);
+                this.setResult(Activity.RESULT_OK, data);
+                this.finish()
+            }
+        }
+    }
+
+    fun to_backup_old() {
         val db = AppDatabase.getInstance(this)
         try {
             db.close()
@@ -104,7 +185,17 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
         }
     }
 
-    fun from_backup() {
+    fun from_backup(){
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+
+        startActivityForResult(intent, OPEN_BACKUP_FILE)
+
+    }
+
+    fun from_backup_old() {
         val db = AppDatabase.getInstance(this)
         try {
             db.close()

@@ -346,7 +346,11 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun quickMove(point: Point){
-        if(app_list.size == drawn_apps.size) return
+        if(app_list.size == drawn_apps.size){
+            moveDistancedAccumulated = 0
+            invalidate()
+            return
+        }
         limit = -(app_list.size/2)*step_size - step_size*2
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
             (point.x - if(leftOrRight) size_width else 0).toDouble()
