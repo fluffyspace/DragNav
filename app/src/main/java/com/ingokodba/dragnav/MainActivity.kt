@@ -38,6 +38,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -220,18 +221,16 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     override fun onCreate(savedInstanceState: Bundle?) {
 
         // ako ovo ne bi bilo prije super.onCreate(savedInstanceState), onCreate funkcija bi se pozivala dva puta i developer bi si počupao kosu jer ne bi znao zašto aplikacija ne radi kako treba
-        val darkModeString = getString(R.string.dark_mode)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
-        when (darkModePreference) {
+        when (PreferenceManager.getDefaultSharedPreferences(this).getString(DARK_MODE, darkModeValues[1])) {
             darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
             darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
             darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
             else -> {}
         }
-
         super.onCreate(savedInstanceState)
+
         Log.d("ingo", "oncreate mainactivity")
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
         //Thread.getDefaultUncaughtExceptionHandler()
@@ -294,7 +293,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 
-        supportFragmentManager.commit { setReorderingAllowed(true) }
+
         loadFragments()
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -320,6 +319,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED)
         intentFilter.addDataScheme("package")
         registerReceiver(br, intentFilter)
+
     }
 
     fun saveNewApps(){
@@ -353,6 +353,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
+            .setReorderingAllowed(true)
             .replace(R.id.fragment_container, mainFragment.fragment, "main")
             .setReorderingAllowed(true)
             .commit()

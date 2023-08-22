@@ -26,6 +26,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
         val UI_ONELINE = "ui_oneline_buttons_toggle"
         val UI_BACKBUTTON = "ui_backbutton_toggle"
+        val DARK_MODE = "dark_mode"
         val UI_RIGHT_HAND = "ui_right_hand"
         val IMPORT = "import"
         val EXPORT = "export"

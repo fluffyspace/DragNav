@@ -42,10 +42,6 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     var editMenu: LinearLayout? = null
     var normalMenu: LinearLayout? = null
 
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mactivity = (activity as MainActivity)

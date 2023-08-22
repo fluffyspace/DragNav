@@ -14,6 +14,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreference
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DEFAULT_APPS
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DROP_DATABASE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.EXPORT
@@ -59,11 +60,10 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.general_preferences, rootKey)
         settingsActivity = (activity as SettingsActivity)
 
-        val darkModeString = getString(R.string.dark_mode)
-        val darkMode: ListPreference? = findPreference(darkModeString)
+        val darkMode: ListPreference? = findPreference(DARK_MODE)
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
         val darkModeValuesHumanReadable = resources.getStringArray(R.array.dark_mode_entries)
-        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(darkModeString, darkModeValues[1]) })
+        val darkModeValueIndex = darkModeValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(DARK_MODE, darkModeValues[1]) })
         darkMode?.setValueIndex(if (darkModeValueIndex > 0) darkModeValueIndex else 1)
         darkMode?.summary = darkModeValuesHumanReadable[if (darkModeValueIndex > 0) darkModeValueIndex else 1]
         darkMode?.setOnPreferenceChangeListener { preference, newValue ->

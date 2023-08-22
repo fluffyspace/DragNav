@@ -8,7 +8,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/frame_layout">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/recycle_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,16 +17,83 @@
         android:padding="20dp">
         <TextView
             android:id="@+id/recycle_view_label"
+            app:layout_constraintTop_toTopOf="parent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/choose_application"
             android:visibility="gone"
             android:layout_gravity="center_horizontal"
             android:textSize="35sp"/>
+
+
+        <FrameLayout
+            android:id="@+id/popis_svih_aplikacija"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp"
+            android:visibility="visible"
+            app:layout_constraintTop_toTopOf="@id/recycle_view_label"
+            app:layout_constraintBottom_toTopOf="@id/bottombar">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layoutManager=
+                    "androidx.recyclerview.widget.GridLayoutManager"/>
+                <!--android:scrollbars="vertical"
+                app:fastScrollEnabled="true"
+                app:fastScrollVerticalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollVerticalTrackDrawable="@drawable/fast_scroll_track"
+                app:fastScrollHorizontalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollHorizontalTrackDrawable="@drawable/fast_scroll_track"-->
+            <com.ingokodba.dragnav.RecycleScroller
+                android:id="@+id/recycle_scroller"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="right"/>
+        </FrameLayout>
+        <FrameLayout
+            android:id="@+id/trazilica"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="@id/recycle_view_label"
+            app:layout_constraintBottom_toTopOf="@id/bottombar">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="top">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/applications"
+                    android:textSize="18sp"
+                    android:layout_marginTop="10dp"
+                    android:textColor="?attr/colorOnSurface"/>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="?attr/colorOnSurface"/>
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/chipgroup_aplikacije"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="10dp"
+                    app:flexWrap="wrap"
+                    app:alignItems="flex_start"
+                    app:alignContent="flex_start"/>
+            </LinearLayout>
+        </FrameLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottombar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent">
             <EditText
                 android:id="@+id/search_bar"
                 android:layout_width="0dp"
@@ -55,65 +122,6 @@
                 android:background="@android:color/transparent"
                 android:src="@drawable/ic_baseline_settings_100" />
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <FrameLayout
-            android:id="@+id/popis_svih_aplikacija"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:layout_marginTop="20dp"
-            android:visibility="visible">
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:layoutManager=
-                    "androidx.recyclerview.widget.GridLayoutManager"/>
-                <!--android:scrollbars="vertical"
-                app:fastScrollEnabled="true"
-                app:fastScrollVerticalThumbDrawable="@drawable/fast_scroll_thumb"
-                app:fastScrollVerticalTrackDrawable="@drawable/fast_scroll_track"
-                app:fastScrollHorizontalThumbDrawable="@drawable/fast_scroll_thumb"
-                app:fastScrollHorizontalTrackDrawable="@drawable/fast_scroll_track"-->
-            <com.ingokodba.dragnav.RecycleScroller
-                android:id="@+id/recycle_scroller"
-                android:layout_width="40dp"
-                android:layout_height="match_parent"
-                android:layout_gravity="right"/>
-        </FrameLayout>
-        <FrameLayout
-            android:id="@+id/trazilica"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:layout_marginTop="20dp"
-            android:visibility="gone">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="top">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/applications"
-                    android:textSize="18sp"
-                    android:layout_marginTop="10dp"
-                    android:textColor="?attr/colorOnSurface"/>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="?attr/colorOnSurface"/>
-                <com.google.android.flexbox.FlexboxLayout
-                    android:id="@+id/chipgroup_aplikacije"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="10dp"
-                    app:flexWrap="wrap"
-                    app:alignItems="flex_start"
-                    app:alignContent="flex_start"/>
-            </LinearLayout>
-        </FrameLayout>
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>

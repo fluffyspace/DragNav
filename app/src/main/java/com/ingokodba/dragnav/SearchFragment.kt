@@ -250,7 +250,7 @@ class SearchFragment : Fragment() {
                     }
                 }
                 if(count > 0){
-                    Log.e("ingo", "${app.label} $count $words")
+                    Log.e("ingo", "${app.label} $count $score $words")
                 }
                 if(count == query.length) search_lista_aplikacija.add(Pair(score, app))
 

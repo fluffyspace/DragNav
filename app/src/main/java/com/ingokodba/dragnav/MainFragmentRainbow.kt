@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
  * Use the [MainFragmentRainbow.newInstance] factory method to
  * create an instance of this fragment.
  */
-class MainFragmentRainbow(leftOrRight: Boolean) : Fragment(), MainFragmentInterface, OnShortcutClick {
+class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmentInterface, OnShortcutClick {
 
     lateinit var circleView: Rainbow
     lateinit var relativeLayout: ConstraintLayout

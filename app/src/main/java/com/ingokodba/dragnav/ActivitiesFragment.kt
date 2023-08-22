@@ -58,7 +58,7 @@ private const val ARG_PARAM2 = "param2"
  * Use the [ActivitiesFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
+class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fragment() {
 
     private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
@@ -195,7 +195,7 @@ class ActivitiesFragment(design: UiDesignEnum) : Fragment() {
                             search_bar.text.toString()
                         ).apply{
                             sortByDescending { it.second.lastLaunched }
-                        }
+                        }//.reversed().toMutableList()
                 }
                 chipGroup.removeAllViews()
                 //var chips: MutableList<Chip> = mutableListOf()

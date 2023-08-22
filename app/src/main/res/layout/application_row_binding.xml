@@ -28,8 +28,8 @@
             android:layout_margin="5dp"
             android:src="@{ viewModel.icons[aplikacija.packageName] }"
             android:layout_gravity="center"
-            android:background="@drawable/crni_obrub"
             android:elevation="5dp" />
+            <!--android:background="@drawable/crni_obrub"-->
         </LinearLayout>
         <TextView
             android:id="@+id/text"
