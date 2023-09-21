@@ -18,7 +18,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Folder name">
+        android:hint="@string/folder_name">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/popup_folder_name"

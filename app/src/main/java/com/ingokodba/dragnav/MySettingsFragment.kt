@@ -13,6 +13,7 @@ class MySettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
     companion object{
         val UI_COLOR = "ui_color"
+        val UI_COLOR_ON_PRIMARY = "ui_color_on_primary"
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
         val UI_BORDER_WIDTH = "ui_border_width"
         val UI_TEXT_SIZE = "ui_text_size"

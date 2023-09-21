@@ -214,6 +214,17 @@ class MainFragmentRightHand(leftOrRight: Boolean) : Fragment(), MainFragmentInte
         refreshCurrentMenu()
     }
 
+    override fun onBackPressed(): Boolean {
+        if(viewModel.currentMenuId != viewModel.pocetnaId){
+            goToHome()
+            return true
+        } else if(viewModel.editMode){
+            toggleEditMode()
+            return true
+        }
+        return false
+    }
+
     fun addNewAppHandler(){
         mactivity.addNewApp(mactivity.addingNewAppEvent)
         cancelAddingAppHandler()
@@ -527,7 +538,7 @@ class MainFragmentRightHand(leftOrRight: Boolean) : Fragment(), MainFragmentInte
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni(viewModel.pocetnaId, -1)
-        selected_text.setText(MainActivity.resources2.getString(R.string.home))
+        selected_text.text = MainActivity.resources2.getString(R.string.home)
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }

@@ -31,7 +31,7 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     lateinit var searchFragment:SearchFragment
     lateinit var activitiesFragment:ActivitiesFragment
     lateinit var actionsFragment:ActionsFragment
+    lateinit var fragmentContainer: FragmentContainerView
 
     fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
@@ -160,14 +161,14 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     fun openShortcutsMenu(app_index: Int){
         if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
-            var app = viewModel.rainbowAll.value!!.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+            var app = viewModel.rainbowAll.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
             if(app == -1){
                 // tu treba proći po mapama + app_index ne vrijedi zato jer se u rainbow fragmentu računa samo ona mapa koja je otvorena.
-                app = viewModel.rainbowAll.value!!.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+                app = viewModel.rainbowAll.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
             }
             if (app != -1) {
                 (mainFragment as MainFragmentRainbow).app_index = app
-                (mainFragment as MainFragmentRainbow).openShortcutsMenu(viewModel.rainbowAll.value!![app])
+                (mainFragment as MainFragmentRainbow).openShortcutsMenu(viewModel.rainbowAll[app])
             } else {
                 Log.e("ingo", "openShortcutsMenu returned null")
             }
@@ -231,6 +232,8 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         }
         super.onCreate(savedInstanceState)
 
+
+
         Log.d("ingo", "oncreate mainactivity")
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
         //Thread.getDefaultUncaughtExceptionHandler()
@@ -290,6 +293,15 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         pocetna = KrugSAplikacijama(0, resources2.getString(R.string.home))
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
+
+        /*findViewById<FrameLayout>(R.id.mainlayout).setOnApplyWindowInsetsListener { view, windowInsets ->
+            val params = (view.layoutParams as ViewGroup.MarginLayoutParams)
+            params.topMargin = windowInsets.systemWindowInsetTop
+            params.bottomMargin = windowInsets.systemWindowInsetBottom
+            windowInsets
+        }*/
+        fragmentContainer = findViewById(R.id.fragment_container)
+
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 
@@ -398,6 +410,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             setReorderingAllowed(true)
             addToBackStack("activities")
         }
+
     }
 
     fun showSearchFragment(){
@@ -414,6 +427,9 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         }
     }
 
+
+
+
     fun showLayout(id:Layouts){
         Log.d("ingo", "show layout " + id.name + " currently " + currentLayout)
         //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
@@ -423,6 +439,22 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         when(id){
             Layouts.LAYOUT_ACTIVITIES -> {
                 showActivitiesFragment()
+                /*WindowCompat.setDecorFitsSystemWindows(window, false)
+
+                val windowInsetsController =
+                    ViewCompat.getWindowInsetsController(window.decorView)
+
+                windowInsetsController?.isAppearanceLightNavigationBars = false*/
+
+                //show content behind status bar
+                /*window?.decorView?.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                //make status bar transparent
+                window?.statusBarColor = Color.TRANSPARENT*/
+
+                //fragmentContainer.setPadding()
+
+
                 Log.d("ingo", "showActivitiesFragment")
             }
             Layouts.LAYOUT_ACTIONS -> {
@@ -617,6 +649,18 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     fun showMyDialog(editSelected:Int) {
         if(editSelected == -1) return
+        viewModel.trenutnoPrikazanaPolja[editSelected].let { krugSAplikacijom ->
+            openFolderNameMenu(fragmentContainer, true, krugSAplikacijom.text, false) { ime ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val novoPolje = krugSAplikacijom.copy(text=ime, color=this@MainActivity.gcolor.toString())
+                    databaseUpdateItem(novoPolje)
+                    withContext(Dispatchers.Main){
+                        mainFragment.refreshCurrentMenu()
+                    }
+                }
+            }
+        }
+        /*
         val fragmentManager = supportFragmentManager
         viewModel.trenutnoPrikazanaPolja[editSelected].let{
             val newFragment = CustomDialogFragment(it)
@@ -637,7 +681,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                     .addToBackStack(null)
                     .commit()
             }
-        }
+        }*/
     }
 
     fun saveAppInfo(application: AppInfo){
@@ -1064,13 +1108,18 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         if(currentLayout != Layouts.LAYOUT_MAIN){
             showLayout(Layouts.LAYOUT_MAIN)
         } else {
+            val processed = mainFragment.onBackPressed()
+            if(!processed){
+                showLayout(Layouts.LAYOUT_ACTIVITIES)
+            }
+            /*
             if(viewModel.editMode){
                 mainFragment.toggleEditMode()
             } else if(backButtonAction) {
                 showLayout(Layouts.LAYOUT_SEARCH)
             } else {
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
-            }
+            }*/
             //mainFragment.updateStuff()
         }
         //super.onBackPressed()
@@ -1095,7 +1144,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             }
         }
         contentView.findViewById<Button>(R.id.popup_folder_submit).apply {
-            text = if(addingOrEditing) getString(R.string.edit_folder) else getString(R.string.add_folder)
+            text = if(addingOrEditing) getString(R.string.save) else getString(R.string.add_folder)
             setOnClickListener {
                 val ime: String =
                     popupFolderName.text.toString()

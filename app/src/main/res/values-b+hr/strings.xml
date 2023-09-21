@@ -72,7 +72,7 @@
     <string name="add_to_home">Dodaj na početno</string>
     <string name="preferences">Postavke</string>
     <string name="circle_preferences">Postavke kruga</string>
-    <string name="rainbow_preferences">Postavke duge</string>
+    <string name="rainbow_preferences">Postavke zakrivljenog dizajna</string>
     <string name="general_preferences">Općenite postavke</string>
     <string name="adjust_design">Prilagodi dizajn</string>
     <string name="dizajn_po_etnog_zaslona">Stil početnog zaslona</string>
@@ -91,4 +91,6 @@
     <string name="debljina_ruba">Debljina ruba</string>
     <string name="alphabet_font_size">Veličina fonta abecede</string>
     <string name="application_names_font_size">Veličina fonta naziva aplikacija</string>
+    <string name="color_on_primary">Tinta ikone gumba</string>
+    <string name="save">Spremi</string>
 </resources>

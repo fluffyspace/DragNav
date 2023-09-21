@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toFile
 import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.Preference
@@ -42,6 +43,8 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setSupportActionBar(findViewById(R.id.settings_toolbar))
+
+
         //supportActionBar?.setDisplayHomeAsUpEnabled(true);
         /*supportFragmentManager
             .beginTransaction()

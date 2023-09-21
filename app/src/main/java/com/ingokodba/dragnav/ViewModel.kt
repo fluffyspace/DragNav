@@ -2,7 +2,6 @@ package com.ingokodba.dragnav
 
 import android.graphics.drawable.Drawable
 import android.util.Log
-import androidx.compose.ui.text.toLowerCase
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,13 +15,14 @@ class ViewModel : ViewModel() {
     // The internal MutableLiveData that stores the status of the most recent request
     private val _popis_aplikacija = MutableLiveData<MutableList<AppInfo>>()
     private val _rainbow_mape = MutableLiveData<MutableList<RainbowMapa>>()
-    private val _rainbow_all = MutableLiveData<MutableList<EncapsulatedAppInfoWithFolder>>()
+    //private val _rainbow_filtered = MutableLiveData<MutableList<EncapsulatedAppInfoWithFolder>>()
     private var _icons = MutableLiveData<MutableMap<String, Drawable?>>()
 
     // The external immutable LiveData for the request status
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
     val rainbowMape: LiveData<MutableList<RainbowMapa>> = _rainbow_mape
-    val rainbowAll: LiveData<MutableList<EncapsulatedAppInfoWithFolder>> = _rainbow_all
+    var rainbowFiltered: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()//_rainbow_filtered
+    var rainbowAll: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
 
     lateinit var currentMenu: KrugSAplikacijama
@@ -38,7 +38,6 @@ class ViewModel : ViewModel() {
     var editSelected:Int = -1
     var pocetnaId:Int = -1
     var sviKrugovi:MutableList<KrugSAplikacijama> = mutableListOf()
-    var favorites: Boolean = false
 
     var currentlyLoadingApps: MutableList<String> = mutableListOf()
 
@@ -46,7 +45,6 @@ class ViewModel : ViewModel() {
         _icons.value = mutableMapOf()
         _popis_aplikacija.value = mutableListOf()
         _rainbow_mape.value = mutableListOf()
-        _rainbow_all.value = mutableListOf()
         trenutnoPrikazanaPolja = listOf()
         sviKrugovi = mutableListOf()
         currentMenuId = -1
@@ -62,25 +60,29 @@ class ViewModel : ViewModel() {
         initialize()
     }
 
-    fun setRainbowAll(list: MutableList<EncapsulatedAppInfoWithFolder>){
-        _rainbow_all.value = list
+    fun setRainbowFilteredValues(list: MutableList<EncapsulatedAppInfoWithFolder>){
+        rainbowFiltered = list
     }
 
-    fun updateRainbowAll(onlyfavorites: Boolean){
-        val sve = getApps().filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
+    fun updateRainbowAll(){
+        val filtered = getApps().map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
+            addAll(rainbowMape.value!!.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)})
+            sortBy { if(it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() }
+        }
+        rainbowAll = filtered
+    }
+
+    fun updateRainbowFiltered(onlyfavorites: Boolean){
+        val filtered = getApps().filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
             addAll(rainbowMape.value!!.filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)})
             sortBy { if(it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() }
         }
-        _rainbow_all.value = sve
-        Log.d("ingo22", Gson().toJson(sve.map{sveit -> sveit.apps.map{appit -> appit.label}}))
+        rainbowFiltered = filtered
+        Log.d("ingo22", Gson().toJson(filtered.map{sveit -> sveit.apps.map{appit -> appit.label}}))
     }
 
     fun getApps(): List<AppInfo>{
-        return curateAppsInFolders(if(!favorites) {
-            appsList.value!!
-        } else {
-            appsList.value!!.filter { it.favorite }
-        })
+        return curateAppsInFolders(appsList.value!!)
     }
 
     fun curateAppsInFolders(apps: List<AppInfo>): List<AppInfo>{
@@ -88,7 +90,7 @@ class ViewModel : ViewModel() {
         for(rainbowMapa in rainbowMape.value!!){
             for(app in rainbowMapa.apps){
                 newapps.remove(newapps.find{it.packageName == app.packageName})
-                Log.d("ingo", "removing $app")
+                //Log.d("ingo", "removing $app")
             }
         }
         return newapps
@@ -110,11 +112,11 @@ class ViewModel : ViewModel() {
     }
 
     fun addApps(apps: MutableList<AppInfo>){
-        var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).toMutableList()
+        var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).filter{it.packageName != "com.ingokodba.dragnav"}.toMutableList()
         concatenatedApps.sortBy { it.label.lowercase() }
         _popis_aplikacija.postValue(concatenatedApps)
         for(app in concatenatedApps){
-            //Log.d("ingo", app.label + "->" + app.packageName)
+            Log.d("ingo", app.label + "->" + app.packageName)
         }
     }
 

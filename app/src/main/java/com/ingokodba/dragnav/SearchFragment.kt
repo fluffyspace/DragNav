@@ -238,10 +238,11 @@ class SearchFragment : Fragment() {
                 for((i,word) in words.withIndex()){
                     if(pos >= query.length) break
                     // ako započinje
-                    for(letter in word.lowercase()){
-                        if(letter == slova_search_lowercase[pos]){
+                    for(letter in word){
+                        if(letter.lowercaseChar() == slova_search_lowercase[pos]){
                             count++
                             score += 10-i
+                            if(letter.isUpperCase()) score+=10
                             pos++
                             if(pos >= query.length) break
                         } else {
@@ -249,72 +250,10 @@ class SearchFragment : Fragment() {
                         }
                     }
                 }
-                if(count > 0){
+                if(count == query.length){
+                    search_lista_aplikacija.add(Pair(score, app))
                     Log.e("ingo", "${app.label} $count $score $words")
                 }
-                if(count == query.length) search_lista_aplikacija.add(Pair(score, app))
-
-
-
-            //World Geography    woge
-
-
-/*
-
-                var score = 0
-                var index_counter = 0
-                // provjerava ako je svako koje je u query prisutno u labeli aplikacije. ako nije, preskače se aplikacija
-                for(slovo in app.label.lowercase()){
-                    if(slovo == query[index_counter].lowercaseChar()){
-                        index_counter++
-                        if(index_counter == query.length) break
-                    }
-                }
-                if(index_counter != query.length){
-                    continue
-                }
-                if(app.label.first().lowercaseChar() == slova_search_lowercase[0]){
-                    score += 5
-                    if(query.length == 2) {
-                        // prvo i zadnje slovo
-                        if (app.label.last().lowercaseChar() == slova_search_lowercase[1]) {
-                            score += 10
-                            Log.d("ingo", app.label + " ako počinje s prvim slovom i završava s drugim " + query)
-                        }
-                        // prva slova riječi odvojene razmakom
-                        val splitano = app.label.split(" ")
-                        if (splitano.size > 1 && splitano[1].first().lowercaseChar() == slova_search_lowercase[1]) {
-                            score += 5
-                            Log.d("ingo", app.label + " ako je prvo slovo prva riječ, drugo slovo druga riječ " + query)
-                        }
-                    }
-                    if(app.label.lowercase().startsWith(query.lowercase())){
-                        score += 5*query.length
-                        Log.d("ingo", app.label + " startsWith " + query)
-                    }
-                }
-                // velika slova
-                var counter2 = 0
-                for ((index, slovo) in app.label.iterator().withIndex()) {
-                    //if (index == 0) continue
-                    counter2 = 0
-                    if (slovo.isUpperCase() && slova_search_lowercase.contains(slovo.lowercaseChar())) {
-                        counter2++
-                        Log.d("ingo", app.label + " upper case contains " + query)
-                    }
-                    if(counter2 == query.length) score += 10
-                }
-                if(query.length > 1) {
-                    val matches = countMatches(app.label.lowercase(), query.lowercase())
-                    if (matches == query.length) {
-                        score += matches * 7
-                        Log.d(
-                            "ingo",
-                            "matches " + app.label.toString() + " " + query + " " + matches
-                        )
-                    }
-                }
-                if(score > 0) search_lista_aplikacija.add(Pair(score, app))*/
             }
             search_lista_aplikacija.sortByDescending { it.first }
             return search_lista_aplikacija

@@ -16,9 +16,9 @@
     </string-array>
 
     <string-array name="ui_designs_entries">
-        <item>Rainbow right hand</item>
-        <item>Rainbow left hand</item>
-        <item>Circle</item>
+        <item>Curved layout for right hand</item>
+        <item>Curved layout for left hand</item>
+        <item>Circle in center</item>
         <item>Circle with right hand</item>
         <item>Circle with left hand</item>
         <item>Keypad</item>

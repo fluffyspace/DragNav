@@ -9,6 +9,12 @@
         app:title="@string/primary_color"
         android:icon="@drawable/baseline_color_lens_24"/>
 
+    <SwitchPreference
+        app:key="ui_color_on_primary"
+        app:title="@string/color_on_primary"
+        android:summary="Black (OFF) or white (ON)"
+        android:icon="@drawable/baseline_color_lens_24"/>
+
     <EditTextPreference
         app:key="ui_smaller_text_size"
         app:title="@string/application_names_font_size"
@@ -24,7 +30,8 @@
     <EditTextPreference
         app:key="ui_border_width"
         app:title="@string/debljina_ruba"
-        app:defaultValue="4"/>
+        app:defaultValue="4"
+        android:icon="@drawable/baseline_line_style_24"/>
 
     <SwitchPreference
         app:key="ui_icons_toggle"

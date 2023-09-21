@@ -6,28 +6,25 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.appcompat.widget.ListPopupWindow
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.google.android.material.slider.Slider
-import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +87,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
                 .let { if (it != 0f) it else null }
         circleView.overrideStep = mactivity.getPreferences(MODE_PRIVATE).getFloat("step", 0f)
             .let { if (it != 0f) it else null }
-        onlyfavorites = mactivity.getPreferences(MODE_PRIVATE).getBoolean("onlyfavorites", false)
+        //onlyfavorites = mactivity.getPreferences(MODE_PRIVATE).getBoolean("onlyfavorites", false)
 
         view.findViewById<CheckBox>(R.id.onlyfavoriteapps).let {
             it.setOnCheckedChangeListener { _, isChecked ->
@@ -188,7 +185,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
 
     fun openCreateFolderDialog(){
         (activity as MainActivity).openFolderNameMenu(this.circleView, false, "", false) {
-            val novaMapa = RainbowMapa(0, it, mutableListOf(viewModel.rainbowAll.value!![app_index!!].apps.first()), true)
+            val novaMapa = RainbowMapa(0, it, mutableListOf(viewModel.rainbowFiltered[app_index!!].apps.first()), true)
             (activity as MainActivity).rainbowMapaInsertItem(novaMapa)
         }
     }
@@ -198,9 +195,20 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             delay(250)
             withContext(Dispatchers.Main){
                 app_index = circleView.getAppIndexImIn()
+                /*if(onlyfavorites){
+
+                } else {
+                    val tmp = viewModel.rainbowFiltered.value!![circleView.getAppIndexImIn()!!]
+                    if(tmp.folderName == null){
+                        app_index = viewModel.rainbowAll.indexOfFirst { it.folderName == null && it.apps[0].packageName == tmp.apps[0].packageName }
+                    } else {
+                        app_index = viewModel.rainbowAll.indexOfFirst { it.folderName == tmp.folderName }
+                    }
+                }*/
                 if (app_index != null) {
                     // je li mapa ili aplikacija
-                    val thing = viewModel.rainbowAll.value!![app_index!!]
+                    val thing = viewModel.rainbowFiltered[app_index!!]
+                    Log.d("ingo3", "$app_index $thing")
                     if(thing.folderName == null) {
                         openShortcutsMenu(thing)
                         if (shortcuts.isEmpty()) {
@@ -220,7 +228,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     }
 
     fun openShortcut(index: Int){
-        val thing = viewModel.rainbowAll.value!![app_index!!]
+        val thing = viewModel.rainbowFiltered[app_index!!]
         if(thing.folderName == null) {
             if (index >= shortcuts.size) {
                 if (index == shortcuts.size) {
@@ -283,7 +291,6 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         }
     }
 
-
     fun openShortcutsMenu(thing: EncapsulatedAppInfoWithFolder){
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         if(launcherApps.hasShortcutHostPermission()) {
@@ -293,18 +300,27 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         } else {
             shortcuts = listOf()
         }
-        val appDrawable = viewModel.icons.value!![viewModel.rainbowAll.value!![app_index!!].apps.first().packageName]
+        val appDrawable = viewModel.icons.value!![viewModel.rainbowFiltered[app_index!!].apps.first().packageName]
         val actions = shortcuts.map{ShortcutAction(it.shortLabel.toString(), appDrawable)}.toMutableList().apply {
             add(ShortcutAction(getTranslatedString(R.string.app_info), getDrawable(R.drawable.ic_outline_info_75)))
-            add(if(viewModel.rainbowAll.value!![app_index!!].apps.first().favorite) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
-            add(if(mactivity.isAppAlreadyInMap(viewModel.rainbowAll.value!![app_index!!].apps.first())) ShortcutAction(getTranslatedString(R.string.remove_from_folder), getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction(getTranslatedString(R.string.add_to_folder), getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
+            add(if(viewModel.rainbowFiltered[app_index!!].apps.first().favorite) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
+            add(if(mactivity.isAppAlreadyInMap(viewModel.rainbowFiltered[app_index!!].apps.first())) ShortcutAction(getTranslatedString(R.string.remove_from_folder), getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction(getTranslatedString(R.string.add_to_folder), getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
         }
         dialogState = DialogStates.APP_SHORTCUTS
         mactivity.showDialogWithActions(actions, this, this@MainFragmentRainbow.circleView)
     }
 
     fun getDrawable(resourceId: Int): Drawable?{
-        return ResourcesCompat.getDrawable(resources, resourceId, null)?.apply { setTint(Color.BLACK) }
+        return ResourcesCompat.getDrawable(resources, resourceId, null)?.apply {
+           when (requireContext().resources?.configuration?.uiMode?.and(Configuration.UI_MODE_NIGHT_MASK)) {
+                Configuration.UI_MODE_NIGHT_YES -> {
+                    setTint(Color.WHITE)
+                }
+                else -> {
+                    setTint(Color.BLACK)
+                }
+            }
+        }
     }
 
     fun addAppToMap(map_index: Int){
@@ -314,8 +330,8 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             openCreateFolderDialog()
         } else {
             val mapa = viewModel.rainbowMape.value!![map_index]
-            val nova_mapa = mapa.copy(apps = mapa.apps.plus(viewModel.rainbowAll.value!![app_index!!].apps.first()).toMutableList())
-            Log.d("ingo", "addAppToMap $map_index $mapa $nova_mapa ${viewModel.rainbowAll.value!![app_index!!].apps.first()}")
+            val nova_mapa = mapa.copy(apps = mapa.apps.plus(viewModel.rainbowFiltered[app_index!!].apps.first()).toMutableList())
+            Log.d("ingo", "addAppToMap $map_index $mapa $nova_mapa ${viewModel.rainbowFiltered[app_index!!].apps.first()}")
             viewModel.updateRainbowMapa(nova_mapa)
             (activity as MainActivity).rainbowMapaUpdateItem(nova_mapa)
         }
@@ -399,11 +415,19 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         refreshCurrentMenu()
     }
 
+    override fun onBackPressed(): Boolean {
+        if(circleView.inFolder){
+            prebaciMeni()
+            return true
+        }
+        return false
+    }
+
     fun touched(app_index:Int) {
-        if(viewModel.rainbowAll.value!![app_index].folderName == null) {
-            Log.d("ingo", "touched $app_index ${viewModel.rainbowAll.value!![app_index]}")
+        if(viewModel.rainbowFiltered[app_index].folderName == null) {
+            Log.d("ingo", "touched $app_index ${viewModel.rainbowFiltered[app_index]}")
             val launchIntent: Intent? =
-                viewModel.rainbowAll.value!![app_index].let {
+                viewModel.rainbowFiltered[app_index].let {
                     requireContext().packageManager.getLaunchIntentForPackage(
                         it.apps.first().packageName
                     )
@@ -449,20 +473,21 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     }
 
     fun otvoriMapu(index: Int){
-        val aplikacije = viewModel.rainbowAll.value!![index].apps
+        val aplikacije = viewModel.rainbowFiltered[index].apps
         Log.d("ingo", "aplikacije $aplikacije")
-        viewModel.setRainbowAll(aplikacije.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList())
-        Log.d("ingo", "aplikacije ${viewModel.rainbowAll.value!!}")
+        viewModel.setRainbowFilteredValues(aplikacije.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList())
+        Log.d("ingo", "aplikacije ${viewModel.rainbowFiltered}")
         circleView.inFolder = true
         saveCurrentMoveDistance()
         circleView.moveDistancedAccumulated = 0
-        circleView.setAppInfoList(viewModel.rainbowAll.value!!)
+        circleView.setAppInfoList(viewModel.rainbowFiltered)
         circleView.invalidate()
     }
 
     fun prikaziPoljaKruga(onlyfavorites: Boolean){
         if(viewModel.appsList.value == null) return
-        viewModel.updateRainbowAll(onlyfavorites)
+        viewModel.updateRainbowFiltered(onlyfavorites)
+        viewModel.updateRainbowAll()
 /*
         Log.d("ingo", "viewModel.appslist ${viewModel.appsList.value.toString()}")
         for(enc in viewModel.rainbowAll.value!!.map{it.apps}){
@@ -476,7 +501,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         } else {
             circleView.moveDistancedAccumulated = viewModel.modeDistanceAccumulated
         }
-        circleView.setAppInfoList(viewModel.rainbowAll.value!!)
+        circleView.setAppInfoList(viewModel.rainbowFiltered)
         //circleView.invalidate()
     }
     override fun toggleEditMode(){
@@ -509,7 +534,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         when(index){
             0 -> {
                 // uredi mapu (preimenuj)
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowAll.value!![app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
                 (activity as MainActivity).openFolderNameMenu(this.circleView, true, mapa!!.folderName, false){ime ->
                     val nova_mapa = mapa?.copy(folderName = ime)
                     if (nova_mapa != null) {
@@ -522,7 +547,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             }
             1 -> {
                 // obriši mapu
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowAll.value!![app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
                 if (mapa != null) {
                     viewModel.deleteRainbowMapa(mapa)
                     (activity as MainActivity).rainbowMapaDeleteItem(mapa)
@@ -532,7 +557,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             }
             2 -> {
                 // dodaj pod omiljeno
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowAll.value!![app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
                 val nova_mapa = mapa?.copy(favorite = !mapa.favorite)
                 if (nova_mapa != null) {
                     viewModel.updateRainbowMapa(nova_mapa)

@@ -70,7 +70,7 @@
     <string name="favorite">Favorite</string>
     <string name="add_to_home">Add to home</string>
     <string name="circle_preferences">Circle preferences</string>
-    <string name="rainbow_preferences">Rainbow preferences</string>
+    <string name="rainbow_preferences">Preferences for curved design</string>
     <string name="preferences">Preferences</string>
     <string name="general_preferences">General preferences</string>
     <string name="adjust_design">Adjust design</string>
@@ -90,5 +90,7 @@
     <string name="debljina_ruba">Border width</string>
     <string name="alphabet_font_size">Alphabet font size</string>
     <string name="application_names_font_size">Application names font size</string>
+    <string name="color_on_primary">Button icon tint</string>
+    <string name="save">Save</string>
 
 </resources>

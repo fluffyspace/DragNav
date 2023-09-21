@@ -57,6 +57,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var gcolor = Color.parseColor("#FBB8AC")
     var draw_circles = true
     var draw_icons = true
+    var color_on_primary = false
     var border_width = 4f
     var text_size = 18f
     var smaller_text_size = 18f
@@ -118,7 +119,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun limit(number: Int): Boolean{
         limit = -(app_list.size/2)*step_size - step_size*2
-        Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
+        //Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
         if(limit < -Math.PI/2) {
             return (number > 0 || (number) / 500f - Math.PI / 2 < limit)
         }
@@ -126,7 +127,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
     fun flingUpdate(){
         if(!flingOn) return
-        Log.d("ingo", "fling update $flingValue $flingFriction")
+        //Log.d("ingo", "fling update $flingValue $flingFriction")
         flingValue -= if (flingValue > 0) flingFriction else -flingFriction
         if(abs(flingValue) <= flingFriction || limit((flingValueAccumulated + flingValue + moveDistancedAccumulated).toInt())){
             finishFling()
@@ -329,6 +330,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         show_app_names = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHOW_APP_NAMES, true)
         showBigCircle = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_BIG_CIRCLE, true)
         text_size = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_TEXT_SIZE, "50")!!.toFloat()
+        color_on_primary = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_COLOR_ON_PRIMARY, false)
         smaller_text_size = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_SMALLER_TEXT_SIZE, "30")!!.toFloat()
         transparency = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_TRANSPARENCY, "1")!!.toFloat()
         text_paint.textSize = text_size;
@@ -520,7 +522,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             drawCircle(draw_pointF.x, draw_pointF.y, radius*inner_radius2/6f, circle_paint)
 
             val drawable: Drawable? = AppCompatResources.getDrawable(context, if(inFolder) R.drawable.ic_baseline_arrow_back_24 else if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
-            drawable?.setTint(Color.BLACK)
+            drawable?.setTint(if(!color_on_primary) Color.BLACK else Color.WHITE)
             val bitmap: Bitmap? = drawable?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(
@@ -685,7 +687,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
             for(i in 0..1){
                 for(j in 0..1){
-                    Log.d("ingo", "i: $i j: $j")
+                    //Log.d("ingo", "i: $i j: $j")
                     if(i*2 + j >= app_list[index].apps.size) break
                     bitmap = icons[app_list[index].apps[i*2+j].packageName]?.toBitmap()
                     if(bitmap != null) {
@@ -697,6 +699,34 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                                 (draw_pointF.y + detectSize * i).toInt()
                             ), null
                         )
+                    } else {
+                        val boja = app_list[index].apps[i*2+j].color
+                        Log.d("ingo", "boja za ${app_list[index].apps.first().label} je $boja")
+                        try {
+                            //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
+                            if (boja != ""){
+                                val boja = Color.valueOf(boja.toInt())
+                                Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                                no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
+                                //Log.d("ingo", "boja je ${no_icon_paint.color}")
+                            } else {
+                                no_icon_paint.color = Color.parseColor("#55000000")
+                                //Log.d("ingo", "boja! je ${no_icon_paint.color}")
+                            }
+                        } catch (e: NumberFormatException ){
+                            no_icon_paint.color = Color.parseColor("#55000000")
+                            //Log.d("ingo", "boja nemoguće za dešifrirati1")
+                        } catch (e: IllegalArgumentException ){
+                            no_icon_paint.color = Color.parseColor("#55000000")
+                            //Log.d("ingo", "boja nemoguće za dešifrirati2")
+                        }
+                        val rec = Rect(
+                            (draw_pointF.x - detectSize + detectSize * j).toInt(),
+                            (draw_pointF.y - detectSize + detectSize * i).toInt(),
+                            (draw_pointF.x + detectSize * j).toInt(),
+                            (draw_pointF.y + detectSize * i).toInt()
+                        )
+                        canvas.drawCircle(rec.exactCenterX(), rec.exactCenterY(), detectSize/2f, no_icon_paint)
                     }
                 }
             }
@@ -712,19 +742,19 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                     //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
                     if (app_list[index].apps.first().color != ""){
                         val boja = Color.valueOf(app_list[index].apps.first().color.toInt())
-                        Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                        //Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
                         no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
-                        Log.d("ingo", "boja je ${no_icon_paint.color}")
+                        //Log.d("ingo", "boja je ${no_icon_paint.color}")
                     } else {
                         no_icon_paint.color = Color.parseColor("#55000000")
-                        Log.d("ingo", "boja! je ${no_icon_paint.color}")
+                        //Log.d("ingo", "boja! je ${no_icon_paint.color}")
                     }
                 } catch (e: NumberFormatException ){
                     no_icon_paint.color = Color.parseColor("#55000000")
-                    Log.d("ingo", "boja nemoguće za dešifrirati1")
+                    //Log.d("ingo", "boja nemoguće za dešifrirati1")
                 } catch (e: IllegalArgumentException ){
                     no_icon_paint.color = Color.parseColor("#55000000")
-                    Log.d("ingo", "boja nemoguće za dešifrirati2")
+                    //Log.d("ingo", "boja nemoguće za dešifrirati2")
                 }
                 canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
             }

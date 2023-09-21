@@ -36,6 +36,7 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     lateinit var addingMenuCancelOk:LinearLayout
     lateinit var cancelAddingApp:Button
     lateinit var addApp: Button
+    var dialogState: DialogStates? = null
 
     override var fragment: Fragment = this
 
@@ -195,6 +196,17 @@ class MainFragment() : Fragment(), MainFragmentInterface {
     override fun selectedItemDeleted(){
         deYellowAll()
         refreshCurrentMenu()
+    }
+
+    override fun onBackPressed(): Boolean {
+        if(viewModel.currentMenuId != viewModel.pocetnaId){
+            goToHome()
+            return true
+        } else if(viewModel.editMode){
+            toggleEditMode()
+            return true
+        }
+        return false
     }
 
     fun addNewAppHandler(){

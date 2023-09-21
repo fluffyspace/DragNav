@@ -6,11 +6,10 @@
 
     <SwitchPreference
         app:key="ui_language_toggle"
-        app:title="English/Croatian"
+        app:title="Language"
+        android:summary="English (OFF) or croatian (ON)"
         app:defaultValue="false"
         android:icon="@drawable/baseline_language_24"/>
-
-
 
     <ListPreference
         app:defaultValue="@string/dark_mode_def_value"

@@ -200,7 +200,7 @@ class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fr
                 chipGroup.removeAllViews()
                 //var chips: MutableList<Chip> = mutableListOf()
                 for ((index,app) in search_lista_aplikacija.iterator().withIndex()) {
-                    if(index > 10) break
+                    if(index >= 25) break
                     val chip = layoutInflater.inflate(R.layout.app_icon_template, null, false) as ConstraintLayout
                     val chip_text = app.second.label.toString()
                     chip.findViewById<ImageView>(R.id.image).apply{
@@ -220,13 +220,26 @@ class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fr
                         //startActivity(launchIntent)
                     }
                     chip.setOnLongClickListener{
-                        val contentView = createMenu(app.second)
-                        shortcutPopup = PopupWindow(contentView,
-                            ListPopupWindow.WRAP_CONTENT,
-                            ListPopupWindow.WRAP_CONTENT, true)
-                        //shortcutPopup?.animationStyle = R.style.PopupAnimation
-                        val location = locateView(chip)
-                        shortcutPopup?.showAtLocation(view, Gravity.TOP or Gravity.LEFT, location!!.left, location!!.bottom)
+                        if((activity as MainActivity).uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || (activity as MainActivity).uiDesignMode == UiDesignEnum.RAINBOW_LEFT) {
+                            (activity as MainActivity).openShortcutsMenu(
+                                viewModel.appsList.value!!.indexOfFirst { it.packageName == app.second.packageName }
+                            )
+                        } else {
+                            val contentView = createMenu(app.second)
+                            shortcutPopup = PopupWindow(
+                                contentView,
+                                ListPopupWindow.WRAP_CONTENT,
+                                ListPopupWindow.WRAP_CONTENT, true
+                            )
+                            //shortcutPopup?.animationStyle = R.style.PopupAnimation
+                            val location = locateView(chip)
+                            shortcutPopup?.showAtLocation(
+                                view,
+                                Gravity.TOP or Gravity.LEFT,
+                                location!!.left,
+                                location!!.bottom
+                            )
+                        }
                         return@setOnLongClickListener true
                     }
                     chipGroup.addView(chip)
@@ -235,7 +248,7 @@ class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fr
                 }
             }
         }
-        val touchHelperCallback: ItemTouchHelper.SimpleCallback =
+        /*val touchHelperCallback: ItemTouchHelper.SimpleCallback =
             object : ItemTouchHelper.SimpleCallback(0,(ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)) {
                 private val background = ColorDrawable(resources.getColor(R.color.colorPrimary))
                 override fun onMove(
@@ -290,7 +303,7 @@ class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fr
                 }
             }
         val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
-        itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))
+        itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))*/
     }
 
     override fun onPause() {
