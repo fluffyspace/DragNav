@@ -790,7 +790,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         if(krugSAplikacijama.size == 0){
             viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
-                showIntroPopup()
+                //showIntroPopup()
             }
         } else {
             withContext(Dispatchers.Main) {
@@ -1080,6 +1080,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                     val launchIntent: Intent? =
                         packageManager.getLaunchIntentForPackage(event.launchIntent)
                     startActivity(launchIntent)
+                    showLayout(Layouts.LAYOUT_MAIN)
                 }
             } else if(event.type == MessageEventType.FAVORITE){
                 saveAppInfo(event.app)

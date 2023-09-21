@@ -301,6 +301,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var touchStart: Point = Point(0, 0)
     var moveDistance = 0
     var moveDistancedAccumulated = 0
+    var startedMoving: Boolean = false
 
     fun changeMiddleButtonState(state:MiddleButtonStates){
         middleButtonState = state
@@ -403,8 +404,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             mEventListener?.onEventOccurred(EventTypes.STOP_COUNTDOWN, 2)
             hasMoved = true
         }
-        if(limit < -Math.PI/2 && abs(change) > detectSize/4f) {
+        if(limit < -Math.PI/2 && (startedMoving || abs(change) > detectSize/4f)) {
             // we're moving
+            startedMoving = true
+            Log.d("ingo", "we're moving")
             moveDistance = change
             if(abs(moveDistance) > detectSize/4) clickIgnored = true
             if (moveDistance + moveDistancedAccumulated > 0) {
@@ -415,6 +418,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 moveDistance = ((limit + Math.PI / 2) * 500f - moveDistancedAccumulated).toInt()
             }
             invalidate()
+        } else {
+            Log.e("ingo", "we're NOT moving")
         }
     }
 
@@ -457,6 +462,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             //Log.d("ingo", "ne zaustavljam ${(moveDistance+moveDistancedAccumulated)/500f-Math.PI/2} ${limit}")
 
         } else if(event.action == MotionEvent.ACTION_UP){
+            startedMoving = false
             //Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
             if(!clickProcessed && !clickIgnored && abs(event.x - touchStart.x) + abs(event.y - touchStart.y) < detectSize/4){
                 val app_i = getAppIndexImIn()

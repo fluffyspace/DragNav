@@ -50,6 +50,8 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     var app_index: Int? = null
     var gcolor: Int? = null
 
+    var globalThing: EncapsulatedAppInfoWithFolder? = null
+
     var dialogState: DialogStates? = null
 
     override var fragment: Fragment = this
@@ -185,7 +187,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
 
     fun openCreateFolderDialog(){
         (activity as MainActivity).openFolderNameMenu(this.circleView, false, "", false) {
-            val novaMapa = RainbowMapa(0, it, mutableListOf(viewModel.rainbowFiltered[app_index!!].apps.first()), true)
+            val novaMapa = RainbowMapa(0, it, mutableListOf(globalThing!!.apps.first()), true)
             (activity as MainActivity).rainbowMapaInsertItem(novaMapa)
         }
     }
@@ -228,7 +230,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     }
 
     fun openShortcut(index: Int){
-        val thing = viewModel.rainbowFiltered[app_index!!]
+        val thing = globalThing!!
         if(thing.folderName == null) {
             if (index >= shortcuts.size) {
                 if (index == shortcuts.size) {
@@ -292,6 +294,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     }
 
     fun openShortcutsMenu(thing: EncapsulatedAppInfoWithFolder){
+        globalThing = thing
         val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         if(launcherApps.hasShortcutHostPermission()) {
             shortcuts = mactivity.getShortcutFromPackage(
@@ -300,11 +303,11 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         } else {
             shortcuts = listOf()
         }
-        val appDrawable = viewModel.icons.value!![viewModel.rainbowFiltered[app_index!!].apps.first().packageName]
+        val appDrawable = viewModel.icons.value!![globalThing!!.apps.first().packageName]
         val actions = shortcuts.map{ShortcutAction(it.shortLabel.toString(), appDrawable)}.toMutableList().apply {
             add(ShortcutAction(getTranslatedString(R.string.app_info), getDrawable(R.drawable.ic_outline_info_75)))
-            add(if(viewModel.rainbowFiltered[app_index!!].apps.first().favorite) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
-            add(if(mactivity.isAppAlreadyInMap(viewModel.rainbowFiltered[app_index!!].apps.first())) ShortcutAction(getTranslatedString(R.string.remove_from_folder), getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction(getTranslatedString(R.string.add_to_folder), getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
+            add(if(globalThing!!.apps.first().favorite) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
+            add(if(mactivity.isAppAlreadyInMap(globalThing!!.apps.first())) ShortcutAction(getTranslatedString(R.string.remove_from_folder), getDrawable(R.drawable.baseline_folder_off_24)) else ShortcutAction(getTranslatedString(R.string.add_to_folder), getDrawable(R.drawable.ic_baseline_create_new_folder_50)))
         }
         dialogState = DialogStates.APP_SHORTCUTS
         mactivity.showDialogWithActions(actions, this, this@MainFragmentRainbow.circleView)
@@ -330,8 +333,8 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             openCreateFolderDialog()
         } else {
             val mapa = viewModel.rainbowMape.value!![map_index]
-            val nova_mapa = mapa.copy(apps = mapa.apps.plus(viewModel.rainbowFiltered[app_index!!].apps.first()).toMutableList())
-            Log.d("ingo", "addAppToMap $map_index $mapa $nova_mapa ${viewModel.rainbowFiltered[app_index!!].apps.first()}")
+            val nova_mapa = mapa.copy(apps = mapa.apps.plus(globalThing!!.apps.first()).toMutableList())
+            Log.d("ingo", "addAppToMap $map_index $mapa $nova_mapa ${globalThing!!.apps.first()}")
             viewModel.updateRainbowMapa(nova_mapa)
             (activity as MainActivity).rainbowMapaUpdateItem(nova_mapa)
         }
@@ -534,7 +537,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         when(index){
             0 -> {
                 // uredi mapu (preimenuj)
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == globalThing!!.folderName }
                 (activity as MainActivity).openFolderNameMenu(this.circleView, true, mapa!!.folderName, false){ime ->
                     val nova_mapa = mapa?.copy(folderName = ime)
                     if (nova_mapa != null) {
@@ -547,7 +550,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             }
             1 -> {
                 // obriši mapu
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == globalThing!!.folderName }
                 if (mapa != null) {
                     viewModel.deleteRainbowMapa(mapa)
                     (activity as MainActivity).rainbowMapaDeleteItem(mapa)
@@ -557,7 +560,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             }
             2 -> {
                 // dodaj pod omiljeno
-                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == viewModel.rainbowFiltered[app_index!!].folderName }
+                val mapa = viewModel.rainbowMape.value!!.find{ it.folderName == globalThing!!.folderName }
                 val nova_mapa = mapa?.copy(favorite = !mapa.favorite)
                 if (nova_mapa != null) {
                     viewModel.updateRainbowMapa(nova_mapa)
