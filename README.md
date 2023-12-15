@@ -1,1 +1,1 @@
-#Alternativni pokretački zaslon
+# Alternativni pokretački zaslon
