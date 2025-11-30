@@ -111,17 +111,8 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             }
             if (circleView.overrideStep != null) it.value = circleView.overrideStep!!
         }
-        view.findViewById<ImageButton>(R.id.sliders).setOnClickListener {
-            sliders = !sliders
-            if(sliders){
-                view.findViewById<Slider>(R.id.detectSize).visibility = View.VISIBLE
-                view.findViewById<Slider>(R.id.distance).visibility = View.VISIBLE
-                view.findViewById<Slider>(R.id.step).visibility = View.VISIBLE
-            } else {
-                view.findViewById<Slider>(R.id.detectSize).visibility = View.GONE
-                view.findViewById<Slider>(R.id.distance).visibility = View.GONE
-                view.findViewById<Slider>(R.id.step).visibility = View.GONE
-            }
+        view.findViewById<ImageButton>(R.id.close_sliders).setOnClickListener {
+            toggleSliders()
         }
 
         view.findViewById<ImageButton>(R.id.settings).setOnClickListener {
@@ -132,11 +123,12 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             override fun onEventOccurred(app:EventTypes, counter: Int) {
                 when(app){
                     EventTypes.OPEN_APP->touched(counter)
-                    EventTypes.START_COUNTDOWN->startCountdown()
+                    EventTypes.START_COUNTDOWN->startCountdown(counter)
                     EventTypes.STOP_COUNTDOWN->stopCountdown()
                     EventTypes.OPEN_SHORTCUT->openShortcut(counter)
                     EventTypes.TOGGLE_FAVORITES->toggleFavorites()
                     EventTypes.START_FLING->startFlingAnimation()
+                    EventTypes.TOGGLE_SLIDERS->toggleSliders()
                 }
                 Log.d("ingo", "onEventOccurred " + app.toString())
 
@@ -170,23 +162,31 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
             }
         }
     }
-    fun startCountdown(){
+    fun startCountdown(type: Int){
         countdown = lifecycleScope.launch(Dispatchers.IO) {
             delay(250)
             withContext(Dispatchers.Main){
-                val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-                if(launcherApps.hasShortcutHostPermission()) {
-                    app_index = circleView.getAppIndexImIn()
-                    if (app_index != null) {
-                        shortcuts = mactivity.getShortcutFromPackage(
-                            getApps()[app_index!!].packageName
-                        )
-                        val shortcuts_for_custom_view = shortcuts.map{it.shortLabel.toString()}.toMutableList().apply { add(if(getApps()[app_index!!].favorite) "Makni iz omiljenih" else "Dodaj u omiljene") }
-                        circleView.showShortcuts(app_index!!, shortcuts_for_custom_view)
-                        if(shortcuts.isEmpty()){
-                            view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                if(type == 3) {
+                    // Long press on empty area - toggle sliders
+                    circleView.longPressTriggered = true
+                    view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    toggleSliders()
+                } else {
+                    // Long press on app - show shortcuts
+                    val launcherApps: LauncherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                    if(launcherApps.hasShortcutHostPermission()) {
+                        app_index = circleView.getAppIndexImIn()
+                        if (app_index != null) {
+                            shortcuts = mactivity.getShortcutFromPackage(
+                                getApps()[app_index!!].packageName
+                            )
+                            val shortcuts_for_custom_view = shortcuts.map{it.shortLabel.toString()}.toMutableList().apply { add(if(getApps()[app_index!!].favorite) "Makni iz omiljenih" else "Dodaj u omiljene") }
+                            circleView.showShortcuts(app_index!!, shortcuts_for_custom_view)
+                            if(shortcuts.isEmpty()){
+                                view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            }
+                            Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                         }
-                        Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                     }
                 }
             }
@@ -222,6 +222,21 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         circleView.moveDistancedAccumulated = 0
         circleView.onlyfavorites = onlyfavorites
         prebaciMeni()
+    }
+
+    fun toggleSliders(){
+        sliders = !sliders
+        if(sliders){
+            global_view.findViewById<Slider>(R.id.detectSize).visibility = View.VISIBLE
+            global_view.findViewById<Slider>(R.id.distance).visibility = View.VISIBLE
+            global_view.findViewById<Slider>(R.id.step).visibility = View.VISIBLE
+            global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = View.VISIBLE
+        } else {
+            global_view.findViewById<Slider>(R.id.detectSize).visibility = View.GONE
+            global_view.findViewById<Slider>(R.id.distance).visibility = View.GONE
+            global_view.findViewById<Slider>(R.id.step).visibility = View.GONE
+            global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = View.GONE
+        }
     }
 
     private fun changeSettings(key: String, value: Any){
@@ -352,4 +367,4 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
 }
 
-enum class EventTypes{OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES, START_FLING}
+enum class EventTypes{OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES, START_FLING, TOGGLE_SLIDERS}

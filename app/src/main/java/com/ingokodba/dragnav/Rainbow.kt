@@ -50,7 +50,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var size_height = 320
     private var app_list:List<AppInfo> = listOf()
     private var color_list:List<String> = listOf()
-    private var new_letter_apps:MutableList<Int> = mutableListOf()
     private var no_draw_position:Int = -1
     private var polja_points:MutableList<Point> = mutableListOf()
     private var hovered_over:Int = -1
@@ -80,7 +79,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var highestIconAngleDrawn: Double = 0.0
 
     var drawn_apps: MutableList<DrawnApp> = mutableListOf()
-    var rect: Rect? = null
 
     var editMode:Boolean = false
     var addAppMode:Boolean = false
@@ -121,6 +119,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var lastTouchPoints: MutableList<Point> = mutableListOf()
 
     var hasMoved = false
+    var longPressTriggered = false
 
     fun limit(number: Int): Boolean{
         limit = -(app_list.size/2)*step_size - step_size*2
@@ -133,11 +132,11 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun flingUpdate(){
         if(!flingOn) return
         Log.d("ingo", "fling update $flingValue $flingFriction")
-        flingValue -= if (flingValue > 0) flingFriction else -flingFriction
         if(abs(flingValue) <= flingFriction || limit((flingValueAccumulated + flingValue + moveDistancedAccumulated).toInt())){
             finishFling()
             return
         }
+        flingValue -= if (flingValue > 0) flingFriction else -flingFriction
         flingValueAccumulated += flingValue
         moveAction(flingValueAccumulated.toInt())
     }
@@ -198,21 +197,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun setAppInfoList(list:List<AppInfo>){
         app_list = list
-        new_letter_apps.clear()
-        var firstLetter: Char = '0'
-        var counter = 0
-        for(app in app_list){
-            if(app.label[0].uppercaseChar() > firstLetter){
-                firstLetter = app.label[0].uppercaseChar()
-                new_letter_apps.add(counter)
-                Log.d("ingo", "${app.label} $counter $firstLetter")
-            }
-            counter++
-        }
-
         hovered_over = -1
         invalidate()
-        //Log.d("ingo", "circleviewb setTextList " + list.map{it.text})
     }
 
     fun setColorList(list:List<String>){
@@ -373,6 +359,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun quickMove(point: Point){
+        if (app_list.isEmpty()) return
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
             (point.x-size_width).toDouble()
         )
@@ -383,7 +370,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 click = i
             }
         }
-        val firstByThatLetter = app_list.firstOrNull{it.label[0].uppercaseChar() == app_list.distinctBy { it.label[0].uppercaseChar() }[click].label[0].uppercaseChar()}
+        val appsGroupedByLetter = app_list.filter { it.label.isNotEmpty() }.distinctBy { it.label[0].uppercaseChar() }
+        if (click >= appsGroupedByLetter.size || appsGroupedByLetter.isEmpty()) return
+        val targetLetter = appsGroupedByLetter[click].label[0].uppercaseChar()
+        val firstByThatLetter = app_list.firstOrNull{ it.label.isNotEmpty() && it.label[0].uppercaseChar() == targetLetter }
             ?: return
 
         Log.d("ingo", "angle $angle ${firstByThatLetter.label} $click $quickSwipeAngles")
@@ -410,8 +400,22 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
     }
 
+    fun isTouchOnApp(): Boolean {
+        for(draw_app in drawn_apps){
+            if(draw_app.rect.contains(touchStart)){
+                return true
+            }
+        }
+        return false
+    }
+
     fun startOpenShortcutCountdown(){
-        mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 2)
+        if(isTouchOnApp()) {
+            mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 2)
+        } else {
+            // Start countdown for sliders toggle on empty area
+            mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 3)
+        }
     }
 
     fun moveAction(change: Int){
@@ -465,6 +469,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else if(!clickProcessed){
                 val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
                 lastTouchPoints.add(Point(event.x.toInt(), event.y.toInt()))
+                // Limit stored touch points to prevent memory growth
+                if (lastTouchPoints.size > 10) {
+                    lastTouchPoints.removeAt(0)
+                }
                 moveAction(change)
             }
             //Log.d("ingo", "ne zaustavljam ${(moveDistance+moveDistancedAccumulated)/500f-Math.PI/2} ${limit}")
@@ -473,7 +481,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             //Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
             if(!clickProcessed && !clickIgnored && abs(event.x - touchStart.x) + abs(event.y - touchStart.y) < detectSize/4){
                 val app_i = getAppIndexImIn()
-                if(app_i != null) mEventListener?.onEventOccurred(EventTypes.OPEN_APP, app_i!!)
+                if(app_i != null) mEventListener?.onEventOccurred(EventTypes.OPEN_APP, app_i)
             }
             if(!quickSwipeEntered && lastTouchPoints.size > 3){
                 val moveSpeed = ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
@@ -500,6 +508,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         clickProcessed = false
         quickSwipeEntered = false
         hasMoved = false
+        longPressTriggered = false
         flingValueAccumulated = 0f
         lastTouchPoints.clear()
     }
@@ -594,16 +603,19 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
-            val appsGroupedByLetter = app_list.distinctBy { it.label[0].uppercaseChar() }
+            val appsGroupedByLetter = app_list.filter { it.label.isNotEmpty() }.distinctBy { it.label[0].uppercaseChar() }
+            if (appsGroupedByLetter.isEmpty()) return
             val divider = 90f/appsGroupedByLetter.size
+            val drawnAppsCountByLetter = drawn_apps.groupingBy { it.letter.uppercaseChar() }.eachCount()
             for(i in appsGroupedByLetter.indices){
                 quickSwipeAngles.add(Math.toRadians((divider*i).toDouble()).toFloat())
-                //val first_drawn_app = drawn_apps.first().letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar()
-                empty_circle_paint.strokeWidth = border_width*(drawn_apps.filter { it.letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar() }.size.toFloat()/drawn_apps.size.toFloat()).toFloat()
+                val letterChar = appsGroupedByLetter[i].label[0].uppercaseChar()
+                val countForLetter = drawnAppsCountByLetter[letterChar] ?: 0
+                empty_circle_paint.strokeWidth = border_width*(countForLetter.toFloat()/drawn_apps.size.toFloat())
                 drawArc(rectf,
                     (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
                 val point = myDraw(Math.toRadians(180+divider*i+divider/3.0), radius*1.3f)
-                canvas.drawText(appsGroupedByLetter[i].label[0].uppercaseChar().toString(), point.x, point.y+text_size/2, text_paint)
+                canvas.drawText(letterChar.toString(), point.x, point.y+text_size/2, text_paint)
             }
 
             for(queued_text in queued_texts){

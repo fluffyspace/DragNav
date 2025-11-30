@@ -24,15 +24,16 @@
             app:layout_constraintLeft_toLeftOf="parent"
             android:visibility="gone"/>
         <ImageButton
-            android:id="@+id/sliders"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:id="@+id/close_sliders"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:scaleType="fitCenter"
-            android:contentDescription="@string/adjust_design"
-            android:src="@drawable/width_fill0_wght400_grad0_opsz48"
+            android:contentDescription="@string/close"
+            android:src="@drawable/ic_baseline_close_50"
             android:background="@color/white_semi_transparent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toRightOf="@id/settings"/>
+            app:layout_constraintRight_toRightOf="parent"
+            android:visibility="gone"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/detectSize"
             android:layout_width="match_parent"
