@@ -478,9 +478,11 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun drawLetterIndex(canvas: Canvas, w: Float, h: Float) {
+        // Reverse the letter order so it matches the visual flow on the path
+        // (path starts at bottom with t≈0, so first letters should be at bottom of index too)
         val letters = when (config.appSortOrder) {
-            AppSortOrder.ASCENDING -> letterPositions.keys.sorted()
-            AppSortOrder.DESCENDING -> letterPositions.keys.sortedDescending()
+            AppSortOrder.ASCENDING -> letterPositions.keys.sortedDescending()
+            AppSortOrder.DESCENDING -> letterPositions.keys.sorted()
         }
         if (letters.isEmpty()) return
 
@@ -751,9 +753,10 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun handleLetterIndexTouch(y: Float) {
+        // Use same reversed order as visual display
         val letters = when (config.appSortOrder) {
-            AppSortOrder.ASCENDING -> letterPositions.keys.sorted()
-            AppSortOrder.DESCENDING -> letterPositions.keys.sortedDescending()
+            AppSortOrder.ASCENDING -> letterPositions.keys.sortedDescending()
+            AppSortOrder.DESCENDING -> letterPositions.keys.sorted()
         }
         if (letters.isEmpty()) return
 

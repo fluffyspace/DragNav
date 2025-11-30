@@ -216,7 +216,7 @@ class PathSettingsDialog(
 
             // Icon size
             addView(createLabel("Icon Size"))
-            addView(createSlider(0.03f, 0.15f, config.appIconSize) {
+            addView(createSlider(0.03f, 0.5f, config.appIconSize) {
                 config = config.copy(appIconSize = it)
                 notifyChange()
             })
