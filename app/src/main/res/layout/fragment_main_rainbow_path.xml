@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.ingokodba.dragnav.rainbow.MainFragmentRainbowPath">
+
+    <com.ingokodba.dragnav.rainbow.RainbowPathView
+        android:id="@+id/rainbow_path_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ImageButton
+        android:id="@+id/settings_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/circle_button_background"
+        android:contentDescription="@string/settings"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_baseline_settings_100"
+        android:tint="@android:color/white" />
+
+</FrameLayout>

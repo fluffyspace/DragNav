@@ -220,6 +220,7 @@ class MainActivity : AppCompatActivity(){
             ui_design_values[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
             ui_design_values[2] -> UiDesignEnum.RAINBOW
             ui_design_values[3] -> UiDesignEnum.KEYPAD
+            ui_design_values[4] -> UiDesignEnum.RAINBOW_PATH
             else -> UiDesignEnum.CIRCLE
         }
         when (darkModePreference) {
@@ -318,6 +319,7 @@ class MainActivity : AppCompatActivity(){
             UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand()
             UiDesignEnum.RAINBOW -> MainFragmentRainbow()
             UiDesignEnum.KEYPAD -> MainFragmentTipke()
+            UiDesignEnum.RAINBOW_PATH -> com.ingokodba.dragnav.rainbow.MainFragmentRainbowPath()
         }
 
         searchFragment = SearchFragment()
@@ -329,7 +331,7 @@ class MainActivity : AppCompatActivity(){
             .setReorderingAllowed(true)
             .commit()
 
-        if(uiDesignMode == UiDesignEnum.RAINBOW){
+        if(uiDesignMode == UiDesignEnum.RAINBOW || uiDesignMode == UiDesignEnum.RAINBOW_PATH){
             // TODO: provjeri da li se ovo postavi ili ne
             activitiesFragment.radapter?.showAddToHomescreen = false
         }
