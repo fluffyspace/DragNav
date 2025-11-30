@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.widget.EdgeEffect
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toBitmap
 import com.example.dragnav.R
@@ -54,6 +55,12 @@ class RainbowPathView @JvmOverloads constructor(
     // Fling physics
     private val flingFriction = 0.92f
     private val minFlingVelocity = 2f
+
+    // Overscroll effects
+    private var topEdgeEffect: EdgeEffect? = null
+    private var bottomEdgeEffect: EdgeEffect? = null
+    private var overscrollDistance: Float = 0f
+    private val maxOverscrollDistance = 0.15f // Maximum overscroll as fraction of spacing
 
     // Drawn app tracking for touch detection
     private data class DrawnAppInfo(
@@ -130,6 +137,14 @@ class RainbowPathView @JvmOverloads constructor(
         eventListener = listener
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        topEdgeEffect = EdgeEffect(context)
+        bottomEdgeEffect = EdgeEffect(context)
+        topEdgeEffect?.setSize(w, h)
+        bottomEdgeEffect?.setSize(w, h)
+    }
+
     fun setApps(apps: List<AppInfo>) {
         Log.d("RainbowPath", "setApps called with ${apps.size} apps")
         appList = apps
@@ -175,13 +190,31 @@ class RainbowPathView @JvmOverloads constructor(
         if (!isFling) return
 
         scrollVelocity *= flingFriction
-        scrollOffset += scrollVelocity
-
-        // Clamp scroll
         val apps = getDisplayedApps()
+
         if (apps.isNotEmpty()) {
             val maxScroll = (apps.size - 1) * config.appSpacing
-            scrollOffset = scrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+            val newScrollOffset = scrollOffset + scrollVelocity
+
+            // Check for boundary collision during fling
+            val atTop = scrollOffset >= 0f && scrollVelocity > 0
+            val atBottom = scrollOffset <= -maxScroll.coerceAtLeast(0f) && scrollVelocity < 0
+
+            if (atTop || atBottom) {
+                // Hit boundary - absorb velocity in edge effect and stop fling
+                val absorbVelocity = (abs(scrollVelocity) * 10000).toInt()
+                if (atTop) {
+                    topEdgeEffect?.onAbsorb(absorbVelocity)
+                } else {
+                    bottomEdgeEffect?.onAbsorb(absorbVelocity)
+                }
+                isFling = false
+                scrollVelocity = 0f
+                eventListener?.onFlingEnded()
+            } else {
+                // Normal fling
+                scrollOffset = newScrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+            }
         }
 
         if (abs(scrollVelocity) < minFlingVelocity) {
@@ -190,6 +223,34 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
         invalidate()
+    }
+
+    private fun animateOverscrollRelease() {
+        val startDistance = overscrollDistance
+        val startTime = System.currentTimeMillis()
+        val duration = 150L // ms
+
+        val animator = object : Runnable {
+            override fun run() {
+                val elapsed = System.currentTimeMillis() - startTime
+                val progress = (elapsed.toFloat() / duration).coerceIn(0f, 1f)
+
+                // Ease out interpolation
+                val interpolated = 1f - (1f - progress) * (1f - progress)
+
+                overscrollDistance = startDistance * (1f - interpolated)
+
+                if (progress < 1f) {
+                    invalidate()
+                    postDelayed(this, 16)
+                } else {
+                    overscrollDistance = 0f
+                    invalidate()
+                }
+            }
+        }
+
+        post(animator)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -226,6 +287,31 @@ class RainbowPathView @JvmOverloads constructor(
         if (shortcutsAppIndex != null && shortcuts.isNotEmpty()) {
             drawShortcutsPopup(canvas, w, h)
         }
+
+        // Draw edge effects for overscroll (LAST, with isolated canvas state)
+        drawEdgeEffects(canvas, w.toInt(), h.toInt())
+    }
+
+    private fun drawEdgeEffects(canvas: Canvas, width: Int, height: Int) {
+        // EdgeEffect is disabled for now - using only bounce effect for overscroll
+        // The glow effect was causing unwanted transformations to other UI elements
+        var needsInvalidate = false
+
+        topEdgeEffect?.let { effect ->
+            if (!effect.isFinished) {
+                needsInvalidate = true
+            }
+        }
+
+        bottomEdgeEffect?.let { effect ->
+            if (!effect.isFinished) {
+                needsInvalidate = true
+            }
+        }
+
+        if (needsInvalidate) {
+            postInvalidateOnAnimation()
+        }
     }
 
     private fun drawDebugPath(canvas: Canvas, w: Float, h: Float) {
@@ -256,9 +342,12 @@ class RainbowPathView @JvmOverloads constructor(
         val provider = PathShapeRegistry.getProvider(config.pathShape)
         val iconSizePx = config.appIconSize * w
 
+        // Apply overscroll offset to create bounce effect
+        val bounceOffset = overscrollDistance * config.appSpacing
+
         apps.forEachIndexed { index, app ->
-            // Calculate position on path
-            val baseT = index * config.appSpacing + scrollOffset
+            // Calculate position on path with bounce offset
+            val baseT = index * config.appSpacing + scrollOffset + bounceOffset
             val t = baseT.coerceIn(0f, 1f)
 
             // Skip if outside visible range
@@ -463,21 +552,49 @@ class RainbowPathView @JvmOverloads constructor(
                     (event.y - touchStartY) * (event.y - touchStartY)
                 )
 
-                if (!isDragging && distanceFromStart > 10f) {
+                if (!isDragging && distanceFromStart > 30f) {
                     isDragging = true
                 }
 
                 if (isDragging) {
                     // Scroll based on movement along path direction
                     val scrollDelta = (-dy + dx) / (height * config.appSpacing * 10)
-                    scrollOffset += scrollDelta
-                    scrollVelocity = scrollDelta * 10
-
-                    // Clamp scroll
                     val apps = getDisplayedApps()
+
                     if (apps.isNotEmpty()) {
                         val maxScroll = (apps.size - 1) * config.appSpacing
-                        scrollOffset = scrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+                        val newScrollOffset = scrollOffset + scrollDelta
+
+                        // Check if we're at boundaries
+                        val atTop = scrollOffset >= 0f
+                        val atBottom = scrollOffset <= -maxScroll.coerceAtLeast(0f)
+
+                        if ((atTop && scrollDelta > 0) || (atBottom && scrollDelta < 0)) {
+                            // Apply overscroll with resistance
+                            val resistance = 0.3f
+                            overscrollDistance += scrollDelta * resistance
+                            overscrollDistance = overscrollDistance.coerceIn(-maxOverscrollDistance, maxOverscrollDistance)
+
+                            // Trigger edge effect
+                            val pullAmount = abs(scrollDelta) * 2f
+                            if (atTop && scrollDelta > 0) {
+                                topEdgeEffect?.onPull(pullAmount, 0.5f)
+                            } else if (atBottom && scrollDelta < 0) {
+                                bottomEdgeEffect?.onPull(pullAmount, 0.5f)
+                            }
+                        } else {
+                            // Normal scrolling
+                            scrollOffset = newScrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+                            scrollVelocity = scrollDelta * 10
+
+                            // Release overscroll if moving away from boundary
+                            if (overscrollDistance != 0f) {
+                                overscrollDistance *= 0.7f
+                                if (abs(overscrollDistance) < 0.001f) {
+                                    overscrollDistance = 0f
+                                }
+                            }
+                        }
                     }
 
                     invalidate()
@@ -490,6 +607,15 @@ class RainbowPathView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP -> {
                 isInLetterIndex = false
+
+                // Release edge effects
+                topEdgeEffect?.onRelease()
+                bottomEdgeEffect?.onRelease()
+
+                // Animate overscroll back to normal
+                if (overscrollDistance != 0f) {
+                    animateOverscrollRelease()
+                }
 
                 if (!isDragging) {
                     // Check for tap on favorites button
