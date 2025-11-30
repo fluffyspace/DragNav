@@ -33,6 +33,7 @@ class PathSettingsDialog(
     private val categories = listOf(
         Category.PATH,
         Category.APPS,
+        Category.APP_NAMES,
         Category.FAVORITES,
         Category.LETTERS
     )
@@ -40,6 +41,7 @@ class PathSettingsDialog(
     enum class Category(val title: String) {
         PATH("Path"),
         APPS("Apps"),
+        APP_NAMES("App Names"),
         FAVORITES("Favorites"),
         LETTERS("Letters")
     }
@@ -156,6 +158,7 @@ class PathSettingsDialog(
         val content = when (category) {
             Category.PATH -> createPathSettings()
             Category.APPS -> createAppsSettings()
+            Category.APP_NAMES -> createAppNamesSettings()
             Category.FAVORITES -> createFavoritesSettings()
             Category.LETTERS -> createLettersSettings()
         }
@@ -228,18 +231,77 @@ class PathSettingsDialog(
                 notifyChange()
             })
 
-            // Show app names
+            // Scroll sensitivity
+            addView(createLabel("Scroll Sensitivity"))
+            addView(TextView(context).apply {
+                text = "Higher values = faster scrolling (e.g., 10 = 1cm touch scrolls 10cm)"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(0.5f, 20f, config.scrollSensitivity) {
+                config = config.copy(scrollSensitivity = it)
+                notifyChange()
+            })
+        }
+    }
+
+    private fun createAppNamesSettings(): View {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16)
+
+            // Show app names toggle
             addView(createCheckbox("Show App Names", config.showAppNames) {
                 config = config.copy(showAppNames = it)
                 notifyChange()
             })
 
-            // App name size
-            addView(createLabel("App Name Size"))
-            addView(createSlider(8f, 20f, config.appNameSize) {
+            // Name position
+            addView(createLabel("Name Position (offset from icon center)"))
+
+            // X offset slider
+            addView(TextView(context).apply {
+                text = "Horizontal Offset (-1 = left, 1 = right)"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(-1f, 1f, config.appNameOffsetX) {
+                config = config.copy(appNameOffsetX = it)
+                notifyChange()
+            })
+
+            // Y offset slider
+            addView(TextView(context).apply {
+                text = "Vertical Offset (-1 = below, 1 = above)"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(-1f, 1f, config.appNameOffsetY) {
+                config = config.copy(appNameOffsetY = it)
+                notifyChange()
+            })
+
+            // Text size
+            addView(createLabel("Text Size"))
+            addView(createSlider(8f, 24f, config.appNameSize) {
                 config = config.copy(appNameSize = it)
                 notifyChange()
             })
+
+            // Style
+            addView(createLabel("Text Style"))
+            addView(createAppNameStyleSpinner())
+
+            // Border width (only for BORDERED style)
+            addView(createLabel("Border Width (for bordered style)"))
+            addView(createSlider(1f, 8f, config.appNameBorderWidth) {
+                config = config.copy(appNameBorderWidth = it)
+                notifyChange()
+            })
+
+            // Font
+            addView(createLabel("Font"))
+            addView(createAppNameFontSpinner())
         }
     }
 
@@ -258,7 +320,7 @@ class PathSettingsDialog(
 
             // Button size
             addView(createLabel("Button Size"))
-            addView(createSlider(0.05f, 0.15f, config.favButtonSize) {
+            addView(createSlider(0.05f, 0.5f, config.favButtonSize) {
                 config = config.copy(favButtonSize = it)
                 notifyChange()
             })
@@ -416,6 +478,46 @@ class PathSettingsDialog(
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     (view as? TextView)?.setTextColor(Color.WHITE)
                     config = config.copy(appSortOrder = orders[position])
+                    notifyChange()
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun createAppNameStyleSpinner(): Spinner {
+        return Spinner(context).apply {
+            val styles = AppNameStyle.values()
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_dropdown_item,
+                styles.map { it.name.replace("_", " ") }
+            )
+            setSelection(styles.indexOf(config.appNameStyle))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    (view as? TextView)?.setTextColor(Color.WHITE)
+                    config = config.copy(appNameStyle = styles[position])
+                    notifyChange()
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun createAppNameFontSpinner(): Spinner {
+        return Spinner(context).apply {
+            val fonts = AppNameFont.values()
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_dropdown_item,
+                fonts.map { it.name.replace("_", " ") }
+            )
+            setSelection(fonts.indexOf(config.appNameFont))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    (view as? TextView)?.setTextColor(Color.WHITE)
+                    config = config.copy(appNameFont = fonts[position])
                     notifyChange()
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}

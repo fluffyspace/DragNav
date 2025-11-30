@@ -59,6 +59,9 @@ class RainbowPathView @JvmOverloads constructor(
                     }
                 }
 
+                // Rebuild letter index for the new app list
+                updateLetterPositions()
+
                 invalidate()
             }
         }
@@ -118,7 +121,11 @@ class RainbowPathView @JvmOverloads constructor(
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
-        setShadowLayer(4f, 1f, 2f, Color.BLACK)
+    }
+    private val textBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textAlign = Paint.Align.CENTER
+        style = Paint.Style.STROKE
     }
     private val letterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
@@ -320,8 +327,38 @@ class RainbowPathView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
 
-        // Update text sizes based on config
+        // Update text sizes and styles based on config
         textPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
+        textBorderPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
+        textBorderPaint.strokeWidth = config.appNameBorderWidth
+
+        // Apply font
+        val typeface = when (config.appNameFont) {
+            AppNameFont.DEFAULT -> Typeface.DEFAULT
+            AppNameFont.SANS_SERIF -> Typeface.SANS_SERIF
+            AppNameFont.SERIF -> Typeface.SERIF
+            AppNameFont.MONOSPACE -> Typeface.MONOSPACE
+        }
+        textPaint.typeface = typeface
+        textBorderPaint.typeface = typeface
+
+        // Set text alignment to center both horizontally and vertically
+        textPaint.textAlign = Paint.Align.CENTER
+        textBorderPaint.textAlign = Paint.Align.CENTER
+
+        // Apply style-specific effects
+        when (config.appNameStyle) {
+            AppNameStyle.PLAIN -> {
+                textPaint.clearShadowLayer()
+            }
+            AppNameStyle.SHADOW -> {
+                textPaint.setShadowLayer(4f, 2f, 2f, Color.BLACK)
+            }
+            AppNameStyle.BORDERED -> {
+                textPaint.clearShadowLayer()
+            }
+        }
+
         letterPaint.textSize = config.letterIndexSize * w
         shortcutTextPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
 
@@ -467,12 +504,28 @@ class RainbowPathView @JvmOverloads constructor(
 
             // Draw app name
             if (config.showAppNames) {
-                canvas.drawText(
-                    app.label,
-                    screenX,
-                    screenY + iconSizePx / 2 + textPaint.textSize + 4,
-                    textPaint
-                )
+                // Calculate text position with offset (multiplier increased for more range)
+                // Offset is relative to icon size, ranging from -1 to 1, multiplied by 3 for larger offset range
+                val textOffsetX = config.appNameOffsetX * iconSizePx * 3f
+                val textOffsetY = config.appNameOffsetY * iconSizePx * 3f
+                val textX = screenX + textOffsetX
+                // For vertical centering, adjust Y position to text baseline
+                val textMetrics = textPaint.fontMetrics
+                val textCenterY = screenY + textOffsetY - (textMetrics.ascent + textMetrics.descent) / 2f
+
+                // Draw based on style
+                when (config.appNameStyle) {
+                    AppNameStyle.BORDERED -> {
+                        // Draw border (stroke) first
+                        canvas.drawText(app.label, textX, textCenterY, textBorderPaint)
+                        // Draw fill text on top
+                        canvas.drawText(app.label, textX, textCenterY, textPaint)
+                    }
+                    AppNameStyle.PLAIN, AppNameStyle.SHADOW -> {
+                        // Shadow is already applied to textPaint for SHADOW style
+                        canvas.drawText(app.label, textX, textCenterY, textPaint)
+                    }
+                }
             }
         }
     }
@@ -519,10 +572,10 @@ class RainbowPathView @JvmOverloads constructor(
         // Draw star icon
         val starDrawable = AppCompatResources.getDrawable(
             context,
-            if (onlyFavorites) R.drawable.star_fill else R.drawable.star_empty
+            if (onlyFavorites) R.drawable.favorite_filled else R.drawable.favorite
         )
         starDrawable?.let {
-            it.setTint(if (onlyFavorites) Color.YELLOW else Color.WHITE)
+            it.setTint(if (onlyFavorites) Color.RED else Color.WHITE)
             val iconSize = buttonSize * 0.6f
             it.setBounds(
                 (centerX - iconSize / 2).toInt(),
@@ -636,7 +689,8 @@ class RainbowPathView @JvmOverloads constructor(
 
                 if (isDragging) {
                     // Scroll based on movement along path direction
-                    val scrollDelta = (-dy + dx) / (height * config.appSpacing * 10)
+                    // Apply scroll sensitivity multiplier
+                    val scrollDelta = ((-dy + dx) / (height * config.appSpacing * 10)) * config.scrollSensitivity
                     val apps = getDisplayedApps()
 
                     if (apps.isNotEmpty()) {
@@ -675,6 +729,7 @@ class RainbowPathView @JvmOverloads constructor(
                         } else {
                             // Normal scrolling
                             scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
+                            // Velocity already includes sensitivity from scrollDelta
                             scrollVelocity = scrollDelta * 10
 
                             // Release overscroll if moving away from boundary

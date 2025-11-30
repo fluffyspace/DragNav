@@ -37,6 +37,13 @@ data class PathConfig(
     val showAppNames: Boolean = true,
     val appNameSize: Float = 12f,                    // Text size in sp
 
+    // App name positioning and styling
+    val appNameOffsetX: Float = 0f,                  // Horizontal offset from icon center (-1 to 1)
+    val appNameOffsetY: Float = 0.5f,                // Vertical offset from icon center (-1 to 1)
+    val appNameStyle: AppNameStyle = AppNameStyle.PLAIN,
+    val appNameBorderWidth: Float = 2f,              // Border width in pixels (for BORDERED style)
+    val appNameFont: AppNameFont = AppNameFont.DEFAULT,
+
     // Favorites button settings
     val favButtonPosition: PointF = PointF(0.15f, 0.15f),  // Position (normalized)
     val favButtonSize: Float = 0.08f,                       // Size relative to screen width
@@ -48,7 +55,11 @@ data class PathConfig(
     val letterIndexPadding: Float = 0.02f,           // Padding from edge
 
     // App sorting
-    val appSortOrder: AppSortOrder = AppSortOrder.ASCENDING  // Alphabetical order (A-Z or Z-A)
+    val appSortOrder: AppSortOrder = AppSortOrder.ASCENDING,  // Alphabetical order (A-Z or Z-A)
+
+    // Scroll sensitivity (multiplier for touch movement to scroll distance)
+    // 1.0 = normal, >1.0 = faster scrolling (e.g., 10.0 means 1cm touch scrolls 10cm)
+    val scrollSensitivity: Float = 1.0f
 )
 
 enum class LetterIndexPosition {
@@ -59,6 +70,19 @@ enum class LetterIndexPosition {
 enum class AppSortOrder {
     ASCENDING,   // A to Z
     DESCENDING   // Z to A
+}
+
+enum class AppNameStyle {
+    PLAIN,       // Plain text
+    BORDERED,    // Text with border/stroke
+    SHADOW       // Text with shadow
+}
+
+enum class AppNameFont {
+    DEFAULT,     // System default
+    SANS_SERIF,  // Sans-serif font
+    SERIF,       // Serif font
+    MONOSPACE    // Monospace font
 }
 
 /**
