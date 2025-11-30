@@ -98,6 +98,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface {
             override fun onFlingEnded() {
                 flingJob?.cancel()
             }
+
+            override fun onLongPressStart(appIndex: Int) {
+                startLongPressCountdown()
+            }
         })
 
         // Settings button
@@ -192,10 +196,17 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface {
         }
     }
 
+    private fun startLongPressCountdown() {
+        countdownJob?.cancel()
+        countdownJob = lifecycleScope.launch {
+            delay(250)
+            pathView.triggerLongPress()
+        }
+    }
+
     private fun showShortcuts(appIndex: Int) {
         countdownJob?.cancel()
-        countdownJob = lifecycleScope.launch(Dispatchers.IO) {
-            delay(250)
+        lifecycleScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 val launcherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
                 if (launcherApps.hasShortcutHostPermission()) {

@@ -52,6 +52,10 @@ class RainbowPathView @JvmOverloads constructor(
     private var isDragging: Boolean = false
     private var isFling: Boolean = false
 
+    // Long press detection
+    private var longPressTriggered: Boolean = false
+    private var touchedAppIndex: Int? = null
+
     // Fling physics
     private val flingFriction = 0.92f
     private val minFlingVelocity = 2f
@@ -131,6 +135,7 @@ class RainbowPathView @JvmOverloads constructor(
         fun onFavoritesToggled()
         fun onFlingStarted()
         fun onFlingEnded()
+        fun onLongPressStart(appIndex: Int)
     }
 
     fun setEventListener(listener: EventListener) {
@@ -199,12 +204,19 @@ class RainbowPathView @JvmOverloads constructor(
         val apps = getDisplayedApps()
 
         if (apps.isNotEmpty()) {
-            val maxScroll = (apps.size - 1) * config.appSpacing
+            // Allow scrolling one app space before first app (maxScroll = config.appSpacing)
+            // and three app spaces after last app appears at end of path (t=1.0)
+            // Last app is at index (apps.size - 1), so:
+            // baseT = (apps.size - 1) * spacing + minScroll should equal 1.0 + 3*spacing
+            // minScroll = 1.0 + 3*spacing - (apps.size - 1)*spacing = 1.0 - (apps.size - 4)*spacing
+            // But we want to scroll 3 app spaces PAST the end, so we need MORE negative scrolling
+            val maxScroll = config.appSpacing
+            val minScroll = 1.0f - (apps.size + 2) * config.appSpacing
             val newScrollOffset = scrollOffset + scrollVelocity
 
             // Check for boundary collision during fling
-            val atTop = scrollOffset >= 0f && scrollVelocity > 0
-            val atBottom = scrollOffset <= -maxScroll.coerceAtLeast(0f) && scrollVelocity < 0
+            val atTop = scrollOffset >= maxScroll && scrollVelocity > 0
+            val atBottom = scrollOffset <= minScroll && scrollVelocity < 0
 
             if (atTop || atBottom) {
                 // Hit boundary - absorb velocity in edge effect and stop fling
@@ -219,7 +231,7 @@ class RainbowPathView @JvmOverloads constructor(
                 eventListener?.onFlingEnded()
             } else {
                 // Normal fling
-                scrollOffset = newScrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+                scrollOffset = newScrollOffset.coerceIn(minScroll, maxScroll)
             }
         }
 
@@ -520,6 +532,8 @@ class RainbowPathView @JvmOverloads constructor(
                 isDragging = false
                 isFling = false
                 scrollVelocity = 0f
+                longPressTriggered = false
+                touchedAppIndex = null
 
                 // Check if touch is in letter index
                 letterIndexRect?.let {
@@ -541,6 +555,15 @@ class RainbowPathView @JvmOverloads constructor(
                     }
                     // Touch outside popup - close it
                     hideShortcuts()
+                } else {
+                    // Check if touch is on an app and start long press countdown
+                    drawnApps.forEach { drawnApp ->
+                        if (drawnApp.rect.contains(event.x, event.y)) {
+                            touchedAppIndex = drawnApp.index
+                            eventListener?.onLongPressStart(drawnApp.index)
+                            return@forEach
+                        }
+                    }
                 }
 
                 return true
@@ -563,6 +586,10 @@ class RainbowPathView @JvmOverloads constructor(
 
                 if (!isDragging && distanceFromStart > 30f) {
                     isDragging = true
+                    // Cancel long press if user starts dragging
+                    if (!longPressTriggered && touchedAppIndex != null) {
+                        touchedAppIndex = null
+                    }
                 }
 
                 if (isDragging) {
@@ -571,12 +598,19 @@ class RainbowPathView @JvmOverloads constructor(
                     val apps = getDisplayedApps()
 
                     if (apps.isNotEmpty()) {
-                        val maxScroll = (apps.size - 1) * config.appSpacing
+                        // Allow scrolling one app space before first app (maxScroll = config.appSpacing)
+                        // and three app spaces after last app appears at end of path (t=1.0)
+                        // Last app is at index (apps.size - 1), so:
+                        // baseT = (apps.size - 1) * spacing + minScroll should equal 1.0 + 3*spacing
+                        // minScroll = 1.0 + 3*spacing - (apps.size - 1)*spacing = 1.0 - (apps.size - 4)*spacing
+                        // But we want to scroll 3 app spaces PAST the end, so we need MORE negative scrolling
+                        val maxScroll = config.appSpacing
+                        val minScroll = 1.0f - (apps.size + 2) * config.appSpacing
                         val newScrollOffset = scrollOffset + scrollDelta
 
                         // Check if we're at boundaries
-                        val atTop = scrollOffset >= 0f
-                        val atBottom = scrollOffset <= -maxScroll.coerceAtLeast(0f)
+                        val atTop = scrollOffset >= maxScroll
+                        val atBottom = scrollOffset <= minScroll
 
                         if ((atTop && scrollDelta > 0) || (atBottom && scrollDelta < 0)) {
                             // Apply overscroll with resistance
@@ -593,7 +627,7 @@ class RainbowPathView @JvmOverloads constructor(
                             }
                         } else {
                             // Normal scrolling
-                            scrollOffset = newScrollOffset.coerceIn(-maxScroll.coerceAtLeast(0f), 0f)
+                            scrollOffset = newScrollOffset.coerceIn(minScroll, maxScroll)
                             scrollVelocity = scrollDelta * 10
 
                             // Release overscroll if moving away from boundary
@@ -627,29 +661,32 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (!isDragging) {
-                    // Check for tap on favorites button
-                    val w = width.toFloat()
-                    val h = height.toFloat()
-                    val buttonSize = config.favButtonSize * w
-                    val centerX = config.favButtonPosition.x * w
-                    val centerY = (1 - config.favButtonPosition.y) * h
+                    // Only process taps if long press wasn't triggered
+                    if (!longPressTriggered) {
+                        // Check for tap on favorites button
+                        val w = width.toFloat()
+                        val h = height.toFloat()
+                        val buttonSize = config.favButtonSize * w
+                        val centerX = config.favButtonPosition.x * w
+                        val centerY = (1 - config.favButtonPosition.y) * h
 
-                    val dist = sqrt(
-                        (event.x - centerX) * (event.x - centerX) +
-                        (event.y - centerY) * (event.y - centerY)
-                    )
+                        val dist = sqrt(
+                            (event.x - centerX) * (event.x - centerX) +
+                            (event.y - centerY) * (event.y - centerY)
+                        )
 
-                    if (dist < buttonSize / 2) {
-                        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        eventListener?.onFavoritesToggled()
-                        return true
-                    }
-
-                    // Check for tap on app
-                    drawnApps.forEach { drawnApp ->
-                        if (drawnApp.rect.contains(event.x, event.y)) {
-                            eventListener?.onAppClicked(drawnApp.index)
+                        if (dist < buttonSize / 2) {
+                            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            eventListener?.onFavoritesToggled()
                             return true
+                        }
+
+                        // Check for tap on app
+                        drawnApps.forEach { drawnApp ->
+                            if (drawnApp.rect.contains(event.x, event.y)) {
+                                eventListener?.onAppClicked(drawnApp.index)
+                                return true
+                            }
                         }
                     }
                 } else {
@@ -703,6 +740,16 @@ class RainbowPathView @JvmOverloads constructor(
     fun scrollToLetter(letter: Char) {
         letterPositions[letter.uppercaseChar()]?.let { appIndex ->
             scrollToApp(appIndex)
+        }
+    }
+
+    fun triggerLongPress() {
+        // Called by fragment when long press countdown completes
+        touchedAppIndex?.let { appIndex ->
+            if (!isDragging) {
+                longPressTriggered = true
+                eventListener?.onAppLongPressed(appIndex)
+            }
         }
     }
 }
