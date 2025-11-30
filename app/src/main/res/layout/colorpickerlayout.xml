@@ -15,7 +15,6 @@
         android:id="@+id/brightnessSlide"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:selector_BrightnessSlider="@drawable/wheel"
         app:borderColor_BrightnessSlider="@android:color/darker_gray"
         app:borderSize_BrightnessSlider="5"/>
     <Button

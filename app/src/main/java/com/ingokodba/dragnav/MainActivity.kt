@@ -861,7 +861,7 @@ class MainActivity : AppCompatActivity(){
     }
 
     private fun isSystemPackage(pkgInfo: PackageInfo): Boolean {
-        return pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+        return pkgInfo.applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) != 0
     }
 
     fun isAppLoaded(guid:Int): Boolean{
@@ -902,7 +902,8 @@ class MainActivity : AppCompatActivity(){
             if (!isSystemPackage(p)) {
                 //Log.d("ingo3", "${p.packageName} not system")
                 //Log.d("ingokodba", "aplikacija ${gson.toJson(p)}")
-                if(isAppLoaded(p.applicationInfo.uid)) {
+                val appInfo = p.applicationInfo ?: continue
+                if(isAppLoaded(appInfo.uid)) {
                     val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
                     //Log.d("ingo", "isAppLoaded " + p.packageName)
                     if(app != null) {
@@ -912,12 +913,12 @@ class MainActivity : AppCompatActivity(){
                     continue
                 }
                 //Log.d("ingo3", "${p.packageName} not loaded")
-                val appName = p.applicationInfo.loadLabel(packageManager).toString()
+                val appName = appInfo.loadLabel(packageManager).toString()
                 //Log.d("ingokodba", "discovered new app " + appName + " " + p.packageName)
                 colorPrimary = Color.BLACK
-                val packageName = p.applicationInfo.packageName
+                val packageName = appInfo.packageName
                 if (appName != packageName.toString()) {
-                    newApps.add(AppInfo(p.applicationInfo.uid, appName, packageName, colorPrimary.toString(), installed = true))
+                    newApps.add(AppInfo(appInfo.uid, appName, packageName, colorPrimary.toString(), installed = true))
                 }
             }
         }
