@@ -38,13 +38,32 @@ class RainbowPathView @JvmOverloads constructor(
     var icons: MutableMap<String, Drawable?> = mutableMapOf()
     var onlyFavorites: Boolean = false
         set(value) {
-            field = value
-            invalidate()
+            if (field != value) {
+                // Save current scroll position
+                if (field) {
+                    favoritesScrollOffset = scrollOffset
+                } else {
+                    allAppsScrollOffset = scrollOffset
+                }
+
+                field = value
+
+                // Restore scroll position for new view
+                scrollOffset = if (value) {
+                    favoritesScrollOffset
+                } else {
+                    allAppsScrollOffset
+                }
+
+                invalidate()
+            }
         }
 
     // Scroll state
     private var scrollOffset: Float = 0f
     private var scrollVelocity: Float = 0f
+    private var allAppsScrollOffset: Float = 0f
+    private var favoritesScrollOffset: Float = 0f
     private var lastTouchY: Float = 0f
     private var lastTouchX: Float = 0f
     private var touchStartX: Float = 0f
@@ -212,11 +231,16 @@ class RainbowPathView @JvmOverloads constructor(
             // But we want to scroll 3 app spaces PAST the end, so we need MORE negative scrolling
             val maxScroll = config.appSpacing
             val minScroll = 1.0f - (apps.size + 2) * config.appSpacing
+
+            // Ensure valid range (for very few apps, minScroll might be > maxScroll)
+            val validMinScroll = minScroll.coerceAtMost(maxScroll)
+            val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
+
             val newScrollOffset = scrollOffset + scrollVelocity
 
             // Check for boundary collision during fling
-            val atTop = scrollOffset >= maxScroll && scrollVelocity > 0
-            val atBottom = scrollOffset <= minScroll && scrollVelocity < 0
+            val atTop = scrollOffset >= validMaxScroll && scrollVelocity > 0
+            val atBottom = scrollOffset <= validMinScroll && scrollVelocity < 0
 
             if (atTop || atBottom) {
                 // Hit boundary - absorb velocity in edge effect and stop fling
@@ -231,7 +255,7 @@ class RainbowPathView @JvmOverloads constructor(
                 eventListener?.onFlingEnded()
             } else {
                 // Normal fling
-                scrollOffset = newScrollOffset.coerceIn(minScroll, maxScroll)
+                scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
             }
         }
 
@@ -606,11 +630,16 @@ class RainbowPathView @JvmOverloads constructor(
                         // But we want to scroll 3 app spaces PAST the end, so we need MORE negative scrolling
                         val maxScroll = config.appSpacing
                         val minScroll = 1.0f - (apps.size + 2) * config.appSpacing
+
+                        // Ensure valid range (for very few apps, minScroll might be > maxScroll)
+                        val validMinScroll = minScroll.coerceAtMost(maxScroll)
+                        val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
+
                         val newScrollOffset = scrollOffset + scrollDelta
 
                         // Check if we're at boundaries
-                        val atTop = scrollOffset >= maxScroll
-                        val atBottom = scrollOffset <= minScroll
+                        val atTop = scrollOffset >= validMaxScroll
+                        val atBottom = scrollOffset <= validMinScroll
 
                         if ((atTop && scrollDelta > 0) || (atBottom && scrollDelta < 0)) {
                             // Apply overscroll with resistance
@@ -627,7 +656,7 @@ class RainbowPathView @JvmOverloads constructor(
                             }
                         } else {
                             // Normal scrolling
-                            scrollOffset = newScrollOffset.coerceIn(minScroll, maxScroll)
+                            scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
                             scrollVelocity = scrollDelta * 10
 
                             // Release overscroll if moving away from boundary
