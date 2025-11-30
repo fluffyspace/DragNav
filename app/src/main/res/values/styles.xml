@@ -6,11 +6,9 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:navigationBarColor" tools:targetApi="lollipop">
-            @android:color/transparent
-        </item>
-        <item name="android:statusBarColor" tools:targetApi="lollipop">@color/semi_transparent
-        </item>
+        <!-- Edge-to-edge support for Android 15+ -->
+        <item name="android:navigationBarColor" tools:targetApi="lollipop">@android:color/transparent</item>
+        <item name="android:statusBarColor" tools:targetApi="lollipop">@android:color/transparent</item>
         <item name="actionBarStyle">@style/MyTheme.ActionBar</item>
         <item name="android:windowTranslucentStatus">false</item>
         <item name="android:windowTranslucentNavigation">false</item>

@@ -78,4 +78,8 @@
     <string name="color_text_size_border_width_hide_icons_hide_text">Color, text size, border width, hide icons, hide text</string>
     <string name="jezik_vrsta_launchera_tamni_na_in">Language, launcher style, dark mode</string>
     <string name="restartaj_aplikaciju_po_alji_povratnu_informaciju_izbri_i_bazu_podataka">Restart application, send feedback, delete database</string>
+    <string name="slider_icon_size">Icon size</string>
+    <string name="slider_ring_distance">Ring distance</string>
+    <string name="slider_app_spacing">App spacing</string>
+    <string name="show_only_favorites">Show only favorite apps</string>
 </resources>

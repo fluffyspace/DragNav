@@ -34,36 +34,72 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             android:visibility="gone"/>
+        <TextView
+            android:id="@+id/label_detectSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginHorizontal="16dp"
+            android:text="@string/slider_icon_size"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            app:layout_constraintTop_toBottomOf="@id/settings"
+            android:visibility="gone"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/detectSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
+            android:layout_marginHorizontal="16dp"
             android:valueFrom="0"
             android:valueTo="200"
-            app:layout_constraintTop_toBottomOf="@id/settings"
+            app:layout_constraintTop_toBottomOf="@id/label_detectSize"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/label_distance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginHorizontal="16dp"
+            android:text="@string/slider_ring_distance"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            app:layout_constraintTop_toBottomOf="@id/detectSize"
             android:visibility="gone"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/distance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
             android:valueFrom="0"
             android:valueTo="1"
-            app:layout_constraintTop_toBottomOf="@id/detectSize"
+            app:layout_constraintTop_toBottomOf="@id/label_distance"
+            android:visibility="gone"/>
+        <TextView
+            android:id="@+id/label_step"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginHorizontal="16dp"
+            android:text="@string/slider_app_spacing"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            app:layout_constraintTop_toBottomOf="@id/distance"
             android:visibility="gone"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/step"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
             android:valueFrom="0"
             android:valueTo="1"
-            app:layout_constraintTop_toBottomOf="@id/distance"
+            app:layout_constraintTop_toBottomOf="@id/label_step"
             android:visibility="gone"/>
         <CheckBox
             android:id="@+id/onlyfavoriteapps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Show only favorite apps"
+            android:layout_marginHorizontal="16dp"
+            android:text="@string/show_only_favorites"
             app:layout_constraintTop_toBottomOf="@id/step"
             android:visibility="gone"/>
     </androidx.constraintlayout.widget.ConstraintLayout>

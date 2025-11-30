@@ -24,6 +24,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import android.widget.*
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -34,6 +35,9 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -161,6 +165,7 @@ class MainActivity : AppCompatActivity(){
 
     @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
@@ -230,6 +235,19 @@ class MainActivity : AppCompatActivity(){
         pocetna = KrugSAplikacijama(0, resources2.getString(R.string.home))
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
+
+        // Handle edge-to-edge display for Android 15+
+        val mainLayout = findViewById<FrameLayout>(R.id.mainlayout)
+        ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(
+                left = insets.left,
+                top = insets.top,
+                right = insets.right,
+                bottom = insets.bottom
+            )
+            WindowInsetsCompat.CONSUMED
+        }
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 

@@ -226,17 +226,14 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
 
     fun toggleSliders(){
         sliders = !sliders
-        if(sliders){
-            global_view.findViewById<Slider>(R.id.detectSize).visibility = View.VISIBLE
-            global_view.findViewById<Slider>(R.id.distance).visibility = View.VISIBLE
-            global_view.findViewById<Slider>(R.id.step).visibility = View.VISIBLE
-            global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = View.VISIBLE
-        } else {
-            global_view.findViewById<Slider>(R.id.detectSize).visibility = View.GONE
-            global_view.findViewById<Slider>(R.id.distance).visibility = View.GONE
-            global_view.findViewById<Slider>(R.id.step).visibility = View.GONE
-            global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = View.GONE
-        }
+        val visibility = if (sliders) View.VISIBLE else View.GONE
+        global_view.findViewById<TextView>(R.id.label_detectSize).visibility = visibility
+        global_view.findViewById<Slider>(R.id.detectSize).visibility = visibility
+        global_view.findViewById<TextView>(R.id.label_distance).visibility = visibility
+        global_view.findViewById<Slider>(R.id.distance).visibility = visibility
+        global_view.findViewById<TextView>(R.id.label_step).visibility = visibility
+        global_view.findViewById<Slider>(R.id.step).visibility = visibility
+        global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = visibility
     }
 
     private fun changeSettings(key: String, value: Any){
