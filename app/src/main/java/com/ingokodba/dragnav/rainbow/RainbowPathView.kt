@@ -39,20 +39,24 @@ class RainbowPathView @JvmOverloads constructor(
     var onlyFavorites: Boolean = false
         set(value) {
             if (field != value) {
-                // Save current scroll position
-                if (field) {
-                    favoritesScrollOffset = scrollOffset
-                } else {
-                    allAppsScrollOffset = scrollOffset
+                // Save current scroll position (only if not in initial state)
+                if (allAppsScrollOffset != 0f || favoritesScrollOffset != 0f) {
+                    if (field) {
+                        favoritesScrollOffset = scrollOffset
+                    } else {
+                        allAppsScrollOffset = scrollOffset
+                    }
                 }
 
                 field = value
 
-                // Restore scroll position for new view
-                scrollOffset = if (value) {
-                    favoritesScrollOffset
-                } else {
-                    allAppsScrollOffset
+                // Restore scroll position for new view (only if initialized)
+                if (allAppsScrollOffset != 0f || favoritesScrollOffset != 0f) {
+                    scrollOffset = if (value) {
+                        favoritesScrollOffset
+                    } else {
+                        allAppsScrollOffset
+                    }
                 }
 
                 invalidate()
@@ -60,7 +64,10 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
     // Scroll state
+    // Start with first app fully visible (at beginning of path, not cut off)
     private var scrollOffset: Float = 0f
+        get() = field
+        set(value) { field = value }
     private var scrollVelocity: Float = 0f
     private var allAppsScrollOffset: Float = 0f
     private var favoritesScrollOffset: Float = 0f
@@ -173,6 +180,15 @@ class RainbowPathView @JvmOverloads constructor(
         Log.d("RainbowPath", "setApps called with ${apps.size} apps")
         appList = apps
         updateLetterPositions()
+
+        // Initialize scroll positions to show first app fully visible at start of path
+        // Using maxScroll value to position first app at t≈0 (start of path)
+        if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f) {
+            allAppsScrollOffset = config.appSpacing
+            favoritesScrollOffset = config.appSpacing
+            scrollOffset = if (onlyFavorites) favoritesScrollOffset else allAppsScrollOffset
+        }
+
         invalidate()
     }
 
@@ -762,7 +778,13 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     fun scrollToApp(index: Int) {
-        scrollOffset = -index * config.appSpacing
+        // When scrolling to first app (index 0), use maxScroll to show it fully visible
+        // For other apps, calculate normal scroll position
+        scrollOffset = if (index == 0) {
+            config.appSpacing
+        } else {
+            -index * config.appSpacing
+        }
         invalidate()
     }
 
