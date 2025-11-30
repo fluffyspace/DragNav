@@ -45,12 +45,20 @@ data class PathConfig(
     val letterIndexEnabled: Boolean = true,
     val letterIndexPosition: LetterIndexPosition = LetterIndexPosition.RIGHT,
     val letterIndexSize: Float = 0.04f,              // Size relative to screen width
-    val letterIndexPadding: Float = 0.02f            // Padding from edge
+    val letterIndexPadding: Float = 0.02f,           // Padding from edge
+
+    // App sorting
+    val appSortOrder: AppSortOrder = AppSortOrder.ASCENDING  // Alphabetical order (A-Z or Z-A)
 )
 
 enum class LetterIndexPosition {
     LEFT,
     RIGHT
+}
+
+enum class AppSortOrder {
+    ASCENDING,   // A to Z
+    DESCENDING   // Z to A
 }
 
 /**

@@ -210,6 +210,10 @@ class PathSettingsDialog(
             orientation = LinearLayout.VERTICAL
             setPadding(16)
 
+            // Sort order
+            addView(createLabel("Sort Order"))
+            addView(createSortOrderSpinner())
+
             // Icon size
             addView(createLabel("Icon Size"))
             addView(createSlider(0.03f, 0.15f, config.appIconSize) {
@@ -387,6 +391,31 @@ class PathSettingsDialog(
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     (view as? TextView)?.setTextColor(Color.WHITE)
                     config = config.copy(letterIndexPosition = positions[position])
+                    notifyChange()
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun createSortOrderSpinner(): Spinner {
+        return Spinner(context).apply {
+            val orders = AppSortOrder.values()
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_dropdown_item,
+                orders.map {
+                    when (it) {
+                        AppSortOrder.ASCENDING -> "A to Z"
+                        AppSortOrder.DESCENDING -> "Z to A"
+                    }
+                }
+            )
+            setSelection(orders.indexOf(config.appSortOrder))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    (view as? TextView)?.setTextColor(Color.WHITE)
+                    config = config.copy(appSortOrder = orders[position])
                     notifyChange()
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}

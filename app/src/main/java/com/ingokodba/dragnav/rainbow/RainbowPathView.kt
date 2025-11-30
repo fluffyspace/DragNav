@@ -153,10 +153,16 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun getDisplayedApps(): List<AppInfo> {
-        return if (onlyFavorites) {
+        val filtered = if (onlyFavorites) {
             appList.filter { it.favorite }
         } else {
             appList
+        }
+
+        // Sort based on config
+        return when (config.appSortOrder) {
+            AppSortOrder.ASCENDING -> filtered.sortedBy { it.label.lowercase() }
+            AppSortOrder.DESCENDING -> filtered.sortedByDescending { it.label.lowercase() }
         }
     }
 
@@ -420,7 +426,10 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun drawLetterIndex(canvas: Canvas, w: Float, h: Float) {
-        val letters = letterPositions.keys.sorted()
+        val letters = when (config.appSortOrder) {
+            AppSortOrder.ASCENDING -> letterPositions.keys.sorted()
+            AppSortOrder.DESCENDING -> letterPositions.keys.sortedDescending()
+        }
         if (letters.isEmpty()) return
 
         val indexWidth = config.letterIndexSize * w * 2
@@ -660,7 +669,10 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun handleLetterIndexTouch(y: Float) {
-        val letters = letterPositions.keys.sorted()
+        val letters = when (config.appSortOrder) {
+            AppSortOrder.ASCENDING -> letterPositions.keys.sorted()
+            AppSortOrder.DESCENDING -> letterPositions.keys.sortedDescending()
+        }
         if (letters.isEmpty()) return
 
         val letterHeight = height / letters.size
