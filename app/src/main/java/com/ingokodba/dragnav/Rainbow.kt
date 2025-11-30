@@ -92,6 +92,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var overrideDetectSize: Float? = null
     var overrideDistance: Float? = null
     var overrideStep: Float? = null
+    var overrideRadius: Float? = null
+    var overrideArcPosition: Float? = null
     var onlyfavorites: Boolean = false
 
     var detectSizeDivider = 1.0
@@ -361,7 +363,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun quickMove(point: Point){
         if (app_list.isEmpty()) return
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
-            (point.x-size_width).toDouble()
+            (point.x-size_width-arcPositionOffset).toDouble()
         )
         var click = 0
         clickProcessed = true
@@ -392,7 +394,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun checkForQuickMove(point: Point){
-        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - size_width).toDouble().pow(2) )
+        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - size_width - arcPositionOffset).toDouble().pow(2) )
         Log.d("ingo", "distance $distance $radius $detectSize")
         if(distance >= radius*1.15f){
             quickSwipeEntered = true
@@ -515,9 +517,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     var step_size:Double = Math.PI*0.05
     var radius = size_width/1.3f
+    var arcPositionOffset: Float = 0f
     private fun drawPolja(canvas: Canvas){
         queued_texts.clear()
-        radius = size_width/1.35f
+        val radiusMultiplier = overrideRadius ?: 1f
+        radius = size_width / 1.35f * radiusMultiplier
+        arcPositionOffset = (overrideArcPosition ?: 0f) * size_width
         if(overrideStep != null) step_size = overrideStep!!.toDouble()
         detectSizeDivider = 10.0
         detectSize = if(overrideDetectSize != null) overrideDetectSize!!.toInt() else 50
@@ -531,7 +536,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             // draw inner button
             var xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
             var yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
-            var draw_pointF = PointF( ((size_width+xx)), ((size_height+yy)) )
+            var draw_pointF = PointF( ((size_width+arcPositionOffset+xx)), ((size_height+yy)) )
             /*val rect = Rect(
                 (draw_pointF.x - detectSize).toInt(),
                 (draw_pointF.y - detectSize).toInt(),
@@ -599,7 +604,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             }
 
             val lineRadius = radius*1.15f
-            val rectf = RectF(size_width-lineRadius, size_height-lineRadius, size_width+lineRadius, size_height+lineRadius)
+            val centerX = size_width + arcPositionOffset
+            val rectf = RectF(centerX-lineRadius, size_height-lineRadius, centerX+lineRadius, size_height+lineRadius)
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
@@ -674,7 +680,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         var xx = (sin(triang) * radius*radiusScale).toFloat()
         var yy = (cos(triang) * radius*radiusScale).toFloat()
-        var draw_pointF = PointF( ((size_width+xx).toFloat()), ((size_height+yy).toFloat()) )
+        var draw_pointF = PointF( ((size_width+arcPositionOffset+xx)), ((size_height+yy)) )
         val rect = Rect(
             (draw_pointF.x - detectSize).toInt(),
             (draw_pointF.y - detectSize).toInt(),
@@ -730,7 +736,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun myDraw(triang: Double, distance: Float): PointF{
         val xxx = (sin(triang) * distance).toFloat()
         val yyy = (cos(triang) * distance).toFloat()
-        return PointF( ((size_width+xxx).toFloat()), ((size_height+yyy).toFloat()) )
+        return PointF( ((size_width+arcPositionOffset+xxx)), ((size_height+yyy)) )
     }
 }
 

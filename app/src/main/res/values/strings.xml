@@ -81,5 +81,7 @@
     <string name="slider_icon_size">Icon size</string>
     <string name="slider_ring_distance">Ring distance</string>
     <string name="slider_app_spacing">App spacing</string>
+    <string name="slider_circle_size">Circle size</string>
+    <string name="slider_arc_position">Arc position</string>
     <string name="show_only_favorites">Show only favorite apps</string>
 </resources>

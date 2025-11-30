@@ -76,6 +76,10 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
                 .let { if (it != 0f) it else null }
         circleView.overrideStep = mactivity.getPreferences(MODE_PRIVATE).getFloat("step", 0f)
             .let { if (it != 0f) it else null }
+        circleView.overrideRadius = mactivity.getPreferences(MODE_PRIVATE).getFloat("radius", 1f)
+            .let { if (it != 1f) it else null }
+        circleView.overrideArcPosition = mactivity.getPreferences(MODE_PRIVATE).getFloat("arcPosition", 0f)
+            .let { if (it != 0f) it else null }
         onlyfavorites = mactivity.getPreferences(MODE_PRIVATE).getBoolean("onlyfavorites", false)
 
         view.findViewById<CheckBox>(R.id.onlyfavoriteapps).let {
@@ -110,6 +114,24 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
                 Log.d("ingo", "change3 to $value")
             }
             if (circleView.overrideStep != null) it.value = circleView.overrideStep!!
+        }
+        view.findViewById<Slider>(R.id.radius).let{
+            it.addOnChangeListener { _, value, _ ->
+                circleView.overrideRadius = value
+                circleView.invalidate()
+                changeSettings("radius", value)
+                Log.d("ingo", "change radius to $value")
+            }
+            it.value = circleView.overrideRadius ?: 1f
+        }
+        view.findViewById<Slider>(R.id.arcRotation).let{
+            it.addOnChangeListener { _, value, _ ->
+                circleView.overrideArcPosition = value
+                circleView.invalidate()
+                changeSettings("arcPosition", value)
+                Log.d("ingo", "change arcPosition to $value")
+            }
+            it.value = circleView.overrideArcPosition ?: 0f
         }
         view.findViewById<ImageButton>(R.id.close_sliders).setOnClickListener {
             toggleSliders()
@@ -233,6 +255,10 @@ class MainFragmentRainbow() : Fragment(), MainFragmentInterface {
         global_view.findViewById<Slider>(R.id.distance).visibility = visibility
         global_view.findViewById<TextView>(R.id.label_step).visibility = visibility
         global_view.findViewById<Slider>(R.id.step).visibility = visibility
+        global_view.findViewById<TextView>(R.id.label_radius).visibility = visibility
+        global_view.findViewById<Slider>(R.id.radius).visibility = visibility
+        global_view.findViewById<TextView>(R.id.label_arcRotation).visibility = visibility
+        global_view.findViewById<Slider>(R.id.arcRotation).visibility = visibility
         global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = visibility
     }
 
