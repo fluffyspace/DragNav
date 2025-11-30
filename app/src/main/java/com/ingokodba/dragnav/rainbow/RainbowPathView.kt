@@ -457,7 +457,13 @@ class RainbowPathView @JvmOverloads constructor(
                 val dx = event.x - lastTouchX
                 val dy = event.y - lastTouchY
 
-                if (!isDragging && (abs(dx) > 10 || abs(dy) > 10)) {
+                // Detect drag if finger moves past 10 pixels from initial touch down
+                val distanceFromStart = sqrt(
+                    (event.x - touchStartX) * (event.x - touchStartX) +
+                    (event.y - touchStartY) * (event.y - touchStartY)
+                )
+
+                if (!isDragging && distanceFromStart > 10f) {
                     isDragging = true
                 }
 

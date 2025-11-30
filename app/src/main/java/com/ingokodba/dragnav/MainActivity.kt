@@ -1,9 +1,5 @@
 package com.ingokodba.dragnav
 
-//import com.example.dragnav.databinding.ActivityMainBinding
-
-//import com.facebook.spectrum.SpectrumSoLoader
-
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -208,7 +204,6 @@ class MainActivity : AppCompatActivity(){
             Log.d("ingo", "trace je prazan")
         }
 
-        //SpectrumSoLoader.init(this);
         instance = this as MainActivity
 
         val darkModeString = getString(R.string.dark_mode)
