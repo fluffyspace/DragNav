@@ -15,7 +15,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 6, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 7, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -61,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     //.fallbackToDestructiveMigration()
                     .build()
         }
@@ -80,6 +80,12 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE AppInfo ADD COLUMN visible INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS RainbowMapa (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, folderName TEXT NOT NULL, apps TEXT NOT NULL, favorite INTEGER NOT NULL)")
             }
         }
 

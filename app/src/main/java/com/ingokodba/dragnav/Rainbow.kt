@@ -140,7 +140,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun finishFling(){
         flingOn = false
-        moveDistancedAccumulated += moveDistance
+        moveDistancedAccumulated += flingValueAccumulated.toInt()
         resetClicks()
     }
 

@@ -4,7 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.LinearLayout
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.example.dragnav.R
 import com.madrapps.pikolo.listeners.SimpleColorSelectionListener
 import com.skydoves.colorpickerview.ColorPickerView
@@ -14,6 +17,8 @@ import com.skydoves.colorpickerview.sliders.BrightnessSlideBar
 
 class ColorPickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge for Android 15+ compatibility
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.colorpickerlayout)
         displaySetColor()
@@ -26,6 +31,18 @@ class ColorPickerActivity : AppCompatActivity() {
         })
         val brightnessSlideBar = findViewById<BrightnessSlideBar>(R.id.brightnessSlide)
         colorPickerView.attachBrightnessSlider(brightnessSlideBar)
+        
+        // Handle window insets to prevent content from going behind system bars
+        window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)?.let { content ->
+            content.getChildAt(0)?.let { rootLayout ->
+                ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, windowInsets ->
+                    val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                    view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+                    WindowInsetsCompat.CONSUMED
+                }
+            }
+        }
+        
         findViewById<Button>(R.id.pickcolorbutton).setOnClickListener {
             setResult(RESULT_OK, Intent().putExtra("color", gcolor).putExtra("forPrimaryColor", true))
             finish()

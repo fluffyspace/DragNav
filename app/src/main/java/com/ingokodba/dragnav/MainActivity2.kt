@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.example.dragnav.R
 import com.google.android.material.slider.Slider
@@ -14,6 +15,8 @@ class MainActivity2 : AppCompatActivity() {
     lateinit var bottom:BottomMenuView
     lateinit var circle:CircleView
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge for Android 15+ compatibility
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.test)
         bottom = findViewById<BottomMenuView>(R.id.bottomMenuView)

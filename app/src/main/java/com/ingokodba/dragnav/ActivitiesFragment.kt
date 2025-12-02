@@ -185,7 +185,17 @@ class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fr
                     search_lista_aplikacija = (0 until max)
                         .map { Pair(it, sortirano[it]) }.toMutableList()
                 } else {
-                    icon_size = popis_svih_aplikacija.width/5
+                    // Ensure view is laid out before reading width
+                    val layoutWidth = if (popis_svih_aplikacija.width > 0) {
+                        popis_svih_aplikacija.width
+                    } else if (popis_svih_aplikacija.measuredWidth > 0) {
+                        popis_svih_aplikacija.measuredWidth
+                    } else {
+                        // Fallback: use screen width if view not laid out yet
+                        val displayMetrics = resources.displayMetrics
+                        displayMetrics.widthPixels
+                    }
+                    icon_size = layoutWidth / 5
                     popis_svih_aplikacija.visibility = View.GONE
                     trazilica.visibility = View.VISIBLE
 

@@ -32,6 +32,9 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -293,14 +296,17 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         changeLocale(this)
         pocetna = KrugSAplikacijama(0, resources2.getString(R.string.home))
         loadOnBackButtonPreference()
+        
+        // Enable edge-to-edge for Android 15+ compatibility
+        enableEdgeToEdge()
         this.setContentView(R.layout.activity_main)
 
-        /*findViewById<FrameLayout>(R.id.mainlayout).setOnApplyWindowInsetsListener { view, windowInsets ->
-            val params = (view.layoutParams as ViewGroup.MarginLayoutParams)
-            params.topMargin = windowInsets.systemWindowInsetTop
-            params.bottomMargin = windowInsets.systemWindowInsetBottom
-            windowInsets
-        }*/
+        // Handle window insets to prevent content from going behind system bars
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById<FrameLayout>(R.id.mainlayout)) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
         fragmentContainer = findViewById(R.id.fragment_container)
 
 

@@ -12,9 +12,12 @@ import android.util.Log
 import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.core.net.toFile
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.Preference
@@ -41,6 +44,8 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge for Android 15+ compatibility
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setSupportActionBar(findViewById(R.id.settings_toolbar))
 
@@ -55,6 +60,17 @@ class SettingsActivity : AppCompatActivity(R.layout.activity_settings){
             supportFragmentManager.findFragmentById(R.id.fragment_container_view) as NavHostFragment
         navController = navHostFragment!!.navController
         setupActionBarWithNavController(navController!!)
+        
+        // Handle window insets to prevent content from going behind system bars
+        window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)?.let { content ->
+            content.getChildAt(0)?.let { rootLayout ->
+                ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, windowInsets ->
+                    val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                    view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+                    WindowInsetsCompat.CONSUMED
+                }
+            }
+        }
     }
 
     var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
