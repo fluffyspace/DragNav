@@ -77,6 +77,11 @@
     <string name="dizajn_po_etnog_zaslona">Launcher style</string>
     <string name="restart_application">Restart application</string>
     <string name="drop_database">Drop application database</string>
+    <string name="slider_app_spacing">App spacing</string>
+    <string name="slider_circle_size">Circle size</string>
+    <string name="slider_arc_position">Arc position</string>
+    <string name="show_only_favorites">Show only favorite apps</string>
+    <string name="settings">Settings</string>
     <string name="set_this_launcher_as_default_to_access_shortcuts">Set this launcher as default to access shortcuts</string>
     <string name="color_text_size_border_width_hide_icons_hide_text">Color, text size, border width, hide icons, hide text</string>
     <string name="jezik_vrsta_launchera_tamni_na_in">Language, dark mode</string>

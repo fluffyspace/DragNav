@@ -78,6 +78,11 @@
     <string name="dizajn_po_etnog_zaslona">Stil početnog zaslona</string>
     <string name="restart_application">Restartaj aplikaciju</string>
     <string name="drop_database">Izbriši podatke aplikacije</string>
+    <string name="slider_app_spacing">Razmak između aplikacija</string>
+    <string name="slider_circle_size">Veličina kruga</string>
+    <string name="slider_arc_position">Položaj luka</string>
+    <string name="show_only_favorites">Prikaži samo omiljene aplikacije</string>
+    <string name="settings">Postavke</string>
     <string name="set_this_launcher_as_default_to_access_shortcuts">Postavi ovaj pokretački zaslon kao zadani da pristupiš prečacima</string>
     <string name="color_text_size_border_width_hide_icons_hide_text">Boja, veličina teksta, debljina rubova, sakrij ikone, sakrij tekst</string>
     <string name="jezik_vrsta_launchera_tamni_na_in">Jezik, tamni način</string>

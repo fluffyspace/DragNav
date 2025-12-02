@@ -40,7 +40,7 @@
             android:layout_marginHorizontal="16dp"
             android:valueFrom="0"
             android:valueTo="1"
-            app:layout_constraintTop_toBottomOf="@id/label_distance"
+            app:layout_constraintTop_toBottomOf="@id/detectSize"
             android:visibility="gone"/>
         <TextView
             android:id="@+id/label_step"
