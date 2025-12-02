@@ -12,6 +12,7 @@ import android.widget.EdgeEffect
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toBitmap
 import com.example.dragnav.R
+import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.modeli.AppInfo
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -34,8 +35,9 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
     // App data
-    private var appList: List<AppInfo> = emptyList()
+    private var appList: List<EncapsulatedAppInfoWithFolder> = emptyList()
     var icons: MutableMap<String, Drawable?> = mutableMapOf()
+    var inFolder: Boolean = false
     var onlyFavorites: Boolean = false
         set(value) {
             if (field != value) {
@@ -183,7 +185,7 @@ class RainbowPathView @JvmOverloads constructor(
         bottomEdgeEffect?.setSize(w, h)
     }
 
-    fun setApps(apps: List<AppInfo>) {
+    fun setApps(apps: List<EncapsulatedAppInfoWithFolder>) {
         Log.d("RainbowPath", "setApps called with ${apps.size} apps")
         appList = apps
         updateLetterPositions()
@@ -199,26 +201,53 @@ class RainbowPathView @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun getDisplayedApps(): List<AppInfo> {
+    private fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
         val filtered = if (onlyFavorites) {
-            appList.filter { it.favorite }
+            appList.filter { 
+                if (it.folderName == null) {
+                    it.apps.first().favorite
+                } else {
+                    it.favorite == true
+                }
+            }
         } else {
             appList
         }
 
         // Sort based on config
         return when (config.appSortOrder) {
-            AppSortOrder.ASCENDING -> filtered.sortedBy { it.label.lowercase() }
-            AppSortOrder.DESCENDING -> filtered.sortedByDescending { it.label.lowercase() }
+            AppSortOrder.ASCENDING -> filtered.sortedBy { 
+                if (it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() 
+            }
+            AppSortOrder.DESCENDING -> filtered.sortedByDescending { 
+                if (it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() 
+            }
+        }
+    }
+    
+    private fun getFirstLetterOfApp(thing: EncapsulatedAppInfoWithFolder): Char {
+        return if (thing.folderName != null) {
+            thing.folderName!!.first().uppercaseChar()
+        } else {
+            thing.apps.first().label.first().uppercaseChar()
+        }
+    }
+    
+    private fun getNameOfApp(thing: EncapsulatedAppInfoWithFolder): String {
+        return if (thing.folderName != null) {
+            thing.folderName!!
+        } else {
+            thing.apps.first().label
         }
     }
 
     private fun updateLetterPositions() {
         letterPositions.clear()
         val apps = getDisplayedApps()
-        apps.forEachIndexed { index, app ->
-            if (app.label.isNotEmpty()) {
-                val letter = app.label[0].uppercaseChar()
+        apps.forEachIndexed { index, thing ->
+            val name = getNameOfApp(thing)
+            if (name.isNotEmpty()) {
+                val letter = name[0].uppercaseChar()
                 if (!letterPositions.containsKey(letter)) {
                     letterPositions[letter] = index
                 }
@@ -440,7 +469,7 @@ class RainbowPathView @JvmOverloads constructor(
         // Apply overscroll offset to create bounce effect
         val bounceOffset = overscrollDistance * config.appSpacing
 
-        apps.forEachIndexed { index, app ->
+        apps.forEachIndexed { index, thing ->
             // Calculate position on path with bounce offset
             val baseT = index * config.appSpacing + scrollOffset + bounceOffset
             val t = baseT.coerceIn(0f, 1f)
@@ -466,44 +495,100 @@ class RainbowPathView @JvmOverloads constructor(
 
             drawnApps.add(DrawnAppInfo(index, rect, t))
 
-            // Draw app icon
-            val icon = icons[app.packageName]?.toBitmap()
-            if (icon != null) {
-                canvas.drawBitmap(icon, null, rect, iconPaint)
-            } else {
-                // Fallback: draw colored circle
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = try {
-                        if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
-                    } catch (e: Exception) {
-                        Color.GRAY
-                    }
+            if (thing.folderName != null) {
+                // Draw folder with multiple app icons
+                val folderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.parseColor("#55FFFFFF")
                     style = Paint.Style.FILL
                 }
-                canvas.drawCircle(screenX, screenY, iconSizePx / 2, paint)
+                canvas.drawCircle(screenX, screenY, iconSizePx / 2, folderPaint)
+                
+                // Draw up to 4 app icons in a 2x2 grid
+                for (i in 0..1) {
+                    for (j in 0..1) {
+                        if (i * 2 + j >= thing.apps.size) break
+                        val app = thing.apps[i * 2 + j]
+                        val icon = icons[app.packageName]?.toBitmap()
+                        if (icon != null) {
+                            val iconRect = RectF(
+                                screenX - iconSizePx / 2 + iconSizePx * j / 2,
+                                screenY - iconSizePx / 2 + iconSizePx * i / 2,
+                                screenX + iconSizePx * j / 2,
+                                screenY + iconSizePx * i / 2
+                            )
+                            canvas.drawBitmap(icon, null, iconRect, iconPaint)
+                        } else {
+                            // Fallback: draw colored circle
+                            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                                color = try {
+                                    if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
+                                } catch (e: Exception) {
+                                    Color.GRAY
+                                }
+                                style = Paint.Style.FILL
+                            }
+                            val iconRect = RectF(
+                                screenX - iconSizePx / 2 + iconSizePx * j / 2,
+                                screenY - iconSizePx / 2 + iconSizePx * i / 2,
+                                screenX + iconSizePx * j / 2,
+                                screenY + iconSizePx * i / 2
+                            )
+                            canvas.drawCircle(iconRect.centerX(), iconRect.centerY(), iconSizePx / 4, paint)
+                        }
+                    }
+                }
+                
+                // Draw folder favorite indicator
+                if (thing.favorite == true) {
+                    canvas.drawCircle(
+                        rect.left + iconSizePx / 8,
+                        rect.bottom - iconSizePx / 8,
+                        iconSizePx / 10,
+                        favoriteIndicatorPaint
+                    )
+                }
+            } else {
+                // Draw single app icon
+                val app = thing.apps.first()
+                val icon = icons[app.packageName]?.toBitmap()
+                if (icon != null) {
+                    canvas.drawBitmap(icon, null, rect, iconPaint)
+                } else {
+                    // Fallback: draw colored circle
+                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = try {
+                            if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
+                        } catch (e: Exception) {
+                            Color.GRAY
+                        }
+                        style = Paint.Style.FILL
+                    }
+                    canvas.drawCircle(screenX, screenY, iconSizePx / 2, paint)
+                }
+
+                // Draw indicators
+                if (app.hasShortcuts) {
+                    canvas.drawCircle(
+                        rect.right - iconSizePx / 8,
+                        rect.bottom - iconSizePx / 8,
+                        iconSizePx / 10,
+                        indicatorPaint
+                    )
+                }
+
+                if (app.favorite) {
+                    canvas.drawCircle(
+                        rect.left + iconSizePx / 8,
+                        rect.bottom - iconSizePx / 8,
+                        iconSizePx / 10,
+                        favoriteIndicatorPaint
+                    )
+                }
             }
 
-            // Draw indicators
-            if (app.hasShortcuts) {
-                canvas.drawCircle(
-                    rect.right - iconSizePx / 8,
-                    rect.bottom - iconSizePx / 8,
-                    iconSizePx / 10,
-                    indicatorPaint
-                )
-            }
-
-            if (app.favorite) {
-                canvas.drawCircle(
-                    rect.left + iconSizePx / 8,
-                    rect.bottom - iconSizePx / 8,
-                    iconSizePx / 10,
-                    favoriteIndicatorPaint
-                )
-            }
-
-            // Draw app name
+            // Draw app/folder name
             if (config.showAppNames) {
+                val name = getNameOfApp(thing)
                 // Calculate text position with offset (multiplier increased for more range)
                 // Offset is relative to icon size, ranging from -1 to 1, multiplied by 3 for larger offset range
                 val textOffsetX = config.appNameOffsetX * iconSizePx * 3f
@@ -517,13 +602,13 @@ class RainbowPathView @JvmOverloads constructor(
                 when (config.appNameStyle) {
                     AppNameStyle.BORDERED -> {
                         // Draw border (stroke) first
-                        canvas.drawText(app.label, textX, textCenterY, textBorderPaint)
+                        canvas.drawText(name, textX, textCenterY, textBorderPaint)
                         // Draw fill text on top
-                        canvas.drawText(app.label, textX, textCenterY, textPaint)
+                        canvas.drawText(name, textX, textCenterY, textPaint)
                     }
                     AppNameStyle.PLAIN, AppNameStyle.SHADOW -> {
                         // Shadow is already applied to textPaint for SHADOW style
-                        canvas.drawText(app.label, textX, textCenterY, textPaint)
+                        canvas.drawText(name, textX, textCenterY, textPaint)
                     }
                 }
             }

@@ -50,6 +50,7 @@ import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
 import com.ingokodba.dragnav.baza.RainbowMapaDao
 import com.ingokodba.dragnav.modeli.*
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
+import com.ingokodba.dragnav.rainbow.MainFragmentRainbowPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1520,8 +1521,15 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             val roomId = rainbowMapaDao.insert(polje)
             withContext(Dispatchers.Main){
                 viewModel.addRainbowMape(mutableListOf(polje.apply { id = roomId.toInt() }))
-                (mainFragment as MainFragmentRainbow).saveCurrentMoveDistance()
-                (mainFragment as MainFragmentRainbow).prebaciMeni()
+                when (mainFragment) {
+                    is MainFragmentRainbow -> {
+                        (mainFragment as MainFragmentRainbow).saveCurrentMoveDistance()
+                        (mainFragment as MainFragmentRainbow).prebaciMeni()
+                    }
+                    is MainFragmentRainbowPath -> {
+                        (mainFragment as MainFragmentRainbowPath).updateApps()
+                    }
+                }
             }
             Log.d("ingo", "inserted " + polje.folderName + "(" + polje.id + ")")
         }
