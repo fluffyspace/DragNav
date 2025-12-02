@@ -142,7 +142,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             }
             it.value = circleView.overrideArcPosition ?: 0f
         }
-        view.findViewById<ImageButton>(R.id.close_sliders).setOnClickListener {
+        view.findViewById<ImageButton>(R.id.sliders).setOnClickListener {
             toggleSliders()
         }
 
@@ -151,7 +151,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             override fun onEventOccurred(app:EventTypes, counter: Int) {
                 when(app){
                     EventTypes.OPEN_APP->touched(counter)
-                    EventTypes.START_COUNTDOWN->startCountdown(counter)
+                    EventTypes.START_COUNTDOWN->startCountdown()
                     EventTypes.STOP_COUNTDOWN->stopCountdown()
                     //EventTypes.OPEN_SHORTCUT->openShortcut(counter)
                     EventTypes.TOGGLE_FAVORITES->toggleFavorites()
@@ -373,9 +373,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     fun toggleSliders(){
         sliders = !sliders
         val visibility = if (sliders) View.VISIBLE else View.GONE
-        global_view.findViewById<TextView>(R.id.label_detectSize).visibility = visibility
         global_view.findViewById<Slider>(R.id.detectSize).visibility = visibility
-        global_view.findViewById<TextView>(R.id.label_distance).visibility = visibility
         global_view.findViewById<Slider>(R.id.distance).visibility = visibility
         global_view.findViewById<TextView>(R.id.label_step).visibility = visibility
         global_view.findViewById<Slider>(R.id.step).visibility = visibility
@@ -383,7 +381,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         global_view.findViewById<Slider>(R.id.radius).visibility = visibility
         global_view.findViewById<TextView>(R.id.label_arcRotation).visibility = visibility
         global_view.findViewById<Slider>(R.id.arcRotation).visibility = visibility
-        global_view.findViewById<ImageButton>(R.id.close_sliders).visibility = visibility
+        global_view.findViewById<ImageButton>(R.id.sliders).visibility = visibility
     }
 
     private fun changeSettings(key: String, value: Any){

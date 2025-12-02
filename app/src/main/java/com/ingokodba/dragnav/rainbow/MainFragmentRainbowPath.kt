@@ -318,6 +318,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface {
         countdownJob?.cancel()
     }
 
+    override fun onBackPressed(): Boolean {
+        return false
+    }
+
     companion object {
         fun newInstance(): MainFragmentRainbowPath {
             return MainFragmentRainbowPath()
