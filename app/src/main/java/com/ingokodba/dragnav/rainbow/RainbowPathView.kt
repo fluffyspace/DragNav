@@ -1013,9 +1013,7 @@ class RainbowPathView @JvmOverloads constructor(
 
     fun triggerLongPress() {
         // Called by fragment when long press countdown completes
-        // Don't trigger if we're in a folder (folders should open on click, not long press)
-        if (inFolder) return
-        
+        // When inFolder is true, all items are apps (not folders), so allow long press
         touchedAppIndex?.let { appIndex ->
             if (!isDragging) {
                 longPressTriggered = true

@@ -15,7 +15,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 7, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 8, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -61,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     //.fallbackToDestructiveMigration()
                     .build()
         }
@@ -85,6 +85,60 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS RainbowMapa (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, folderName TEXT NOT NULL, apps TEXT NOT NULL, favorite INTEGER NOT NULL)")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Check if AppInfo has the extra nextId column (from old schema)
+                val cursor = database.query("PRAGMA table_info(AppInfo)")
+                var hasNextId = false
+                while (cursor.moveToNext()) {
+                    val columnName = cursor.getString(1) // column name is at index 1
+                    if (columnName == "nextId") {
+                        hasNextId = true
+                        break
+                    }
+                }
+                cursor.close()
+
+                // If nextId column exists, remove it by recreating the table
+                if (hasNextId) {
+                    // Create new AppInfo table without nextId column
+                    database.execSQL("""
+                        CREATE TABLE AppInfo_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            label TEXT NOT NULL,
+                            packageName TEXT NOT NULL,
+                            color TEXT NOT NULL,
+                            installed INTEGER NOT NULL,
+                            frequency INTEGER NOT NULL DEFAULT 0,
+                            lastLaunched INTEGER NOT NULL DEFAULT 0,
+                            favorite INTEGER NOT NULL,
+                            hasShortcuts INTEGER NOT NULL DEFAULT 0,
+                            visible INTEGER NOT NULL DEFAULT 1
+                        )
+                    """.trimIndent())
+                    
+                    // Copy data from old table to new table (excluding nextId)
+                    database.execSQL("""
+                        INSERT INTO AppInfo_new (id, label, packageName, color, installed, frequency, lastLaunched, favorite, hasShortcuts, visible)
+                        SELECT id, label, packageName, color, installed, frequency, lastLaunched, favorite, hasShortcuts, visible
+                        FROM AppInfo
+                    """.trimIndent())
+                    
+                    // Drop old table
+                    database.execSQL("DROP TABLE AppInfo")
+                    
+                    // Rename new table
+                    database.execSQL("ALTER TABLE AppInfo_new RENAME TO AppInfo")
+                }
+
+                // Drop RainbowShortcut table if it exists (not in current schema)
+                database.execSQL("DROP TABLE IF EXISTS RainbowShortcut")
+                
+                // Ensure RainbowMapa table exists (in case it was missing)
                 database.execSQL("CREATE TABLE IF NOT EXISTS RainbowMapa (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, folderName TEXT NOT NULL, apps TEXT NOT NULL, favorite INTEGER NOT NULL)")
             }
         }
