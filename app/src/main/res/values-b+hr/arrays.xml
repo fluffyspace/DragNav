@@ -9,9 +9,11 @@
     </string-array>
 
     <string-array name="ui_designs_entries">
-        <item>Kružni</item>
-        <item>Kružni s desnom rukom</item>
-        <item>Duga</item>
+        <item>Zakrivljeni dizajn za desnu ruku</item>
+        <item>Zakrivljeni dizajn za lijevu ruku</item>
+        <item>Kružni centrirani</item>
+        <item>Kružni za desnu ruku</item>
+        <item>Kružni za lijevu ruku</item>
         <item>Brojčanik</item>
     </string-array>
 </resources>

@@ -9,6 +9,14 @@
         android:summary="@string/set_this_launcher_as_default_to_access_shortcuts"
         />
 
+
+    <ListPreference
+        android:key="ui_design"
+        android:title="@string/dizajn_po_etnog_zaslona"
+        android:entries="@array/ui_designs_entries"
+        android:entryValues="@array/ui_designs_values"
+        android:icon="@drawable/baseline_design_services_24"/>
+
     <Preference
         android:key="circle_preferences"
         android:title="@string/circle_preferences"
@@ -19,9 +27,9 @@
     <Preference
         android:key="rainbow_preferences"
         android:title="@string/rainbow_preferences"
-        android:icon="@drawable/rainbow_3_"
+        android:icon="@drawable/rainbow2"
         android:summary="@string/color_text_size_border_width_hide_icons_hide_text"
-        app:isPreferenceVisible="false"/>
+        app:isPreferenceVisible="false" />
 
     <Preference
         android:key="general_preferences"

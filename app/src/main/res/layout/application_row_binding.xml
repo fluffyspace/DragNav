@@ -28,16 +28,17 @@
             android:layout_margin="5dp"
             android:src="@{ viewModel.icons[aplikacija.packageName] }"
             android:layout_gravity="center"
-            android:background="@drawable/crni_obrub"
             android:elevation="5dp" />
+            <!--android:background="@drawable/crni_obrub"-->
         </LinearLayout>
         <TextView
             android:id="@+id/text"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:layout_gravity="center_vertical"
-            android:textSize="25sp"
+            android:gravity="center_vertical"
+            android:textSize="20sp"
             android:textColor="@color/white"
             android:padding="10dp"
             android:text=""

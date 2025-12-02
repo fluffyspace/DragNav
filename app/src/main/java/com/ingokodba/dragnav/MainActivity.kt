@@ -1,5 +1,7 @@
 package com.ingokodba.dragnav
 
+//import com.example.dragnav.databinding.ActivityMainBinding
+
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -13,17 +15,16 @@ import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.ListPopupWindow
@@ -31,20 +32,19 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
-import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.gson.Gson
+import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
+import com.ingokodba.dragnav.baza.RainbowMapaDao
 import com.ingokodba.dragnav.modeli.*
 import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlinx.coroutines.Dispatchers
@@ -68,9 +68,9 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(){
+class MainActivity : AppCompatActivity(), OnShortcutClick{
     val viewModel: ViewModel by viewModels()
-    var uiDesignMode: UiDesignEnum = UiDesignEnum.CIRCLE
+    var uiDesignMode: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
     companion object{
 
@@ -129,12 +129,73 @@ class MainActivity : AppCompatActivity(){
         Action(title="TIMER", description = "Timer", type = ActionTypes.ACTION_SEND_TO_APP),
     )
 
+    // shortcuts dialog
+    var shortcuts_recycler_view: RecyclerView? = null
+    var radapter: ShortcutsAdapter? = null
+    var shortcuts: List<ShortcutInfo> = listOf()
+    var dialogState: DialogStates? = null
+
+
     var import_export_action:Int = 0
 
     lateinit var mainFragment:MainFragmentInterface
     lateinit var searchFragment:SearchFragment
     lateinit var activitiesFragment:ActivitiesFragment
     lateinit var actionsFragment:ActionsFragment
+    lateinit var fragmentContainer: FragmentContainerView
+
+    fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
+        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
+        radapter = ShortcutsAdapter(this, onShortcutClick)
+        shortcuts_recycler_view = contentView.findViewById(R.id.shortcutList)
+        radapter?.actionsList = actions
+        shortcuts_recycler_view?.adapter = radapter
+        shortcuts_recycler_view?.addItemDecoration(SimpleDivider(this))
+
+        shortcutPopup?.dismiss()
+        shortcutPopup = PopupWindow(contentView,
+            ListPopupWindow.WRAP_CONTENT,
+            ListPopupWindow.WRAP_CONTENT, true)
+        //shortcutPopup?.animationStyle = R.style.PopupAnimation
+        shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
+    }
+
+    fun openShortcutsMenu(app_index: Int){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
+            var app = viewModel.rainbowAll.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+            if(app == -1){
+                // tu treba proći po mapama + app_index ne vrijedi zato jer se u rainbow fragmentu računa samo ona mapa koja je otvorena.
+                app = viewModel.rainbowAll.indexOfFirst{it.apps.first().packageName == viewModel.appsList.value!![app_index].packageName}
+            }
+            if (app != -1) {
+                (mainFragment as MainFragmentRainbow).app_index = app
+                (mainFragment as MainFragmentRainbow).openShortcutsMenu(viewModel.rainbowAll[app])
+            } else {
+                Log.e("ingo", "openShortcutsMenu returned null")
+            }
+        }
+        if(uiDesignMode == UiDesignEnum.CIRCLE || uiDesignMode == UiDesignEnum.CIRCLE_LEFT_HAND || uiDesignMode == UiDesignEnum.CIRCLE_RIGHT_HAND){
+
+        }
+    }
+
+    fun openShortcut(index: Int){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
+            (mainFragment as MainFragmentRainbow).openShortcut(index)
+        }
+    }
+
+    fun isAppAlreadyInMap(whatApp: AppInfo): Boolean{
+        return viewModel.rainbowMape.value!!.find { mape -> mape.apps.find{ app -> app.packageName == whatApp.packageName} != null } != null
+    }
+
+    override fun onShortcutClick(index: Int) {
+        Log.d("ingo", "clicked on shortcut...")
+        when(dialogState){
+            DialogStates.APP_SHORTCUTS -> openShortcut(index)
+            else -> {}
+        }
+    }
 
     fun changeLocale(c:Context){
         val config = c.resources.configuration
@@ -159,11 +220,22 @@ class MainActivity : AppCompatActivity(){
         backButtonAction = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_BACKBUTTON, false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.N_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+
+        // ako ovo ne bi bilo prije super.onCreate(savedInstanceState), onCreate funkcija bi se pozivala dva puta i developer bi si počupao kosu jer ne bi znao zašto aplikacija ne radi kako treba
+        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
+        when (PreferenceManager.getDefaultSharedPreferences(this).getString(DARK_MODE, darkModeValues[1])) {
+            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
+            else -> {}
+        }
         super.onCreate(savedInstanceState)
 
+
+
+        Log.d("ingo", "oncreate mainactivity")
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
         //Thread.getDefaultUncaughtExceptionHandler()
 
@@ -206,24 +278,15 @@ class MainActivity : AppCompatActivity(){
 
         instance = this as MainActivity
 
-        val darkModeString = getString(R.string.dark_mode)
-        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        val darkModePreference = PreferenceManager.getDefaultSharedPreferences(this).getString(darkModeString, darkModeValues[3])
         val ui_design_values = resources.let{it.getStringArray(R.array.ui_designs_values)}
         uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this).getString(UI_DESIGN, ui_design_values[0])){
-            ui_design_values[0] -> UiDesignEnum.CIRCLE
-            ui_design_values[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
-            ui_design_values[2] -> UiDesignEnum.RAINBOW
-            ui_design_values[3] -> UiDesignEnum.KEYPAD
-            ui_design_values[4] -> UiDesignEnum.RAINBOW_PATH
+            ui_design_values[0] -> UiDesignEnum.RAINBOW_RIGHT
+            ui_design_values[1] -> UiDesignEnum.RAINBOW_LEFT
+            ui_design_values[2] -> UiDesignEnum.CIRCLE
+            ui_design_values[3] -> UiDesignEnum.CIRCLE_RIGHT_HAND
+            ui_design_values[4] -> UiDesignEnum.CIRCLE_LEFT_HAND
+            ui_design_values[5] -> UiDesignEnum.KEYPAD
             else -> UiDesignEnum.CIRCLE
-        }
-        when (darkModePreference) {
-            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
-            else -> {}
         }
 
         viewModel.initialize()
@@ -232,22 +295,18 @@ class MainActivity : AppCompatActivity(){
         loadOnBackButtonPreference()
         this.setContentView(R.layout.activity_main)
 
-        // Handle edge-to-edge display for Android 15+
-        val mainLayout = findViewById<FrameLayout>(R.id.mainlayout)
-        ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updatePadding(
-                left = insets.left,
-                top = insets.top,
-                right = insets.right,
-                bottom = insets.bottom
-            )
-            WindowInsetsCompat.CONSUMED
-        }
+        /*findViewById<FrameLayout>(R.id.mainlayout).setOnApplyWindowInsetsListener { view, windowInsets ->
+            val params = (view.layoutParams as ViewGroup.MarginLayoutParams)
+            params.topMargin = windowInsets.systemWindowInsetTop
+            params.bottomMargin = windowInsets.systemWindowInsetBottom
+            windowInsets
+        }*/
+        fragmentContainer = findViewById(R.id.fragment_container)
+
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 
-        supportFragmentManager.commit { setReorderingAllowed(true) }
+
         loadFragments()
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -273,23 +332,7 @@ class MainActivity : AppCompatActivity(){
         intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED)
         intentFilter.addDataScheme("package")
         registerReceiver(br, intentFilter)
-    }
 
-    fun packageIsGame(context: Context, packageName: String): Boolean {
-        return try {
-            val info: ApplicationInfo = context.packageManager.getApplicationInfo(packageName, 0)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                info.category == ApplicationInfo.CATEGORY_GAME
-            } else {
-                // We are suppressing deprecation since there are no other options in this API Level
-                @Suppress("DEPRECATION")
-                (info.flags and ApplicationInfo.FLAG_IS_GAME) == ApplicationInfo.FLAG_IS_GAME
-            }
-        } catch (e: PackageManager.NameNotFoundException) {
-            Log.e("Util", "Package info not found for name: " + packageName, e)
-            // Or throw an exception if you want
-            false
-        }
     }
 
     fun saveNewApps(){
@@ -298,7 +341,7 @@ class MainActivity : AppCompatActivity(){
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
             for(app in newApps){
-                Log.d("ingo", "newapp ${app.label} ${app.color}")
+                //Log.d("ingo", "newapp ${app.label} ${app.color}")
                 try {
                     appDao.insertAll(app)
                 } catch (e:android.database.sqlite.SQLiteConstraintException) {
@@ -310,23 +353,26 @@ class MainActivity : AppCompatActivity(){
 
     fun loadFragments(){
         mainFragment = when(uiDesignMode){
-            UiDesignEnum.CIRCLE -> MainFragment()
-            UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand()
-            UiDesignEnum.RAINBOW -> MainFragmentRainbow()
+            UiDesignEnum.CIRCLE, UiDesignEnum.CIRCLE_RIGHT_HAND, UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragment()
+            //UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand(true)
+            //UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragmentRightHand(false)
+            UiDesignEnum.RAINBOW_RIGHT -> MainFragmentRainbow(true)
+            UiDesignEnum.RAINBOW_LEFT -> MainFragmentRainbow(false)
             UiDesignEnum.KEYPAD -> MainFragmentTipke()
             UiDesignEnum.RAINBOW_PATH -> com.ingokodba.dragnav.rainbow.MainFragmentRainbowPath()
         }
 
         searchFragment = SearchFragment()
-        activitiesFragment = ActivitiesFragment()
+        activitiesFragment = ActivitiesFragment(uiDesignMode)
         actionsFragment = ActionsFragment()
         supportFragmentManager
             .beginTransaction()
+            .setReorderingAllowed(true)
             .replace(R.id.fragment_container, mainFragment.fragment, "main")
             .setReorderingAllowed(true)
             .commit()
 
-        if(uiDesignMode == UiDesignEnum.RAINBOW || uiDesignMode == UiDesignEnum.RAINBOW_PATH){
+        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
             // TODO: provjeri da li se ovo postavi ili ne
             activitiesFragment.radapter?.showAddToHomescreen = false
         }
@@ -366,6 +412,7 @@ class MainActivity : AppCompatActivity(){
             setReorderingAllowed(true)
             addToBackStack("activities")
         }
+
     }
 
     fun showSearchFragment(){
@@ -382,6 +429,9 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
+
+
+
     fun showLayout(id:Layouts){
         Log.d("ingo", "show layout " + id.name + " currently " + currentLayout)
         //findViewById<FrameLayout>(R.id.mainlayout).setBackgroundColor(Color.TRANSPARENT)
@@ -391,6 +441,22 @@ class MainActivity : AppCompatActivity(){
         when(id){
             Layouts.LAYOUT_ACTIVITIES -> {
                 showActivitiesFragment()
+                /*WindowCompat.setDecorFitsSystemWindows(window, false)
+
+                val windowInsetsController =
+                    ViewCompat.getWindowInsetsController(window.decorView)
+
+                windowInsetsController?.isAppearanceLightNavigationBars = false*/
+
+                //show content behind status bar
+                /*window?.decorView?.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                //make status bar transparent
+                window?.statusBarColor = Color.TRANSPARENT*/
+
+                //fragmentContainer.setPadding()
+
+
                 Log.d("ingo", "showActivitiesFragment")
             }
             Layouts.LAYOUT_ACTIONS -> {
@@ -468,6 +534,15 @@ class MainActivity : AppCompatActivity(){
                 if(data.hasExtra("refresh"))
                 {
                     mainFragment.refreshCurrentMenu()
+                }
+                if(data.hasExtra("reload_apps"))
+                {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                    initializeRoom()
+                        withContext(Dispatchers.Main){
+                            mainFragment.refreshCurrentMenu()
+                        }
+                    }
                 }
                 if(data.hasExtra("backButtonAction"))
                 {
@@ -576,6 +651,18 @@ class MainActivity : AppCompatActivity(){
 
     fun showMyDialog(editSelected:Int) {
         if(editSelected == -1) return
+        viewModel.trenutnoPrikazanaPolja[editSelected].let { krugSAplikacijom ->
+            openFolderNameMenu(fragmentContainer, true, krugSAplikacijom.text, false) { ime ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val novoPolje = krugSAplikacijom.copy(text=ime, color=this@MainActivity.gcolor.toString())
+                    databaseUpdateItem(novoPolje)
+                    withContext(Dispatchers.Main){
+                        mainFragment.refreshCurrentMenu()
+                    }
+                }
+            }
+        }
+        /*
         val fragmentManager = supportFragmentManager
         viewModel.trenutnoPrikazanaPolja[editSelected].let{
             val newFragment = CustomDialogFragment(it)
@@ -596,7 +683,7 @@ class MainActivity : AppCompatActivity(){
                     .addToBackStack(null)
                     .commit()
             }
-        }
+        }*/
     }
 
     fun saveAppInfo(application: AppInfo){
@@ -604,8 +691,8 @@ class MainActivity : AppCompatActivity(){
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
             appDao.update(application)
-            val lol = appDao.getAll()
-            Log.d("ingo", lol.map { it.label + " " + it.frequency }.toString())
+            //val lol = appDao.getAll()
+            //Log.d("ingo", lol.map { it.label + " " + it.frequency }.toString())
         }
     }
 
@@ -615,8 +702,8 @@ class MainActivity : AppCompatActivity(){
         application.frequency++// = application.frequency!! + 1
         application.lastLaunched = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
         appDao.update(application)
-        val lol = appDao.getAll()
-        Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
+        //val lol = appDao.getAll()
+        //Log.d("ingo", lol.map{ it.label + " " + it.frequency }.toString())
     }
 
     fun isPackageNameOnDevice(packageName: String): Boolean{
@@ -685,19 +772,27 @@ class MainActivity : AppCompatActivity(){
 
     private suspend fun initializeRoom(){
         Log.d("ingo", "initializeRoom start")
+        viewModel.sviKrugovi = mutableListOf()
+        if(viewModel.appsList.value?.size!! > 0) {
+            withContext(Dispatchers.Main) {
+                viewModel.clearApps()
+            }
+        }
+        viewModel.highestId = 0
         if(dontLoadApps){
             viewModel.sviKrugovi += pocetna
             viewModel.pocetnaId = pocetna.id
             viewModel.currentMenuId = pocetna.id
             return
         }
+        rainbowMapaGetItems()
         val db = AppDatabase.getInstance(this)
         val krugSAplikacijamaDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         var krugSAplikacijama:List<KrugSAplikacijama> = krugSAplikacijamaDao.getAll()
         if(krugSAplikacijama.size == 0){
             viewModel.pocetnaId = databaseAddNewPolje(pocetna)?.id ?: -1
             withContext(Dispatchers.Main) {
-                showIntroPopup()
+                //showIntroPopup()
             }
         } else {
             withContext(Dispatchers.Main) {
@@ -816,24 +911,24 @@ class MainActivity : AppCompatActivity(){
                 )
                 if(iconDrawable != null) {
                     iconBitmap = iconDrawable!!.toBitmap()
-                    Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
+                    //Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
                     if(iconBitmap!!.width > 200){
                         iconBitmap = iconBitmap!!.scaleWith(200f/iconBitmap!!.width)
                         iconDrawable = BitmapDrawable(resources, iconBitmap!!)
                     }
-                    Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
-                    if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
+                    //Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
+                    //if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
                         val color = getBestPrimaryColor(iconDrawable!!).toString()
                         viewModel.appsList.value!!.findLast { it.packageName == pname }?.color =
                             color
                         newApps.findLast { it.packageName == pname }?.color = color
-                    }
-                    Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
+                    //}
+                    //Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
                     viewModel.icons.value!![pname] = iconDrawable
-                    Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
+                    //Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
                 } else {
                     viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
-                    Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
+                    //Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
                 }
             } catch (e: Resources.NotFoundException){}
         } catch (e: PackageManager.NameNotFoundException){}
@@ -883,6 +978,8 @@ class MainActivity : AppCompatActivity(){
         return viewModel.appsList.value!!.find{ it.id == guid } != null
     }
 
+
+
     fun getBestPrimaryColor(icon:Drawable): Int{
         val bitmap: Bitmap = icon.toBitmap(5, 5, Bitmap.Config.RGB_565)
         var best_diff_j = 0
@@ -907,7 +1004,8 @@ class MainActivity : AppCompatActivity(){
     fun loadNewApps(): MutableList<AppInfo>{
         //Log.d("ingo5", "getinstalledpackages start")
         //Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
-        val gson = Gson()
+
+
         val newApps: MutableList<AppInfo> = mutableListOf()
         var colorPrimary: Int = Color.BLACK
         val packs = packageManager.getInstalledPackages(0)
@@ -985,9 +1083,12 @@ class MainActivity : AppCompatActivity(){
                     val launchIntent: Intent? =
                         packageManager.getLaunchIntentForPackage(event.launchIntent)
                     startActivity(launchIntent)
+                    showLayout(Layouts.LAYOUT_MAIN)
                 }
             } else if(event.type == MessageEventType.FAVORITE){
                 saveAppInfo(event.app)
+            } else if(event.type == MessageEventType.LONG_HOLD){
+                openShortcutsMenu(event.pos)
             }
         }
     }
@@ -1011,20 +1112,55 @@ class MainActivity : AppCompatActivity(){
         if(currentLayout != Layouts.LAYOUT_MAIN){
             showLayout(Layouts.LAYOUT_MAIN)
         } else {
+            val processed = mainFragment.onBackPressed()
+            if(!processed){
+                showLayout(Layouts.LAYOUT_ACTIVITIES)
+            }
+            /*
             if(viewModel.editMode){
                 mainFragment.toggleEditMode()
             } else if(backButtonAction) {
                 showLayout(Layouts.LAYOUT_SEARCH)
             } else {
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
-            }
+            }*/
             //mainFragment.updateStuff()
         }
         //super.onBackPressed()
     }
 
-    fun openFolderNameMenu(view: View){
-        val contentView = createFolderNameMenu()
+    fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, showPickColor: Boolean, callback: (String) -> Unit){
+        gcolor = Color.GRAY
+        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
+        val popupFolderName = contentView.findViewById<TextView>(R.id.popup_folder_name)
+        contentView.findViewById<TextView>(R.id.title).text = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
+        popupFolderName.text = name
+        contentView.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
+            shortcutPopup?.dismiss()
+        }
+        contentView.findViewById<Button>(R.id.pick_folder_color).apply {
+            if(showPickColor) {
+                setOnClickListener {
+                    startColorpicker()
+                }
+            } else {
+                visibility = View.GONE
+            }
+        }
+        contentView.findViewById<Button>(R.id.popup_folder_submit).apply {
+            text = if(addingOrEditing) getString(R.string.save) else getString(R.string.add_folder)
+            setOnClickListener {
+                val ime: String =
+                    popupFolderName.text.toString()
+                if (ime != "") {
+                    Log.d("ingo", "usli")
+                    shortcutPopup?.dismiss()
+                    // create folder
+                    callback(ime)
+                }
+            }
+        }
+
         val locations = IntArray(2, {0})
         view.getLocationOnScreen(locations)
         shortcutPopup?.dismiss()
@@ -1033,6 +1169,10 @@ class MainActivity : AppCompatActivity(){
             ListPopupWindow.WRAP_CONTENT, true)
         //shortcutPopup?.animationStyle = R.style.PopupAnimation
         shortcutPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
+        //popupFolderName.requestFocus()
+        val inputMethodManager: InputMethodManager =
+            this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.showSoftInput(popupFolderName, InputMethodManager.SHOW_IMPLICIT)
     }
 
     fun showIntroPopup(){
@@ -1059,31 +1199,17 @@ class MainActivity : AppCompatActivity(){
         val view = LayoutInflater.from(applicationContext).inflate(R.layout.popup_add_which, null)
         view.findViewById<LinearLayout>(R.id.new_folder).setOnClickListener{
             //Toast.makeText(this, "New folder", Toast.LENGTH_SHORT).show()
-            openFolderNameMenu(view)
+            openFolderNameMenu(view, false, "", false){createCircleFolder(it)}
         }
         view.findViewById<LinearLayout>(R.id.new_shortcut).setOnClickListener{
             //Toast.makeText(this, "New shortcut", Toast.LENGTH_SHORT).show()
             toggleAppMenu()
             selectAppMenuOpened = true
-            /*global_view.findViewById<TextView>(R.id.notification).apply{
-                text = "Choose an app from app list or search. Click here to cancel."
-                setOnClickListener {
-                    selectAppMenuOpened = false
-                    it.visibility = View.INVISIBLE
-                    recycle_view_label.visibility = View.GONE
-                }
-                visibility = View.VISIBLE
-            }*/
             shortcutPopup?.dismiss()
             showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIVITIES)
             //changeeditMode()
             //toggleAppMenu()
         }
-        /*view.findViewById<LinearLayout>(R.id.new_action).setOnClickListener{
-            shortcutPopup?.dismiss()
-            //mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_ACTIONS)
-            Toast.makeText(applicationContext, "Not implemented yet:(", Toast.LENGTH_SHORT).show()
-        }*/
         return view
     }
 
@@ -1110,37 +1236,70 @@ class MainActivity : AppCompatActivity(){
         colorResultLauncher.launch(intent)
     }
 
-    fun createFolderNameMenu():View{
-        gcolor = Color.GRAY
-        val view = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
-        view.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
-            shortcutPopup?.dismiss()
-        }
-        view.findViewById<Button>(R.id.pick_folder_color).setOnClickListener {
-            startColorpicker()
-        }
-        view.findViewById<Button>(R.id.popup_folder_submit).setOnClickListener{
-            val ime:String = view.findViewById<EditText>(R.id.popup_folder_name).text.toString()
-            if(ime != ""){
-                Log.d("ingo", "usli")
-                // create folder
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val dodanoPolje = databaseAddNewPolje(KrugSAplikacijama(id=0, text=ime, color = gcolor.toString()))
-                    val trenutnoPolje = getPolje(viewModel.currentMenu.id)
-                    if(trenutnoPolje != null && dodanoPolje != null){
-                        trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
-                        databaseUpdateItem(trenutnoPolje)
-                        Log.d("ingo", trenutnoPolje.polja.toString())
-                    }
-                    withContext(Dispatchers.Main){
-                        mainFragment.refreshCurrentMenu()
-                        shortcutPopup?.dismiss()
-                    }
-                }
-
+    fun createCircleFolder(ime: String){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val dodanoPolje = databaseAddNewPolje(
+                KrugSAplikacijama(
+                    id = 0,
+                    text = ime,
+                    color = gcolor.toString()
+                )
+            )
+            val trenutnoPolje = getPolje(viewModel.currentMenu.id)
+            if (trenutnoPolje != null && dodanoPolje != null) {
+                trenutnoPolje.polja = trenutnoPolje.polja.plus(dodanoPolje.id)
+                databaseUpdateItem(trenutnoPolje)
+                Log.d("ingo", trenutnoPolje.polja.toString())
+            }
+            withContext(Dispatchers.Main) {
+                mainFragment.refreshCurrentMenu()
             }
         }
-        return view
+    }
+
+    fun rainbowMapaUpdateItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            rainbowMapaDao.update(polje)
+            Log.d("ingo", "updated " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaInsertItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            val roomId = rainbowMapaDao.insert(polje)
+            withContext(Dispatchers.Main){
+                viewModel.addRainbowMape(mutableListOf(polje.apply { id = roomId.toInt() }))
+                (mainFragment as MainFragmentRainbow).saveCurrentMoveDistance()
+                (mainFragment as MainFragmentRainbow).prebaciMeni()
+            }
+            Log.d("ingo", "inserted " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaDeleteItem(polje: RainbowMapa){
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            rainbowMapaDao.delete(polje)
+            Log.d("ingo", "deleted " + polje.folderName + "(" + polje.id + ")")
+        }
+    }
+
+    fun rainbowMapaGetItems(){
+        Log.d("ingo", "rainbowMapaGetItems")
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivity)
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            val rainbowMape = rainbowMapaDao.getAll().toMutableList()
+            if(rainbowMape.size == 0) return@launch
+            withContext(Dispatchers.Main){
+                viewModel.addRainbowMape(rainbowMape)
+            }
+        }
     }
 
     fun databaseUpdateItem(polje: KrugSAplikacijama){
@@ -1195,26 +1354,10 @@ class MainActivity : AppCompatActivity(){
         }
         return null
     }
+}
 
-    /*override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference): Boolean {
-        // Instantiate the new Fragment
-        val args = pref.extras
-        val fragment = pref.fragment?.let {
-            supportFragmentManager.fragmentFactory.instantiate(
-                classLoader,
-                it
-            )
-        }
-        if (fragment != null) {
-            fragment.arguments = args
-            fragment.setTargetFragment(caller, 0)
-            // Replace the existing Fragment with the new Fragment
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.settings_container, fragment)
-                .addToBackStack(null)
-                .commit()
-            return true
-        }
-        return false
-    }*/
+enum class DialogStates{APP_SHORTCUTS, ADDING_TO_FOLDER, FOLDER_OPTIONS}
+
+interface OnShortcutClick {
+    fun onShortcutClick(index: Int)
 }

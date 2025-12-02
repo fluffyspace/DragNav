@@ -208,24 +208,32 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface {
         countdownJob?.cancel()
         lifecycleScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
+                val apps = getDisplayedApps()
+                if (appIndex < 0 || appIndex >= apps.size) return@withContext
+
+                currentAppIndex = appIndex
+                val app = apps[appIndex]
+
                 val launcherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-                if (launcherApps.hasShortcutHostPermission()) {
-                    val apps = getDisplayedApps()
-                    if (appIndex < 0 || appIndex >= apps.size) return@withContext
+                val hasPermission = launcherApps.hasShortcutHostPermission()
 
-                    currentAppIndex = appIndex
-                    val app = apps[appIndex]
+                // Always show at least the favorites toggle, even without shortcut permission
+                val shortcutLabels = mutableListOf<String>()
+
+                if (hasPermission) {
                     shortcuts = mActivity.getShortcutFromPackage(app.packageName)
-
-                    val shortcutLabels = shortcuts.map { it.shortLabel.toString() }.toMutableList()
-                    shortcutLabels.add(if (app.favorite) getString(R.string.remove_from_favorites) else getString(R.string.add_to_favorites))
-
-                    pathView.showShortcuts(appIndex, shortcutLabels)
-
-                    if (shortcuts.isEmpty()) {
-                        view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    }
+                    shortcutLabels.addAll(shortcuts.map { it.shortLabel.toString() })
+                } else {
+                    shortcuts = emptyList()
                 }
+
+                // Always add favorite toggle option
+                shortcutLabels.add(if (app.favorite) getString(R.string.remove_from_favorites) else getString(R.string.add_to_favorites))
+
+                pathView.showShortcuts(appIndex, shortcutLabels)
+
+                // Always provide haptic feedback on long press
+                view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             }
         }
     }

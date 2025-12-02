@@ -138,7 +138,7 @@ class AddShortcutActivity : AppCompatActivity() {
         val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
         meniPolja = recDao.getAll()
         if(meniPolja.size == 0) return false
-        Log.d("ingo", meniPolja.map{it.text}.toString())
+        //Log.d("ingo", meniPolja.map{it.text}.toString())
         pocetnaId = meniPolja.first().id
         /*val appDao: AppInfoDao = db.appInfoDao()
         Log.d("ingo", "initializeRoom before cache")

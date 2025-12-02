@@ -16,17 +16,21 @@
     </string-array>
 
     <string-array name="ui_designs_entries">
-        <item>Circle</item>
+        <item>Curved layout for right hand</item>
+        <item>Curved layout for left hand</item>
+        <item>Circle in center</item>
         <item>Circle with right hand</item>
-        <item>Rainbow</item>
+        <item>Circle with left hand</item>
         <item>Keypad</item>
         <item>Rainbow Path</item>
     </string-array>
 
     <string-array name="ui_designs_values">
+        <item>rainbow_right</item>
+        <item>rainbow_left</item>
         <item>circle</item>
         <item>circle_right_hand</item>
-        <item>rainbow</item>
+        <item>circle_left_hand</item>
         <item>keypad</item>
         <item>rainbow_path</item>
     </string-array>

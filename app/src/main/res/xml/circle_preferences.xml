@@ -15,6 +15,17 @@
         app:defaultValue="30"
         android:icon="@drawable/baseline_format_size_24"/>
 
+    <EditTextPreference
+        app:key="ui_border_width"
+        app:title="@string/circle_border_width"
+        app:defaultValue="4"
+        android:icon="@drawable/baseline_line_style_24"/>
+
+    <EditTextPreference
+        app:key="ui_transparency"
+        app:title="@string/transparency"
+        app:defaultValue="1.0"/>
+
     <SwitchPreference
         app:key="ui_circles_toggle"
         app:title="@string/show_circles"
@@ -40,19 +51,5 @@
         app:title="@string/shadow"
         app:defaultValue="true"/>
 
-    <EditTextPreference
-        app:key="ui_border_width"
-        app:title="@string/border_width"
-        app:defaultValue="4"/>
-
-    <EditTextPreference
-        app:key="ui_smaller_text_size"
-        app:title="@string/smaller_text_size"
-        app:defaultValue="30"/>
-
-    <EditTextPreference
-        app:key="ui_transparency"
-        app:title="@string/transparency"
-        app:defaultValue="1.0"/>
 
 </PreferenceScreen>

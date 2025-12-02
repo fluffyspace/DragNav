@@ -135,6 +135,10 @@ class MainFragmentTipke() : Fragment(), MainFragmentInterface {
 
     }
 
+    override fun onBackPressed(): Boolean {
+        return false
+    }
+
     fun settings(){
         //startActivity(Intent(android.provider.Settings.ACTION_SETTINGS), null);
         mactivity.showLayout(MainActivity.Companion.Layouts.LAYOUT_SETTINGS)

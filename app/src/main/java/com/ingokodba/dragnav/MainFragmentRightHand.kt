@@ -24,7 +24,7 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
  * Use the [MainFragmentRightHand.newInstance] factory method to
  * create an instance of this fragment.
  */
-class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
+class MainFragmentRightHand(leftOrRight: Boolean) : Fragment(), MainFragmentInterface {
 
     lateinit var circleView: CircleView
     lateinit var bottomMenuView: BottomMenuView
@@ -49,14 +49,16 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
     lateinit var cancelButton: ImageButton
 
     override var fragment: Fragment = this
+    var leftOrRight: Boolean
 
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+    init {
+        this.leftOrRight = leftOrRight
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mactivity = (activity as MainActivity)
+
         //MainActivity.changeLocale(requireContext())
     }
 
@@ -178,7 +180,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main_right_hand, container, false)
+        return inflater.inflate(if(leftOrRight) R.layout.fragment_main_right_hand else R.layout.fragment_main_left_hand, container, false)
     }
 
     companion object {
@@ -192,8 +194,8 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            MainFragmentRightHand().apply {
+        fun newInstance(leftOrRight: Boolean) =
+            MainFragmentRightHand(leftOrRight).apply {
 
             }
     }
@@ -210,6 +212,17 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
     override fun selectedItemDeleted(){
         deYellowAll()
         refreshCurrentMenu()
+    }
+
+    override fun onBackPressed(): Boolean {
+        if(viewModel.currentMenuId != viewModel.pocetnaId){
+            goToHome()
+            return true
+        } else if(viewModel.editMode){
+            toggleEditMode()
+            return true
+        }
+        return false
     }
 
     fun addNewAppHandler(){
@@ -474,7 +487,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
             }
             //Log.d("ingo", "prikazi prečace2 " + precaci.map{ it.shortLabel.toString() + "->" + it.id }.toString())
             precaci = precaci_info?.map{
-                KrugSAplikacijama(id=0, text= it.shortLabel as String, nextIntent = it.`package`, nextId = it.id, shortcut = true)
+                KrugSAplikacijama(id=0, text= it.shortLabel.toString(), nextIntent = it.`package`, nextId = it.id, shortcut = true)
             } as MutableList<KrugSAplikacijama>
         }
         if(idKruga == viewModel.pocetnaId){
@@ -525,7 +538,7 @@ class MainFragmentRightHand() : Fragment(), MainFragmentInterface {
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
         viewModel.stack.clear()
         prebaciMeni(viewModel.pocetnaId, -1)
-        selected_text.setText(MainActivity.resources2.getString(R.string.home))
+        selected_text.text = MainActivity.resources2.getString(R.string.home)
         //prikaziPrecace
         //findViewById<Button>(R.id.back_button).isEnabled = false
     }

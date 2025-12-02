@@ -8,5 +8,8 @@ interface MainFragmentInterface{
     fun refreshCurrentMenu()
     fun toggleEditMode()
     fun selectedItemDeleted()
+
+    fun onBackPressed(): Boolean
+
     var fragment: Fragment
 }

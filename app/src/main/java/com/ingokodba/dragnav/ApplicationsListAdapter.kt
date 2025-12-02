@@ -20,10 +20,11 @@ import com.ingokodba.dragnav.modeli.MessageEvent
 import com.ingokodba.dragnav.modeli.MessageEventType
 import org.greenrobot.eventbus.EventBus
 
-class ApplicationsListAdapter(viewModel: ViewModel) :
+class ApplicationsListAdapter(viewModel: ViewModel, designEnum: UiDesignEnum) :
     ListAdapter<AppInfo, RecyclerView.ViewHolder>(DiffCallback) {
 
     var viewModel: ViewModel = viewModel
+    var designEnum: UiDesignEnum = designEnum
     var idOtvorenogMenija:Int = -1
     var showAddToHomescreen: Boolean = true
 
@@ -36,7 +37,6 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         var addappbutton:LinearLayout = view.findViewById(R.id.addappbutton)
         var favoritebutton:LinearLayout = view.findViewById(R.id.favoritebutton)
         var favoriteimage:ImageView = view.findViewById(R.id.favoriteimage)
-
     }
 
     /**
@@ -121,9 +121,10 @@ class ApplicationsListAdapter(viewModel: ViewModel) :
         if (holder is MarsPhotosViewHolder) {
             holder.bind(appInfo, viewModel)
             if(appInfo.color != "") holder.textView.setBackgroundColor(appInfo.color.toInt())
-            holder.textView.text = appInfo.label + " - " + pos
+            holder.textView.text = if(designEnum != UiDesignEnum.KEYPAD) appInfo.label else appInfo.label + " - " + pos
             holder.itemView.setOnLongClickListener{ v ->
-                showMenu(pos)
+                EventBus.getDefault().post(MessageEvent(appInfo.label, pos, appInfo.packageName, appInfo.color, type = MessageEventType.LONG_HOLD, app = appInfo))
+                //showMenu(pos)
                 return@setOnLongClickListener true
             }
             holder.itemView.setOnClickListener { v ->

@@ -128,20 +128,20 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
                 android:orientation="vertical">
-            <TextView
-                android:id="@+id/selected_text"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:gravity="center"
-                style="@style/TextShadowStyle"
-                android:singleLine="true"
-                android:autoSizeTextType="uniform"
-                android:text="@string/loading"
-                android:textColor="@color/white"/>
-            <com.ingokodba.dragnav.CircleView
-                android:id="@+id/circleview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                <TextView
+                    android:id="@+id/selected_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:gravity="center"
+                    style="@style/TextShadowStyle"
+                    android:singleLine="true"
+                    android:autoSizeTextType="uniform"
+                    android:text="@string/loading"
+                    android:textColor="@color/white"/>
+                <com.ingokodba.dragnav.CircleView
+                    android:id="@+id/circleview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

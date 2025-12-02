@@ -1,16 +1,19 @@
 package com.ingokodba.dragnav
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.preference.*
 import com.example.dragnav.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MySettingsFragment : PreferenceFragmentCompat() {
     lateinit var settingsActivity:SettingsActivity
     companion object{
         val UI_COLOR = "ui_color"
+        val UI_COLOR_ON_PRIMARY = "ui_color_on_primary"
         val UI_SHADOW_TOGGLE = "ui_shadow_toggle"
         val UI_BORDER_WIDTH = "ui_border_width"
         val UI_TEXT_SIZE = "ui_text_size"
@@ -24,11 +27,15 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
         val UI_ONELINE = "ui_oneline_buttons_toggle"
         val UI_BACKBUTTON = "ui_backbutton_toggle"
+        val DARK_MODE = "dark_mode"
         val UI_RIGHT_HAND = "ui_right_hand"
         val IMPORT = "import"
         val EXPORT = "export"
         val FEEDBACK = "feedback"
         val RESTART = "restart"
+        val FROM_BACKUP = "from_backup"
+        val TO_BACKUP = "to_backup"
+        val RENEW_INSTANCE = "renew_instance"
         val DROP_DATABASE = "drop_database"
         val DEFAULT_APPS = "default_apps"
     }
@@ -40,12 +47,11 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         settingsActivity = (activity as SettingsActivity)
         Log.d("ingo", settingsActivity::class.simpleName.toString())
 
-
         val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
         val uiDesignValueIndex = uiDesignValues.indexOf(context?.let { PreferenceManager.getDefaultSharedPreferences(it).getString(
             UI_DESIGN, uiDesignValues[0]) })
         when(uiDesignValueIndex){
-            0, 1 -> {
+            2, 3, 4 -> {
                 val circlePreferences: Preference? = findPreference("circle_preferences")
                 circlePreferences?.isVisible = true
                 circlePreferences?.setOnPreferenceClickListener { preference ->
@@ -56,17 +62,27 @@ class MySettingsFragment : PreferenceFragmentCompat() {
                     true
                 }
             }
-            2 -> {
+            0, 1 -> {
                 val circlePreferences: Preference? = findPreference("rainbow_preferences")
                 circlePreferences?.isVisible = true
                 circlePreferences?.setOnPreferenceClickListener { preference ->
                     //settingsActivity.navController?.findDestination(R.id.action_mySettingsFragment_to_circleSettingsFragment)?.label = "trakošćan"
                     val action =
-                        MySettingsFragmentDirections.actionMySettingsFragmentToCircleSettingsFragment()
+                        MySettingsFragmentDirections.actionMySettingsFragmentToRainbowSettingsFragment()
                     settingsActivity.navController?.navigate(action)
                     true
                 }
             }
+        }
+
+        val uiDesign: ListPreference? = findPreference(UI_DESIGN)
+        val uiDesignValuesHumanReadable = resources.getStringArray(R.array.ui_designs_entries)
+        uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
+        uiDesign?.setValueIndex(uiDesignValueIndex)
+        uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
+            uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
+            showRestartDialog()
+            return@setOnPreferenceChangeListener true
         }
 
         val general_preferences: Preference? = findPreference("general_preferences")
@@ -100,5 +116,20 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         if (intent.resolveActivity(settingsActivity.packageManager) != null) {
             startActivity(intent)
         }
+    }
+
+    fun showRestartDialog(){
+        MaterialAlertDialogBuilder(requireContext(),
+            androidx.appcompat.R.style.ThemeOverlay_AppCompat_Dialog_Alert)
+            .setMessage(MainActivity.resources2.getString(R.string.restart_required))
+            .setNegativeButton(MainActivity.resources2.getString(R.string.cancel)) { dialog, which ->
+                // Respond to negative button press
+            }
+            .setPositiveButton(MainActivity.resources2.getString(R.string.restart)) { dialog, which ->
+                data.putExtra("restart", true);
+                (activity as SettingsActivity).setResult(Activity.RESULT_OK, data);
+                (activity as SettingsActivity).finish()
+            }
+            .show()
     }
 }

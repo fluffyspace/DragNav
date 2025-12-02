@@ -1,5 +1,6 @@
 package com.ingokodba.dragnav
 
+import android.app.ActionBar.LayoutParams
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -23,9 +24,13 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.appcompat.widget.ListPopupWindow
+import androidx.constraintlayout.helper.widget.Flow
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
@@ -35,6 +40,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
+import com.google.android.flexbox.FlexboxLayout
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.ingokodba.dragnav.modeli.AppInfo
@@ -52,29 +58,32 @@ private const val ARG_PARAM2 = "param2"
  * Use the [ActivitiesFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class ActivitiesFragment : Fragment() {
+class ActivitiesFragment(design: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT) : Fragment() {
 
     private val viewModel: ViewModel by activityViewModels()
     lateinit var search_bar: EditText
     lateinit var recycler_view: RecyclerView
     lateinit var popis_svih_aplikacija: FrameLayout
     lateinit var trazilica: FrameLayout
-    lateinit var chipGroup: ChipGroup
+    lateinit var trazilica_constraint: ConstraintLayout
+    lateinit var chipGroup: FlexboxLayout
     lateinit var imm: InputMethodManager
     lateinit var shortcutPopup: PopupWindow
     lateinit var recycle_scroller: RecycleScroller
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+
+    val chipViews = mutableListOf<View>()
+    var icon_size = 100
+
     var radapter: ApplicationsListAdapter? = null
     var rowsVisibleCounter = 0
+    var design: UiDesignEnum
+    init {
+        this.design = design
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
+
     }
 
     override fun onCreateView(
@@ -100,11 +109,11 @@ class ActivitiesFragment : Fragment() {
             (activity as MainActivity).showLayout(MainActivity.Companion.Layouts.LAYOUT_SETTINGS)
         }
         recycler_view = view.findViewById(R.id.recycler_view)
-        radapter = ApplicationsListAdapter(viewModel)
+        radapter = ApplicationsListAdapter(viewModel, design)
         search_bar = view.findViewById(R.id.search_bar)
         popis_svih_aplikacija = view.findViewById(R.id.popis_svih_aplikacija)
         trazilica = view.findViewById(R.id.trazilica)
-        chipGroup = view.findViewById<ChipGroup>(R.id.chipgroup_aplikacije)
+        chipGroup = view.findViewById<FlexboxLayout>(R.id.chipgroup_aplikacije)
         imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         recycle_scroller = view.findViewById<RecycleScroller>(R.id.recycle_scroller)
         recycle_scroller.setCallback(::scrollRecyclerViewToPrecentage)
@@ -136,7 +145,7 @@ class ActivitiesFragment : Fragment() {
             Log.d("ingo", "" + viewModel.appsList.value!!.map{ it.label })
         }
 
-        val decorView  = activity?.window?.decorView ?: return
+        /*val decorView  = activity?.window?.decorView ?: return
         ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
             val showingKeyboard = insets.isVisible(WindowInsetsCompat.Type.ime())
             if(showingKeyboard){
@@ -149,8 +158,7 @@ class ActivitiesFragment : Fragment() {
                 trazilica.visibility = View.GONE
             }
             insets
-        }
-
+        }*/
         search_bar.apply {
             setOnEditorActionListener { _, actionId, _ ->
                 if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -169,36 +177,40 @@ class ActivitiesFragment : Fragment() {
                 // find apps
                 val search_lista_aplikacija: MutableList<Pair<Int, AppInfo>>
                 if(search_bar.text.toString().length == 0) {
+                    popis_svih_aplikacija.visibility = View.VISIBLE
+                    trazilica.visibility = View.GONE
                     //val search_lista_aplikacija: MutableList<AppInfo> = mutableListOf()
                     val sortirano = viewModel.appsList.value!!.filter{ it.frequency > 0 }.sortedByDescending { it.lastLaunched }
                     val max = if (sortirano.size > 5) 5 else sortirano.size
                     search_lista_aplikacija = (0 until max)
                         .map { Pair(it, sortirano[it]) }.toMutableList()
                 } else {
+                    icon_size = popis_svih_aplikacija.width/5
+                    popis_svih_aplikacija.visibility = View.GONE
+                    trazilica.visibility = View.VISIBLE
+
                     search_lista_aplikacija =
                         SearchFragment.getAppsByQuery(
                             viewModel.appsList.value!!,
                             search_bar.text.toString()
-                        )
+                        ).apply{
+                            sortByDescending { it.second.lastLaunched }
+                        }//.reversed().toMutableList()
                 }
                 chipGroup.removeAllViews()
                 //var chips: MutableList<Chip> = mutableListOf()
                 for ((index,app) in search_lista_aplikacija.iterator().withIndex()) {
-                    if(index > 10) break
-                    val chip = layoutInflater.inflate(R.layout.chip_template, null) as Chip
+                    if(index >= 25) break
+                    val chip = layoutInflater.inflate(R.layout.app_icon_template, null, false) as ConstraintLayout
                     val chip_text = app.second.label.toString()
-                    chip.setText(chip_text)// + " " + app.first)
-                    chip.id = index
-                    try {
-                        chip.chipBackgroundColor = ColorStateList.valueOf(app.second.color.toInt())
-                    } catch (e:NumberFormatException){
-                        e.printStackTrace()
-                        Log.d("ingo", "neuspjela boja")
+                    chip.findViewById<ImageView>(R.id.image).apply{
+                        //layoutParams = FlexboxLayout.LayoutParams(icon_size, LayoutParams.WRAP_CONTENT)
+                        setImageDrawable(viewModel.icons.value!![app.second.packageName])
                     }
+                    chip.findViewById<TextView>(R.id.text).text = app.second.label
+                    chip.id = index
+                    chip.layoutParams = FlexboxLayout.LayoutParams(icon_size, LayoutParams.WRAP_CONTENT)
                     chip.setOnClickListener {
-                        Log.d(
-                            "ingo", chip.text.toString() + " " + chip.id.toString()
-                        )
                         // otvori ovu aplikaciju
                         val launchIntent: Intent? = requireContext().packageManager.getLaunchIntentForPackage(app.second.packageName.toString())
                         if(launchIntent != null) {
@@ -208,21 +220,35 @@ class ActivitiesFragment : Fragment() {
                         //startActivity(launchIntent)
                     }
                     chip.setOnLongClickListener{
-                        val contentView = createMenu(app.second)
-                        shortcutPopup = PopupWindow(contentView,
-                            ListPopupWindow.WRAP_CONTENT,
-                            ListPopupWindow.WRAP_CONTENT, true)
-                        //shortcutPopup?.animationStyle = R.style.PopupAnimation
-                        val location = locateView(chip)
-                        shortcutPopup?.showAtLocation(view, Gravity.TOP or Gravity.LEFT, location!!.left, location!!.bottom)
+                        if((activity as MainActivity).uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || (activity as MainActivity).uiDesignMode == UiDesignEnum.RAINBOW_LEFT) {
+                            (activity as MainActivity).openShortcutsMenu(
+                                viewModel.appsList.value!!.indexOfFirst { it.packageName == app.second.packageName }
+                            )
+                        } else {
+                            val contentView = createMenu(app.second)
+                            shortcutPopup = PopupWindow(
+                                contentView,
+                                ListPopupWindow.WRAP_CONTENT,
+                                ListPopupWindow.WRAP_CONTENT, true
+                            )
+                            //shortcutPopup?.animationStyle = R.style.PopupAnimation
+                            val location = locateView(chip)
+                            shortcutPopup?.showAtLocation(
+                                view,
+                                Gravity.TOP or Gravity.LEFT,
+                                location!!.left,
+                                location!!.bottom
+                            )
+                        }
                         return@setOnLongClickListener true
                     }
-                    //chips.add(chip)
                     chipGroup.addView(chip)
+
+
                 }
             }
         }
-        val touchHelperCallback: ItemTouchHelper.SimpleCallback =
+        /*val touchHelperCallback: ItemTouchHelper.SimpleCallback =
             object : ItemTouchHelper.SimpleCallback(0,(ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)) {
                 private val background = ColorDrawable(resources.getColor(R.color.colorPrimary))
                 override fun onMove(
@@ -277,7 +303,12 @@ class ActivitiesFragment : Fragment() {
                 }
             }
         val itemTouchHelper = ItemTouchHelper(touchHelperCallback)
-        itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))
+        itemTouchHelper.attachToRecyclerView(view.findViewById<RecyclerView>(R.id.recycler_view))*/
+    }
+
+    override fun onPause() {
+        super.onPause()
+        search_bar.setText("")
     }
 
     fun locateView(v: View?): Rect? {
@@ -332,12 +363,9 @@ class ActivitiesFragment : Fragment() {
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            ActivitiesFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+        fun newInstance(design: UiDesignEnum) =
+            ActivitiesFragment(design).apply {
+
             }
     }
 }

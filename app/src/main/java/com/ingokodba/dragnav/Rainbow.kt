@@ -12,6 +12,7 @@ import androidx.core.graphics.contains
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
+import com.google.gson.Gson
 import com.ingokodba.dragnav.CircleView.Companion.colorToHex
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MiddleButtonStates
@@ -21,7 +22,6 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
-
 
 class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
@@ -48,18 +48,16 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     // View size in pixels
     private var size_width = 320
     private var size_height = 320
-    private var app_list:List<AppInfo> = listOf()
+    private var app_list:List<EncapsulatedAppInfoWithFolder> = listOf()
     private var color_list:List<String> = listOf()
-    private var no_draw_position:Int = -1
-    private var polja_points:MutableList<Point> = mutableListOf()
-    private var hovered_over:Int = -1
     var questiondrawable: Bitmap? = null
-    //lateinit var radapter:RAdapter
+    var homeDrawable: Bitmap? = null
     var bitmap: Bitmap? = null
 
     var gcolor = Color.parseColor("#FBB8AC")
     var draw_circles = true
     var draw_icons = true
+    var color_on_primary = false
     var border_width = 4f
     var text_size = 18f
     var smaller_text_size = 18f
@@ -80,6 +78,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     var drawn_apps: MutableList<DrawnApp> = mutableListOf()
 
+    var inFolder: Boolean = false
     var editMode:Boolean = false
     var addAppMode:Boolean = false
     var icons:MutableMap<String, Drawable?> = mutableMapOf()
@@ -99,15 +98,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var detectSizeDivider = 1.0
     var detectSize = 0
     var offset: Float = 0f
-    var last_abc: Char = '0'
-    var new_abc: Char = '0'
     var app_index: Int = 0
     val queued_texts: MutableList<QueuedText> = mutableListOf()
 
     var clickIgnored = false
     var clickProcessed = false
 
-    var sredina_processed = false
     var favcirclerect: Rect? = null
     var limit: Double = 0.0
 
@@ -119,13 +115,12 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var flingOn = false
 
     var lastTouchPoints: MutableList<Point> = mutableListOf()
-
     var hasMoved = false
-    var longPressTriggered = false
+    var leftOrRight: Boolean = true
 
     fun limit(number: Int): Boolean{
         limit = -(app_list.size/2)*step_size - step_size*2
-        Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
+        //Log.d("ingo", "limit $limit number $number divided ${(number) / 500f - Math.PI / 2}")
         if(limit < -Math.PI/2) {
             return (number > 0 || (number) / 500f - Math.PI / 2 < limit)
         }
@@ -133,19 +128,19 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
     fun flingUpdate(){
         if(!flingOn) return
-        Log.d("ingo", "fling update $flingValue $flingFriction")
+        //Log.d("ingo", "fling update $flingValue $flingFriction")
+        flingValue -= if (flingValue > 0) flingFriction else -flingFriction
         if(abs(flingValue) <= flingFriction || limit((flingValueAccumulated + flingValue + moveDistancedAccumulated).toInt())){
             finishFling()
             return
         }
-        flingValue -= if (flingValue > 0) flingFriction else -flingFriction
-        flingValueAccumulated += flingValue
+        flingValueAccumulated += if(leftOrRight) flingValue else -flingValue
         moveAction(flingValueAccumulated.toInt())
     }
 
     fun finishFling(){
         flingOn = false
-        moveDistancedAccumulated += flingValueAccumulated.toInt()
+        moveDistancedAccumulated += moveDistance
         resetClicks()
     }
 
@@ -157,18 +152,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         } catch (e:NumberFormatException){
             e.printStackTrace()
         }
-    }
-
-    fun setStepSize(size:Float){
-        step_size = Math.PI*size // s 0.225 ih je 9 na ekranu, s 0.25 ih je 8
-        if(step_size < 0.1) step_size = 0.1
-        invalidate()
-    }
-
-    fun selectPolje(id:Int){
-        selected = id
-        changeMiddleButtonState(MIDDLE_BUTTON_HIDE)
-        invalidate()
     }
 
     fun showShortcuts(app_i: Int, shortcuts: List<String>){
@@ -191,24 +174,32 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         invalidate()
     }
 
-    fun setPosDontDraw(position:Int){
-        no_draw_position = position
-        polja_points.clear()
-        Log.d("ingo", "setPosDontDraw " + position)
+    fun getFirstLetterOfApp(app: EncapsulatedAppInfoWithFolder): Char{
+        return if(app.folderName != null) app.folderName!!.first().uppercaseChar() else app.apps.first().label.first().uppercaseChar()
     }
 
-    fun setAppInfoList(list:List<AppInfo>){
+    fun getNameOfApp(app: EncapsulatedAppInfoWithFolder): String{
+        return if(app.folderName != null) app.folderName!! else app.apps.first().label
+    }
+
+    fun setAppInfoList(list:List<EncapsulatedAppInfoWithFolder>){
         app_list = list
-        hovered_over = -1
+        var firstLetter = '0'
+        var counter = 0
+        for(app in app_list){
+            val firstLetterOfApp = getFirstLetterOfApp(app)
+            if(firstLetterOfApp > firstLetter){
+                firstLetter = firstLetterOfApp
+                //Log.d("ingo", "${Gson().toJson(app)} $counter $firstLetter")
+            }
+            counter++
+        }
         invalidate()
-    }
-
-    fun setColorList(list:List<String>){
-        color_list = list
     }
 
     init {
         questiondrawable = AppCompatResources.getDrawable(context, R.drawable.baseline_question_mark_24)?.toBitmap()
+        homeDrawable = AppCompatResources.getDrawable(context, R.drawable.ic_baseline_home_100)?.toBitmap()
         updateDesign()
         context.theme.obtainStyledAttributes(
             attrs,
@@ -294,11 +285,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         this.mEventListener = mEventListener
     }
 
-    fun lala(){
-        Log.d("ingo", "invalidatedd")
-        invalidate()
-    }
-
     fun amIHome(ami:Boolean?){
         if(ami != null) amIHomeVar=ami
         if(!addAppMode) {
@@ -315,6 +301,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     var touchStart: Point = Point(0, 0)
     var moveDistance = 0
     var moveDistancedAccumulated = 0
+    var startedMoving: Boolean = false
 
     fun changeMiddleButtonState(state:MiddleButtonStates){
         middleButtonState = state
@@ -344,6 +331,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         show_app_names = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_SHOW_APP_NAMES, true)
         showBigCircle = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_BIG_CIRCLE, true)
         text_size = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_TEXT_SIZE, "50")!!.toFloat()
+        color_on_primary = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(MySettingsFragment.UI_COLOR_ON_PRIMARY, false)
         smaller_text_size = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_SMALLER_TEXT_SIZE, "30")!!.toFloat()
         transparency = PreferenceManager.getDefaultSharedPreferences(context).getString(MySettingsFragment.UI_TRANSPARENCY, "1")!!.toFloat()
         text_paint.textSize = text_size;
@@ -361,10 +349,16 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun quickMove(point: Point){
-        if (app_list.isEmpty()) return
+        if(app_list.size == drawn_apps.size){
+            moveDistancedAccumulated = 0
+            invalidate()
+            return
+        }
+        limit = -(app_list.size/2)*step_size - step_size*2
         var angle = -Math.PI/2-atan2((point.y-size_height).toDouble(),
-            (point.x-size_width-arcPositionOffset).toDouble()
+            (point.x - if(leftOrRight) size_width else 0).toDouble()
         )
+        if(!leftOrRight) angle = -angle
         var click = 0
         clickProcessed = true
         for(i in quickSwipeAngles.reversed().indices){
@@ -372,21 +366,19 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 click = i
             }
         }
-        val appsGroupedByLetter = app_list.filter { it.label.isNotEmpty() }.distinctBy { it.label[0].uppercaseChar() }
-        if (click >= appsGroupedByLetter.size || appsGroupedByLetter.isEmpty()) return
-        val targetLetter = appsGroupedByLetter[click].label[0].uppercaseChar()
-        val firstByThatLetter = app_list.firstOrNull{ it.label.isNotEmpty() && it.label[0].uppercaseChar() == targetLetter }
+        val firstByThatLetter = app_list.firstOrNull{getFirstLetterOfApp(it) == getFirstLetterOfApp(app_list.distinctBy { getFirstLetterOfApp(it) }[click])}
             ?: return
 
-        Log.d("ingo", "angle $angle ${firstByThatLetter.label} $click $quickSwipeAngles")
+        Log.d("ingo", "angle $angle ${Gson().toJson(firstByThatLetter)} $click $quickSwipeAngles")
         // saznati s kulko moramo pomnožiti
-        moveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
+        val futureFoveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
         Log.d("ingo", "lol $moveDistancedAccumulated $limit")
 
-        if ((moveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
-            //Log.d("ingo", "zaustavljam ${offset-Math.PI/2} ${limit}")
-            //offset = (moveDistancedAccumulated+moveDistance)/500f
+        // prešli smo preko
+        if ((futureFoveDistancedAccumulated) / 500f - Math.PI / 2 < limit) {
             moveDistancedAccumulated = ((limit + Math.PI / 2) * 500f).toInt()
+        } else {
+            moveDistancedAccumulated = futureFoveDistancedAccumulated
         }
 
         invalidate()
@@ -394,8 +386,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun checkForQuickMove(point: Point){
-        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - size_width - arcPositionOffset).toDouble().pow(2) )
-        Log.d("ingo", "distance $distance $radius $detectSize")
+        val distance = Math.sqrt((point.y - size_height).toDouble().pow(2) + (point.x - if(leftOrRight) size_width else 0).toDouble().pow(2) )
+        Log.d("ingo", "distance $distance ${radius*1.15f} $detectSize")
         if(distance >= radius*1.15f){
             quickSwipeEntered = true
             quickMove(point)
@@ -426,8 +418,10 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             mEventListener?.onEventOccurred(EventTypes.STOP_COUNTDOWN, 2)
             hasMoved = true
         }
-        if(limit < -Math.PI/2 && abs(change) > detectSize/4f) {
+        if(limit < -Math.PI/2 && (startedMoving || abs(change) > detectSize/4f)) {
             // we're moving
+            startedMoving = true
+            Log.d("ingo", "we're moving")
             moveDistance = change
             if(abs(moveDistance) > detectSize/4) clickIgnored = true
             if (moveDistance + moveDistancedAccumulated > 0) {
@@ -438,6 +432,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 moveDistance = ((limit + Math.PI / 2) * 500f - moveDistancedAccumulated).toInt()
             }
             invalidate()
+        } else {
+            Log.e("ingo", "we're NOT moving")
         }
     }
 
@@ -452,7 +448,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             if(shortcuts_app != null) {
                 for (i in shortcuts_rects.indices) {
                     if (shortcuts_rects[i].contains(touchStart)) {
-                        mEventListener?.onEventOccurred(EventTypes.OPEN_SHORTCUT, i)
+                        //mEventListener?.onEventOccurred(EventTypes.OPEN_SHORTCUT, i)
                         clickProcessed = true
                     }
                 }
@@ -466,10 +462,14 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 checkForQuickMove(touchStart)
             }
         } else if(event.action == MotionEvent.ACTION_MOVE){
-            if(quickSwipeEntered){
+            if(quickSwipeEntered) {
                 quickMove(Point(event.x.toInt(), event.y.toInt()))
             } else if(!clickProcessed){
-                val change = (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
+                val change = if(leftOrRight){
+                    (event.y - touchStart.y).toInt() - (event.x - touchStart.x).toInt()
+                } else {
+                    (event.y - touchStart.y).toInt() - (touchStart.x - event.x).toInt()
+                }
                 lastTouchPoints.add(Point(event.x.toInt(), event.y.toInt()))
                 // Limit stored touch points to prevent memory growth
                 if (lastTouchPoints.size > 10) {
@@ -480,13 +480,18 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             //Log.d("ingo", "ne zaustavljam ${(moveDistance+moveDistancedAccumulated)/500f-Math.PI/2} ${limit}")
 
         } else if(event.action == MotionEvent.ACTION_UP){
+            startedMoving = false
             //Log.d("ingo", "moveDistance $moveDistance $moveDistancedAccumulated $step_size")
             if(!clickProcessed && !clickIgnored && abs(event.x - touchStart.x) + abs(event.y - touchStart.y) < detectSize/4){
                 val app_i = getAppIndexImIn()
                 if(app_i != null) mEventListener?.onEventOccurred(EventTypes.OPEN_APP, app_i)
             }
             if(!quickSwipeEntered && lastTouchPoints.size > 3){
-                val moveSpeed = ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
+                val moveSpeed = if(leftOrRight) {
+                    ((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (event.x - lastTouchPoints[lastTouchPoints.size-4].x).toInt())/3
+                } else {
+                    -((event.y - lastTouchPoints[lastTouchPoints.size-4].y).toInt() - (lastTouchPoints[lastTouchPoints.size-4].x - event.x).toInt())/3
+                }
                 Log.d("ingo", "moveSpeed " + moveSpeed)
                 if(abs(moveSpeed) > flingMinVelocity){
                     flingOn = true
@@ -510,7 +515,6 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         clickProcessed = false
         quickSwipeEntered = false
         hasMoved = false
-        longPressTriggered = false
         flingValueAccumulated = 0f
         lastTouchPoints.clear()
     }
@@ -527,16 +531,15 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         detectSizeDivider = 10.0
         detectSize = if(overrideDetectSize != null) overrideDetectSize!!.toInt() else 50
         quickSwipeAngles.clear()
-        polja_points.clear()
         drawn_apps.clear()
         shortcuts_rects.clear()
         highestIconAngleDrawn = 0.0
         val inner_radius2 = (if(overrideDistance != null) overrideDistance!! else 0.87f)
         canvas.apply {
             // draw inner button
-            var xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
-            var yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
-            var draw_pointF = PointF( ((size_width+arcPositionOffset+xx)), ((size_height+yy)) )
+            val xx = (sin(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
+            val yy = (cos(Math.PI*5f/4f) * radius*inner_radius2/2.5f).toFloat()
+            val draw_pointF = PointF( (if(leftOrRight) (size_width+xx) else -xx), ((size_height+yy)) )
             /*val rect = Rect(
                 (draw_pointF.x - detectSize).toInt(),
                 (draw_pointF.y - detectSize).toInt(),
@@ -545,8 +548,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             )*/
             drawCircle(draw_pointF.x, draw_pointF.y, radius*inner_radius2/6f, circle_paint)
 
-            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
-            drawable?.setTint(Color.BLACK)
+            val drawable: Drawable? = AppCompatResources.getDrawable(context, if(inFolder) R.drawable.ic_baseline_arrow_back_24 else if(onlyfavorites) R.drawable.star_fill else R.drawable.star_empty)
+            drawable?.setTint(if(!color_on_primary) Color.BLACK else Color.WHITE)
             val bitmap: Bitmap? = drawable?.toBitmap()
             if (bitmap != null) {
                 drawBitmap(
@@ -574,14 +577,13 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             //Log.d("ingo", "racunamo " + (app_list.size/2)*step_size + ", $offset, $moveDistancedAccumulated")
 
             var counter = 0
-            var offsetModulated = offset%step_size
-            var offsetDivided = offset/step_size
+            val offsetModulated = offset%step_size
+            val offsetDivided = offset/step_size
 
             val offset2 = offset+(step_size/2f).toFloat()
             val offsetDivided2 = offset2/step_size
             val offsetModulated2 = offset2%step_size
 
-            last_abc = '0'
             while(currentStepValue.compareTo(Math.PI) >= 0 && currentStepValue.compareTo(Math.PI*(3f/2f)) < 0) {
                 var drawn = false
                 currentStepValue += step_size
@@ -604,24 +606,27 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             }
 
             val lineRadius = radius*1.15f
-            val centerX = size_width + arcPositionOffset
-            val rectf = RectF(centerX-lineRadius, size_height-lineRadius, centerX+lineRadius, size_height+lineRadius)
+            val rectf = RectF(if(leftOrRight) size_width-lineRadius else -lineRadius, size_height-lineRadius, if(leftOrRight) size_width+lineRadius else lineRadius, size_height+lineRadius)
             drawn_apps.sortBy { it.startTrig }
             if(drawn_apps.size == 0) return
 
-            val appsGroupedByLetter = app_list.filter { it.label.isNotEmpty() }.distinctBy { it.label[0].uppercaseChar() }
-            if (appsGroupedByLetter.isEmpty()) return
+            val appsGroupedByLetter = app_list.distinctBy { getFirstLetterOfApp(it) }
             val divider = 90f/appsGroupedByLetter.size
             val drawnAppsCountByLetter = drawn_apps.groupingBy { it.letter.uppercaseChar() }.eachCount()
             for(i in appsGroupedByLetter.indices){
                 quickSwipeAngles.add(Math.toRadians((divider*i).toDouble()).toFloat())
-                val letterChar = appsGroupedByLetter[i].label[0].uppercaseChar()
-                val countForLetter = drawnAppsCountByLetter[letterChar] ?: 0
-                empty_circle_paint.strokeWidth = border_width*(countForLetter.toFloat()/drawn_apps.size.toFloat())
-                drawArc(rectf,
-                    (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
+                //val first_drawn_app = drawn_apps.first().letter.uppercaseChar() == appsGroupedByLetter[i].label[0].uppercaseChar()
+                empty_circle_paint.strokeWidth = border_width + border_width*4*(drawn_apps.filter { it.letter.uppercaseChar() == getFirstLetterOfApp(appsGroupedByLetter[i]) }.size.toFloat()/drawn_apps.size.toFloat())
+                if(leftOrRight){
+                    drawArc(rectf,
+                        (-90-divider*i), -divider/1.2f, false, empty_circle_paint)
+                } else {
+                    drawArc(rectf,
+                        (-90+divider*i), divider/1.2f, false, empty_circle_paint)
+                }
+
                 val point = myDraw(Math.toRadians(180+divider*i+divider/3.0), radius*1.3f)
-                canvas.drawText(letterChar.toString(), point.x, point.y+text_size/2, text_paint)
+                canvas.drawText(getFirstLetterOfApp(appsGroupedByLetter[i]).toString(), point.x, point.y+text_size/2, text_paint)
             }
 
             for(queued_text in queued_texts){
@@ -673,70 +678,121 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     fun drawApp2(index: Int, triang: Double, radiusScale: Float, canvas: Canvas){
         //Log.d("ingo", "aplikacija " + app_list[index].label + " " + index)
-        bitmap = icons[app_list[index].packageName]?.toBitmap()
+
         //Log.d("ingo", "crtam " + Gson().toJson(bitmap))
 
         if(triang > highestIconAngleDrawn) highestIconAngleDrawn = triang
 
         var xx = (sin(triang) * radius*radiusScale).toFloat()
         var yy = (cos(triang) * radius*radiusScale).toFloat()
-        var draw_pointF = PointF( ((size_width+arcPositionOffset+xx)), ((size_height+yy)) )
+        var draw_pointF = PointF( (if(leftOrRight) (size_width+xx) else -xx), ((size_height+yy).toFloat()) )
         val rect = Rect(
             (draw_pointF.x - detectSize).toInt(),
             (draw_pointF.y - detectSize).toInt(),
             (draw_pointF.x + detectSize).toInt(),
             (draw_pointF.y + detectSize).toInt()
         )
-        drawn_apps.add(DrawnApp(triang, app_list[index].label[0], index, rect))
+        drawn_apps.add(DrawnApp(triang, getFirstLetterOfApp(app_list[index]), index, rect))
 
-        if(smaller_text_size != 0f){
-            queued_texts.add(QueuedText(app_list[index].label, draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
+        if(smaller_text_size != 0f && show_app_names){
+            queued_texts.add(QueuedText(getNameOfApp(app_list[index]), draw_pointF.x, draw_pointF.y+detectSize+smaller_text_size))
         }
-        if(app_list[index].hasShortcuts) {
+        if(app_list[index].folderName == null && app_list[index].apps.first().hasShortcuts) {
             canvas.drawCircle(
                 rect.right.toFloat(),
                 rect.bottom.toFloat(), detectSize / 8f, shortcut_indicator_paint
             )
         }
-        if(app_list[index].favorite) {
+        if((app_list[index].folderName == null && app_list[index].apps.first().favorite) || (app_list[index].folderName != null && app_list[index].favorite == true)) {
             canvas.drawCircle(
                 rect.left.toFloat(),
                 rect.bottom.toFloat(), detectSize / 8f, favorite_indicator_paint
             )
         }
-        if(bitmap != null && draw_icons) {
-            canvas.drawBitmap(
-                bitmap!!, null, rect, null
-            )
-        } else {
-            Log.d("ingo", "boja za ${app_list[index].label} je ${app_list[index].color}")
-            try {
-                //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
-                if (app_list[index].color != ""){
-                    val boja = Color.valueOf(app_list[index].color.toInt())
-                    Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
-                    no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
-                    Log.d("ingo", "boja je ${no_icon_paint.color}")
-                } else {
-                    no_icon_paint.color = Color.parseColor("#55000000")
-                    Log.d("ingo", "boja! je ${no_icon_paint.color}")
-                }
-            } catch (e: NumberFormatException ){
-                no_icon_paint.color = Color.parseColor("#55000000")
-                Log.d("ingo", "boja nemoguće za dešifrirati1")
-            } catch (e: IllegalArgumentException ){
-                no_icon_paint.color = Color.parseColor("#55000000")
-                Log.d("ingo", "boja nemoguće za dešifrirati2")
-            }
+        if(app_list[index].folderName != null)
+        {
+            no_icon_paint.color = Color.parseColor("#55FFFFFF")
             canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
+            for(i in 0..1){
+                for(j in 0..1){
+                    //Log.d("ingo", "i: $i j: $j")
+                    if(i*2 + j >= app_list[index].apps.size) break
+                    bitmap = icons[app_list[index].apps[i*2+j].packageName]?.toBitmap()
+                    if(bitmap != null) {
+                        canvas.drawBitmap(
+                            bitmap!!, null, Rect(
+                                (draw_pointF.x - detectSize + detectSize * j).toInt(),
+                                (draw_pointF.y - detectSize + detectSize * i).toInt(),
+                                (draw_pointF.x + detectSize * j).toInt(),
+                                (draw_pointF.y + detectSize * i).toInt()
+                            ), null
+                        )
+                    } else {
+                        val boja = app_list[index].apps[i*2+j].color
+                        Log.d("ingo", "boja za ${app_list[index].apps.first().label} je $boja")
+                        try {
+                            //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
+                            if (boja != ""){
+                                val boja = Color.valueOf(boja.toInt())
+                                Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                                no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
+                                //Log.d("ingo", "boja je ${no_icon_paint.color}")
+                            } else {
+                                no_icon_paint.color = Color.parseColor("#55000000")
+                                //Log.d("ingo", "boja! je ${no_icon_paint.color}")
+                            }
+                        } catch (e: NumberFormatException ){
+                            no_icon_paint.color = Color.parseColor("#55000000")
+                            //Log.d("ingo", "boja nemoguće za dešifrirati1")
+                        } catch (e: IllegalArgumentException ){
+                            no_icon_paint.color = Color.parseColor("#55000000")
+                            //Log.d("ingo", "boja nemoguće za dešifrirati2")
+                        }
+                        val rec = Rect(
+                            (draw_pointF.x - detectSize + detectSize * j).toInt(),
+                            (draw_pointF.y - detectSize + detectSize * i).toInt(),
+                            (draw_pointF.x + detectSize * j).toInt(),
+                            (draw_pointF.y + detectSize * i).toInt()
+                        )
+                        canvas.drawCircle(rec.exactCenterX(), rec.exactCenterY(), detectSize/2f, no_icon_paint)
+                    }
+                }
+            }
+        } else {
+            bitmap = if(app_list[index].folderName == null) icons[app_list[index].apps.first().packageName]?.toBitmap() else null
+            if(bitmap != null && draw_icons) {
+                canvas.drawBitmap(
+                    bitmap!!, null, rect, null
+                )
+            } else {
+                Log.d("ingo", "boja za ${app_list[index].apps.first().label} je ${app_list[index].apps.first().color}")
+                try {
+                    //val transcolor = colorToHex(Color.valueOf(app_list[index].color.toInt())) + transparenthex
+                    if (app_list[index].apps.first().color != ""){
+                        val boja = Color.valueOf(app_list[index].apps.first().color.toInt())
+                        //Log.d("ingo", "transparent " + boja + " " + "#FF" + colorToHex(boja))
+                        no_icon_paint.color = Color.parseColor("#FF" + colorToHex(boja))
+                        //Log.d("ingo", "boja je ${no_icon_paint.color}")
+                    } else {
+                        no_icon_paint.color = Color.parseColor("#55000000")
+                        //Log.d("ingo", "boja! je ${no_icon_paint.color}")
+                    }
+                } catch (e: NumberFormatException ){
+                    no_icon_paint.color = Color.parseColor("#55000000")
+                    //Log.d("ingo", "boja nemoguće za dešifrirati1")
+                } catch (e: IllegalArgumentException ){
+                    no_icon_paint.color = Color.parseColor("#55000000")
+                    //Log.d("ingo", "boja nemoguće za dešifrirati2")
+                }
+                canvas.drawCircle(draw_pointF.x, draw_pointF.y, detectSize.toFloat(), no_icon_paint)
+            }
         }
-
     }
 
     fun myDraw(triang: Double, distance: Float): PointF{
         val xxx = (sin(triang) * distance).toFloat()
         val yyy = (cos(triang) * distance).toFloat()
-        return PointF( ((size_width+arcPositionOffset+xxx)), ((size_height+yyy)) )
+        return PointF( (if(leftOrRight) (size_width+xxx) else -xxx), ((size_height+yyy).toFloat()) )
     }
 }
 
@@ -745,4 +801,10 @@ class DrawnApp(startTrig: Double, letter: Char, app_index: Int, rect: Rect){
     var letter: Char = letter
     var app_index: Int = app_index
     var rect: Rect = rect
+}
+
+class EncapsulatedAppInfoWithFolder(apps: List<AppInfo>, folderName: String?, favorite: Boolean?){
+    var apps: List<AppInfo> = apps
+    var folderName: String? = folderName
+    var favorite: Boolean? = favorite
 }

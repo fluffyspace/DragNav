@@ -9,4 +9,4 @@ data class MessageEvent(
     val app: AppInfo
 )
 
-enum class MessageEventType{ DRAG_N_DROP, LAUNCH_APP, FAVORITE }
+enum class MessageEventType{ DRAG_N_DROP, LAUNCH_APP, FAVORITE, LONG_HOLD }

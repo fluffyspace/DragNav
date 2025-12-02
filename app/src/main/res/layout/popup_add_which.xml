@@ -27,7 +27,7 @@
         android:orientation="horizontal"
         android:layout_gravity="center"
         android:padding="10dp"
-        android:weightSum="3">
+        android:weightSum="2">
         <LinearLayout
             android:id="@+id/new_folder"
             android:layout_width="0dp"

@@ -10,6 +10,21 @@
         android:icon="@drawable/baseline_restart_alt_24"/>
 
     <Preference
+        app:key="to_backup"
+        app:title="Make backup"
+        android:icon="@drawable/baseline_backup_24"/>
+
+    <Preference
+        app:key="from_backup"
+        app:title="Restore backup"
+        android:icon="@drawable/baseline_cloud_download_24"/>
+
+    <!--<Preference
+        app:key="renew_instance"
+        app:title="Renew instance"
+        android:icon="@drawable/baseline_restart_alt_24"/>-->
+
+    <Preference
         app:key="drop_database"
         app:title="@string/drop_database"
         android:icon="@drawable/baseline_delete_forever_24"/>
