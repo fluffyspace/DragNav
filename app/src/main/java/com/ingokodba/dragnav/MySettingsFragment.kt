@@ -80,7 +80,15 @@ class MySettingsFragment : PreferenceFragmentCompat() {
         uiDesign?.summary = uiDesignValuesHumanReadable[if (uiDesignValueIndex > 0) uiDesignValueIndex else 0]
         uiDesign?.setValueIndex(uiDesignValueIndex)
         uiDesign?.setOnPreferenceChangeListener { preference, newValue ->
-            uiDesign.summary = uiDesignValuesHumanReadable[uiDesignValues.indexOfFirst{it == newValue}]
+            val newValueIndex = uiDesignValues.indexOfFirst{it == newValue}
+            // Validate index to prevent IndexOutOfBoundsException
+            val safeIndex = if (newValueIndex >= 0 && newValueIndex < uiDesignValuesHumanReadable.size) {
+                newValueIndex
+            } else {
+                // Fallback to current index if new value not found
+                uiDesignValueIndex.coerceIn(0, uiDesignValuesHumanReadable.size - 1)
+            }
+            uiDesign.summary = uiDesignValuesHumanReadable[safeIndex]
             showRestartDialog()
             return@setOnPreferenceChangeListener true
         }

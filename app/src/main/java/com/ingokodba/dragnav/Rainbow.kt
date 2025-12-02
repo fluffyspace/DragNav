@@ -134,7 +134,9 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
             finishFling()
             return
         }
-        flingValueAccumulated += if(leftOrRight) flingValue else -flingValue
+        // moveSpeed is already directionally adjusted for left-handed layouts on line 493,
+        // so flingValue already has the correct sign - don't negate it again
+        flingValueAccumulated += flingValue
         moveAction(flingValueAccumulated.toInt())
     }
 

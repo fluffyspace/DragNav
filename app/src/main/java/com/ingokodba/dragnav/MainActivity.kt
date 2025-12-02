@@ -1135,6 +1135,21 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         //super.onBackPressed()
     }
 
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (keyCode == android.view.KeyEvent.KEYCODE_HOME) {
+            // Home button: toggle between main view and list of apps (opposite of back button)
+            if(currentLayout == Layouts.LAYOUT_MAIN){
+                // On main view, switch to list of apps
+                showLayout(Layouts.LAYOUT_ACTIVITIES)
+            } else if(currentLayout == Layouts.LAYOUT_ACTIVITIES){
+                // On list of apps, switch to main view
+                showLayout(Layouts.LAYOUT_MAIN)
+            }
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, showPickColor: Boolean, callback: (String) -> Unit){
         gcolor = Color.GRAY
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
