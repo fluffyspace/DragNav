@@ -198,17 +198,19 @@ class RainbowPathView @JvmOverloads constructor(
             allAppsScrollOffset = config.appSpacing
             favoritesScrollOffset = config.appSpacing
         }
+        
+        // Initialize folder scroll offset if not set
         if (folderScrollOffset == 0f) {
             folderScrollOffset = config.appSpacing
         }
         
         // Set current scroll offset based on state
-        // Only update if we're not in a folder (to preserve resetFolderScroll() value)
-        // or if folderScrollOffset hasn't been set yet
         if (inFolder) {
-            // If in folder, use folderScrollOffset (which should have been set by resetFolderScroll)
+            // When in folder, use folderScrollOffset (which should have been set by resetFolderScroll when entering)
+            // Don't override it - just use the current value
             scrollOffset = folderScrollOffset
         } else {
+            // Normal view - use saved scroll positions
             scrollOffset = if (onlyFavorites) favoritesScrollOffset else allAppsScrollOffset
         }
         
@@ -251,10 +253,13 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     private fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
-        val filtered = if (onlyFavorites) {
+        // When in folder, always show all apps (ignore onlyFavorites filter)
+        val filtered = if (inFolder) {
+            appList
+        } else if (onlyFavorites) {
             appList.filter { 
                 if (it.folderName == null) {
-                    it.apps.first().favorite
+                    it.apps.firstOrNull()?.favorite == true
                 } else {
                     it.favorite == true
                 }
@@ -266,10 +271,20 @@ class RainbowPathView @JvmOverloads constructor(
         // Sort based on config
         return when (config.appSortOrder) {
             AppSortOrder.ASCENDING -> filtered.sortedBy { 
-                if (it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() 
+                val name = if (it.folderName == null) {
+                    it.apps.firstOrNull()?.label ?: ""
+                } else {
+                    it.folderName ?: ""
+                }
+                name.lowercase()
             }
             AppSortOrder.DESCENDING -> filtered.sortedByDescending { 
-                if (it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() 
+                val name = if (it.folderName == null) {
+                    it.apps.firstOrNull()?.label ?: ""
+                } else {
+                    it.folderName ?: ""
+                }
+                name.lowercase()
             }
         }
     }
