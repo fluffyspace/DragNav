@@ -290,18 +290,47 @@ class RainbowPathView @JvmOverloads constructor(
     }
     
     private fun getFirstLetterOfApp(thing: EncapsulatedAppInfoWithFolder): Char {
-        return if (thing.folderName != null) {
-            thing.folderName!!.first().uppercaseChar()
-        } else {
-            thing.apps.first().label.first().uppercaseChar()
+        val name: String = try {
+            if (thing.folderName != null && thing.folderName!!.isNotEmpty()) {
+                thing.folderName!!
+            } else if (thing.apps.isNotEmpty()) {
+                try {
+                    val firstApp = thing.apps.first()
+                    val label = firstApp.label
+                    (label as? String)?.takeIf { it.isNotEmpty() } ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
+        return try {
+            if(name.isNotEmpty()) name.first().uppercaseChar() else '?'
+        } catch (e: Exception) {
+            '?'
         }
     }
     
     private fun getNameOfApp(thing: EncapsulatedAppInfoWithFolder): String {
-        return if (thing.folderName != null) {
-            thing.folderName!!
-        } else {
-            thing.apps.first().label
+        return try {
+            if (thing.folderName != null && thing.folderName!!.isNotEmpty()) {
+                thing.folderName!!
+            } else if (thing.apps.isNotEmpty()) {
+                try {
+                    val firstApp = thing.apps.first()
+                    val label = firstApp.label
+                    (label as? String)?.takeIf { it.isNotEmpty() } ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
         }
     }
 

@@ -67,7 +67,7 @@ class ViewModel : ViewModel() {
     fun updateRainbowAll(){
         val filtered = appsList.value!!.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
             addAll(rainbowMape.value!!.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)})
-            sortBy { if(it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() }
+            sortBy { if(it.folderName == null && it.apps.isNotEmpty()) it.apps.first().label.lowercase() else it.folderName?.lowercase() ?: "" }
         }
         rainbowAll = filtered
     }
@@ -75,7 +75,7 @@ class ViewModel : ViewModel() {
     fun updateRainbowFiltered(onlyfavorites: Boolean){
         val filtered = curateAppsInFolders(appsList.value!!).filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
             addAll(rainbowMape.value!!.filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)})
-            sortBy { if(it.folderName == null) it.apps.first().label.lowercase() else it.folderName!!.lowercase() }
+            sortBy { if(it.folderName == null && it.apps.isNotEmpty()) it.apps.first().label.lowercase() else it.folderName?.lowercase() ?: "" }
         }
         rainbowFiltered = filtered
         Log.d("ingo22", Gson().toJson(filtered.map{sveit -> sveit.apps.map{appit -> appit.label}}))

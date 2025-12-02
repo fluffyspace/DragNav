@@ -178,11 +178,48 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     fun getFirstLetterOfApp(app: EncapsulatedAppInfoWithFolder): Char{
-        return if(app.folderName != null) app.folderName!!.first().uppercaseChar() else app.apps.first().label.first().uppercaseChar()
+        val name: String = try {
+            if(app.folderName != null && app.folderName!!.isNotEmpty()) {
+                app.folderName!!
+            } else if(app.apps.isNotEmpty()) {
+                try {
+                    val firstApp = app.apps.first()
+                    val label = firstApp.label
+                    (label as? String)?.takeIf { it.isNotEmpty() } ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
+        return try {
+            if(name.isNotEmpty()) name.first().uppercaseChar() else '?'
+        } catch (e: Exception) {
+            '?'
+        }
     }
 
     fun getNameOfApp(app: EncapsulatedAppInfoWithFolder): String{
-        return if(app.folderName != null) app.folderName!! else app.apps.first().label
+        return try {
+            if(app.folderName != null && app.folderName!!.isNotEmpty()) {
+                app.folderName!!
+            } else if(app.apps.isNotEmpty()) {
+                try {
+                    val firstApp = app.apps.first()
+                    val label = firstApp.label
+                    (label as? String)?.takeIf { it.isNotEmpty() } ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     fun setAppInfoList(list:List<EncapsulatedAppInfoWithFolder>){
