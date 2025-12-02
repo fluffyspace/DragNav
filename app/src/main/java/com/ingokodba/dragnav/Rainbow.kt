@@ -73,6 +73,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     var quickSwipeAngles: MutableList<Float> = mutableListOf()
     var quickSwipeEntered: Boolean = false
+    var currentQuickSwipeLetter: Char? = null
 
     var highestIconAngleDrawn: Double = 0.0
 
@@ -371,6 +372,9 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         val firstByThatLetter = app_list.firstOrNull{getFirstLetterOfApp(it) == getFirstLetterOfApp(app_list.distinctBy { getFirstLetterOfApp(it) }[click])}
             ?: return
 
+        // Update current letter for quick swipe indicator
+        currentQuickSwipeLetter = getFirstLetterOfApp(firstByThatLetter).uppercaseChar()
+
         Log.d("ingo", "angle $angle ${Gson().toJson(firstByThatLetter)} $click $quickSwipeAngles")
         // saznati s kulko moramo pomnožiti
         val futureFoveDistancedAccumulated = -(app_list.indexOf(firstByThatLetter)*step_size*250).toInt()
@@ -408,10 +412,8 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun startOpenShortcutCountdown(){
         if(isTouchOnApp()) {
             mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 2)
-        } else {
-            // Start countdown for sliders toggle on empty area
-            mEventListener?.onEventOccurred(EventTypes.START_COUNTDOWN, 3)
         }
+        // Don't trigger sliders toggle from Rainbow view - only top_touch_area should do that
     }
 
     fun moveAction(change: Int){
@@ -516,6 +518,7 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
         clickIgnored = false
         clickProcessed = false
         quickSwipeEntered = false
+        currentQuickSwipeLetter = null
         hasMoved = false
         flingValueAccumulated = 0f
         lastTouchPoints.clear()

@@ -8,12 +8,33 @@
         android:id="@+id/relativelayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+        <View
+            android:id="@+id/top_touch_area"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:background="@android:color/transparent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"/>
+        <TextView
+            android:id="@+id/quick_swipe_letter_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="72sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:visibility="gone"
+            android:elevation="20dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:layout_marginTop="20dp"/>
         <com.ingokodba.dragnav.Rainbow
             android:id="@+id/circleview"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sliders"/>
+            app:layout_constraintTop_toBottomOf="@id/top_touch_area"/>
         <ImageButton
             android:id="@+id/sliders"
             android:layout_width="40dp"
@@ -23,7 +44,9 @@
             android:src="@drawable/ic_baseline_close_50"
             android:background="@color/white_semi_transparent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintRight_toRightOf="parent"/>
+            app:layout_constraintRight_toRightOf="parent"
+            android:visibility="gone"
+            android:elevation="10dp"/>
         <com.google.android.material.slider.Slider
             android:id="@+id/detectSize"
             android:layout_width="match_parent"

@@ -30,6 +30,7 @@ import com.ingokodba.dragnav.modeli.RainbowMapa
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -47,8 +48,10 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
     lateinit var global_view:View
     var countdown: Job? = null
     var fling: Job? = null
+    var quickSwipeMonitor: Job? = null
     var app_index: Int? = null
     var gcolor: Int? = null
+    lateinit var quickSwipeLetterIndicator: TextView
 
     var globalThing: EncapsulatedAppInfoWithFolder? = null
 
@@ -75,6 +78,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         circleView = view.findViewById(R.id.circleview)
         circleView.leftOrRight = leftOrRight
         relativeLayout = view.findViewById(R.id.relativelayout)
+        quickSwipeLetterIndicator = view.findViewById(R.id.quick_swipe_letter_indicator)
 
         Log.d(
             "ingo", "detectSize e " +
@@ -146,12 +150,47 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             toggleSliders()
         }
 
+        // Set up top touch area to detect long press for opening sliders
+        val topTouchArea = view.findViewById<View>(R.id.top_touch_area)
+        topTouchArea.isClickable = true
+        var topTouchStartX = 0f
+        var topTouchStartY = 0f
+        topTouchArea.setOnTouchListener { v, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    if (!sliders) {
+                        topTouchStartX = event.x
+                        topTouchStartY = event.y
+                        startCountdownForSliders()
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    // Stop countdown if user moves finger significantly
+                    if (!sliders) {
+                        val moveDistance = kotlin.math.abs(event.x - topTouchStartX) + kotlin.math.abs(event.y - topTouchStartY)
+                        if (moveDistance > 50) { // 50dp threshold
+                            stopCountdown()
+                        }
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (!sliders) {
+                        stopCountdown()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+
         circleView.setEventListener(object :
             IMyEventListener {
             override fun onEventOccurred(app:EventTypes, counter: Int) {
                 when(app){
                     EventTypes.OPEN_APP->touched(counter)
-                    EventTypes.START_COUNTDOWN->startCountdown()
+                    EventTypes.START_COUNTDOWN->startCountdown(counter)
                     EventTypes.STOP_COUNTDOWN->stopCountdown()
                     //EventTypes.OPEN_SHORTCUT->openShortcut(counter)
                     EventTypes.TOGGLE_FAVORITES->toggleFavorites()
@@ -170,8 +209,27 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
             circleView.icons = viewModel.icons.value!!
             Log.d("ingo", "icons who??")
         }
+        
+        // Start monitoring quick swipe state for letter indicator
+        startQuickSwipeLetterMonitor()
+        
         goToHome()
         Log.d("ingo", "mainfragment created")
+    }
+    
+    fun startQuickSwipeLetterMonitor(){
+        quickSwipeMonitor?.cancel()
+        quickSwipeMonitor = lifecycleScope.launch(Dispatchers.Main) {
+            while(isActive) {
+                delay(16) // ~60fps update rate
+                if(circleView.quickSwipeEntered && circleView.currentQuickSwipeLetter != null) {
+                    quickSwipeLetterIndicator.text = circleView.currentQuickSwipeLetter.toString()
+                    quickSwipeLetterIndicator.visibility = View.VISIBLE
+                } else {
+                    quickSwipeLetterIndicator.visibility = View.GONE
+                }
+            }
+        }
     }
 
     fun stopCountdown(){
@@ -201,10 +259,18 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         }
     }
 
-    fun startCountdown(){
+    fun startCountdown(counter: Int = 2){
         countdown = lifecycleScope.launch(Dispatchers.IO) {
             delay(250)
             withContext(Dispatchers.Main){
+                if (counter == 3) {
+                    // Toggle sliders on long press in empty area
+                    if (!sliders) {
+                        toggleSliders()
+                        view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    }
+                    return@withContext
+                }
                 app_index = circleView.getAppIndexImIn()
                 /*if(onlyfavorites){
 
@@ -233,6 +299,18 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
                         mactivity.showDialogWithActions(actions, this@MainFragmentRainbow, this@MainFragmentRainbow.circleView)
                     }
                     circleView.clickIgnored = true
+                }
+            }
+        }
+    }
+
+    fun startCountdownForSliders(){
+        countdown = lifecycleScope.launch(Dispatchers.IO) {
+            delay(250)
+            withContext(Dispatchers.Main){
+                if (!sliders) {
+                    toggleSliders()
+                    view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 }
             }
         }
@@ -382,6 +460,9 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         global_view.findViewById<TextView>(R.id.label_arcRotation).visibility = visibility
         global_view.findViewById<Slider>(R.id.arcRotation).visibility = visibility
         global_view.findViewById<ImageButton>(R.id.sliders).visibility = visibility
+        global_view.findViewById<CheckBox>(R.id.onlyfavoriteapps).visibility = visibility
+        // Make top touch area non-clickable when sliders are open
+        global_view.findViewById<View>(R.id.top_touch_area).isClickable = !sliders
     }
 
     private fun changeSettings(key: String, value: Any){
@@ -546,6 +627,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         super.onPause()
         countdown?.cancel()
         fling?.cancel()
+        quickSwipeMonitor?.cancel()
     }
     override fun goToHome(){
         Log.d("ingo", "pocetna " + viewModel.pocetnaId)
