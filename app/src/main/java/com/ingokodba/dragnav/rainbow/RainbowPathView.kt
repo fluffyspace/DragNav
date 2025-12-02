@@ -76,6 +76,7 @@ class RainbowPathView @JvmOverloads constructor(
     private var scrollVelocity: Float = 0f
     private var allAppsScrollOffset: Float = 0f
     private var favoritesScrollOffset: Float = 0f
+    private var folderScrollOffset: Float = 0f
     private var lastTouchY: Float = 0f
     private var lastTouchX: Float = 0f
     private var touchStartX: Float = 0f
@@ -168,6 +169,7 @@ class RainbowPathView @JvmOverloads constructor(
         fun onAppLongPressed(appIndex: Int)
         fun onShortcutClicked(shortcutIndex: Int)
         fun onFavoritesToggled()
+        fun onBackButtonPressed()
         fun onFlingStarted()
         fun onFlingEnded()
         fun onLongPressStart(appIndex: Int)
@@ -195,10 +197,57 @@ class RainbowPathView @JvmOverloads constructor(
         if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f) {
             allAppsScrollOffset = config.appSpacing
             favoritesScrollOffset = config.appSpacing
+        }
+        if (folderScrollOffset == 0f) {
+            folderScrollOffset = config.appSpacing
+        }
+        
+        // Set current scroll offset based on state
+        // Only update if we're not in a folder (to preserve resetFolderScroll() value)
+        // or if folderScrollOffset hasn't been set yet
+        if (inFolder) {
+            // If in folder, use folderScrollOffset (which should have been set by resetFolderScroll)
+            scrollOffset = folderScrollOffset
+        } else {
             scrollOffset = if (onlyFavorites) favoritesScrollOffset else allAppsScrollOffset
         }
+        
+        Log.d("RainbowPath", "setApps: apps.size=${apps.size}, inFolder=$inFolder, scrollOffset=$scrollOffset, folderScrollOffset=$folderScrollOffset, allAppsScrollOffset=$allAppsScrollOffset, favoritesScrollOffset=$favoritesScrollOffset")
 
         invalidate()
+    }
+    
+    fun saveScrollPosition() {
+        // Save current scroll position to parent view offset
+        // This is called BEFORE entering folder, so we always save to parent view
+        if (onlyFavorites) {
+            favoritesScrollOffset = scrollOffset
+        } else {
+            allAppsScrollOffset = scrollOffset
+        }
+    }
+    
+    fun restoreScrollPosition() {
+        // Restore scroll position based on current state (after exiting folder)
+        scrollOffset = if (onlyFavorites) {
+            favoritesScrollOffset
+        } else {
+            allAppsScrollOffset
+        }
+    }
+    
+    fun resetFolderScroll() {
+        // Reset folder scroll to show first app at the start
+        folderScrollOffset = config.appSpacing
+        scrollOffset = folderScrollOffset
+        invalidate()
+    }
+    
+    private fun updateFolderScrollPosition() {
+        // Update folder scroll offset when scrolling inside folder
+        if (inFolder) {
+            folderScrollOffset = scrollOffset
+        }
     }
 
     private fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
@@ -308,6 +357,8 @@ class RainbowPathView @JvmOverloads constructor(
             } else {
                 // Normal fling
                 scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
+                // Update folder scroll position if in folder
+                updateFolderScrollPosition()
             }
         }
 
@@ -654,13 +705,17 @@ class RainbowPathView @JvmOverloads constructor(
 
         canvas.drawCircle(centerX, centerY, buttonSize / 2, favButtonPaint)
 
-        // Draw star icon
-        val starDrawable = AppCompatResources.getDrawable(
-            context,
-            if (onlyFavorites) R.drawable.favorite_filled else R.drawable.favorite
-        )
-        starDrawable?.let {
-            it.setTint(if (onlyFavorites) Color.RED else Color.WHITE)
+        // Draw back arrow icon when in folder, otherwise draw star icon
+        val iconDrawable = if (inFolder) {
+            AppCompatResources.getDrawable(context, R.drawable.ic_baseline_arrow_back_24)
+        } else {
+            AppCompatResources.getDrawable(
+                context,
+                if (onlyFavorites) R.drawable.favorite_filled else R.drawable.favorite
+            )
+        }
+        iconDrawable?.let {
+            it.setTint(if (inFolder) Color.WHITE else if (onlyFavorites) Color.RED else Color.WHITE)
             val iconSize = buttonSize * 0.6f
             it.setBounds(
                 (centerX - iconSize / 2).toInt(),
@@ -864,7 +919,11 @@ class RainbowPathView @JvmOverloads constructor(
 
                         if (dist < buttonSize / 2) {
                             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            eventListener?.onFavoritesToggled()
+                            if (inFolder) {
+                                eventListener?.onBackButtonPressed()
+                            } else {
+                                eventListener?.onFavoritesToggled()
+                            }
                             return true
                         }
 
@@ -939,6 +998,9 @@ class RainbowPathView @JvmOverloads constructor(
 
     fun triggerLongPress() {
         // Called by fragment when long press countdown completes
+        // Don't trigger if we're in a folder (folders should open on click, not long press)
+        if (inFolder) return
+        
         touchedAppIndex?.let { appIndex ->
             if (!isDragging) {
                 longPressTriggered = true

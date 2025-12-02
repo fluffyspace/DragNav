@@ -43,6 +43,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     private var config: PathConfig = PathConfig()
     private var flingJob: Job? = null
     private var countdownJob: Job? = null
+    private var settingsCountdownJob: Job? = null
     private var currentAppIndex: Int? = null
     private var shortcuts: List<ShortcutInfo> = emptyList()
     private var globalThing: EncapsulatedAppInfoWithFolder? = null
@@ -105,6 +106,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
                 toggleFavorites()
             }
 
+            override fun onBackButtonPressed() {
+                onBackPressed()
+            }
+
             override fun onFlingStarted() {
                 startFlingAnimation()
             }
@@ -118,9 +123,33 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             }
         })
 
-        // Settings button
-        settingsButton.setOnClickListener {
-            showSettingsDialog()
+        // Set up top touch area to detect long press for opening settings
+        val topTouchArea = view.findViewById<View>(R.id.top_touch_area)
+        topTouchArea.isClickable = true
+        var topTouchStartX = 0f
+        var topTouchStartY = 0f
+        topTouchArea.setOnTouchListener { v, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    topTouchStartX = event.x
+                    topTouchStartY = event.y
+                    startCountdownForSettings()
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    // Stop countdown if user moves finger significantly
+                    val moveDistance = kotlin.math.abs(event.x - topTouchStartX) + kotlin.math.abs(event.y - topTouchStartY)
+                    if (moveDistance > 50) { // 50dp threshold
+                        stopCountdownForSettings()
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    stopCountdownForSettings()
+                    true
+                }
+                else -> false
+            }
         }
 
         // Load icons if available
@@ -237,20 +266,36 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
     
     private fun openFolder(appIndex: Int) {
+        // Cancel any pending long press countdown to prevent shortcuts menu from opening
+        countdownJob?.cancel()
+        
         val apps = getDisplayedApps()
         if (appIndex < 0 || appIndex >= apps.size) return
         
         val thing = apps[appIndex]
         if (thing.folderName == null) return
         
+        // Save current scroll position before entering folder (saves to allAppsScrollOffset or favoritesScrollOffset)
+        pathView.saveScrollPosition()
+        
         val folderApps = thing.apps
-        viewModel.setRainbowFilteredValues(
-            folderApps.map { 
-                EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) 
-            }.toMutableList()
-        )
+        Log.d("RainbowPath", "Opening folder with ${folderApps.size} apps: ${folderApps.map { it.label }}")
+        
+        // Set inFolder state FIRST before setting apps
         inFolder = true
         pathView.inFolder = true
+        
+        // Set folder apps in viewModel
+        val folderEncapsulated = folderApps.map { 
+            EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) 
+        }.toMutableList()
+        Log.d("RainbowPath", "Setting rainbowFiltered with ${folderEncapsulated.size} items")
+        viewModel.setRainbowFilteredValues(folderEncapsulated)
+        
+        // Reset folder scroll to show first app (this sets folderScrollOffset and scrollOffset)
+        pathView.resetFolderScroll()
+        
+        // Update apps - this will use the folder contents from viewModel.rainbowFiltered
         updateApps()
     }
 
@@ -260,6 +305,21 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             delay(250)
             pathView.triggerLongPress()
         }
+    }
+
+    private fun startCountdownForSettings() {
+        settingsCountdownJob?.cancel()
+        settingsCountdownJob = lifecycleScope.launch(Dispatchers.IO) {
+            delay(250)
+            withContext(Dispatchers.Main) {
+                showSettingsDialog()
+                view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            }
+        }
+    }
+
+    private fun stopCountdownForSettings() {
+        settingsCountdownJob?.cancel()
     }
 
     private fun showShortcuts(appIndex: Int) {
@@ -463,9 +523,15 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     private fun toggleFavorites() {
+        // Don't toggle if in folder
+        if (inFolder) return
+        
+        // Toggle favorites state (setter will handle saving/restoring scroll position)
         pathView.onlyFavorites = !pathView.onlyFavorites
         prefs.edit().putBoolean("only_favorites", pathView.onlyFavorites).apply()
-        pathView.invalidate()
+        
+        // Update apps list to show/hide favorites
+        updateApps()
     }
 
     private fun startFlingAnimation() {
@@ -502,12 +568,14 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         super.onPause()
         flingJob?.cancel()
         countdownJob?.cancel()
+        settingsCountdownJob?.cancel()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         flingJob?.cancel()
         countdownJob?.cancel()
+        settingsCountdownJob?.cancel()
     }
 
     override fun onBackPressed(): Boolean {
@@ -519,6 +587,11 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
     
     override fun goToHome() {
+        // Restore scroll position when exiting folder
+        if (inFolder) {
+            pathView.restoreScrollPosition()
+        }
+        
         inFolder = false
         pathView.inFolder = false
         updateApps()

@@ -669,115 +669,16 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         Log.d("HomeButtonTest", "onNewIntent called - currentLayout: $currentLayout, intent: $intent")
         setIntent(intent)
         
-        // When launcher receives a new intent (e.g., from home button press), toggle between layouts
-        // Skip if lastActivitiesShownTime is 0 (initial app launch)
-        if (lastActivitiesShownTime == 0L) {
-            Log.d("HomeButtonTest", "onNewIntent - Initial launch (lastActivitiesShownTime == 0), skipping toggle")
-        } else {
-            val timeSinceLastShown = System.currentTimeMillis() - lastActivitiesShownTime
-            val notRecentlyShown = timeSinceLastShown > TOGGLE_COOLDOWN_MS // Don't toggle again if we just toggled recently
-            
-            Log.d("HomeButtonTest", "onNewIntent - currentLayout: $currentLayout, notRecentlyShown: $notRecentlyShown")
-            
-            if (notRecentlyShown) {
-                if (currentLayout == Layouts.LAYOUT_MAIN) {
-                    val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
-                    Log.d("HomeButtonTest", "onNewIntent - Checking for dialogs: hasOpenDialogs=$hasOpenDialogs")
-                    if (!hasOpenDialogs) {
-                        Log.d("HomeButtonTest", "onNewIntent - Home button detected on LAYOUT_MAIN, opening LAYOUT_ACTIVITIES")
-                        lastActivitiesShownTime = System.currentTimeMillis()
-                        // Use post to avoid interfering with the intent handling
-                        window.decorView.post {
-                            showLayout(Layouts.LAYOUT_ACTIVITIES)
-                        }
-                    }
-                } else if (currentLayout == Layouts.LAYOUT_ACTIVITIES) {
-                    Log.d("HomeButtonTest", "onNewIntent - Home button detected on LAYOUT_ACTIVITIES, switching to LAYOUT_MAIN")
-                    lastActivitiesShownTime = System.currentTimeMillis()
-                    window.decorView.post {
-                        showLayout(Layouts.LAYOUT_MAIN)
-                    }
-                }
-            }
-        }
+        // Home button toggle disabled - keeping logging for debugging
+        Log.d("HomeButtonTest", "onNewIntent - Home button toggle disabled")
     }
 
     override fun onResume() {
         super.onResume()
         Log.d("HomeButtonTest", "onResume called - currentLayout: $currentLayout")
         
-        // Check if we just resumed after a pause (could be home button press) - toggle between layouts
-        if ((currentLayout == Layouts.LAYOUT_MAIN || currentLayout == Layouts.LAYOUT_ACTIVITIES) && lastPauseTime > 0) {
-            val timeSincePause = System.currentTimeMillis() - lastPauseTime
-            val timeSinceLastShown = System.currentTimeMillis() - lastActivitiesShownTime
-            val wasRecentPause = timeSincePause > 0 && timeSincePause < HOME_BUTTON_DETECTION_WINDOW_MS
-            val notRecentlyShown = timeSinceLastShown > TOGGLE_COOLDOWN_MS // Don't toggle again if we just toggled recently
-            
-            Log.d("HomeButtonTest", "onResume - timeSincePause: $timeSincePause, wasRecentPause: $wasRecentPause, notRecentlyShown: $notRecentlyShown, currentLayout: $currentLayout")
-            
-            if (wasRecentPause && notRecentlyShown) {
-                if (currentLayout == Layouts.LAYOUT_MAIN) {
-                    val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
-                    Log.d("HomeButtonTest", "onResume - Checking for dialogs: hasOpenDialogs=$hasOpenDialogs")
-                    if (!hasOpenDialogs) {
-                        Log.d("HomeButtonTest", "onResume - Home button detected on LAYOUT_MAIN, opening LAYOUT_ACTIVITIES")
-                        lastActivitiesShownTime = System.currentTimeMillis()
-                        // Use post to avoid interfering with the resume lifecycle
-                        window.decorView.post {
-                            showLayout(Layouts.LAYOUT_ACTIVITIES)
-                        }
-                    }
-                } else if (currentLayout == Layouts.LAYOUT_ACTIVITIES) {
-                    Log.d("HomeButtonTest", "onResume - Home button detected on LAYOUT_ACTIVITIES, switching to LAYOUT_MAIN")
-                    lastActivitiesShownTime = System.currentTimeMillis()
-                    window.decorView.post {
-                        showLayout(Layouts.LAYOUT_MAIN)
-                    }
-                }
-            }
-        } else if ((currentLayout == Layouts.LAYOUT_MAIN || currentLayout == Layouts.LAYOUT_ACTIVITIES) && lastPauseTime == 0L) {
-            // If we're on LAYOUT_MAIN or LAYOUT_ACTIVITIES and onResume is called without a pause,
-            // it might be that the activity was already visible (home button pressed while on launcher)
-            // Try to detect this by checking if it's been a while since we last toggled
-            // Skip if lastActivitiesShownTime is 0 (initial app launch)
-            if (lastActivitiesShownTime == 0L) {
-                Log.d("HomeButtonTest", "onResume - No pause detected, but this is initial launch (lastActivitiesShownTime == 0), skipping toggle")
-            } else {
-                val timeSinceLastShown = System.currentTimeMillis() - lastActivitiesShownTime
-                val notRecentlyShown = timeSinceLastShown > TOGGLE_COOLDOWN_MS // Cooldown to prevent rapid toggling
-                
-                Log.d("HomeButtonTest", "onResume - No pause detected, checking if should toggle. timeSinceLastShown: $timeSinceLastShown, notRecentlyShown: $notRecentlyShown, currentLayout: $currentLayout")
-                
-                // Only try this if we haven't toggled recently and window has focus
-                if (notRecentlyShown && hasWindowFocus()) {
-                    if (currentLayout == Layouts.LAYOUT_MAIN) {
-                        val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
-                        Log.d("HomeButtonTest", "onResume - No pause path - Checking for dialogs: hasOpenDialogs=$hasOpenDialogs")
-                        if (!hasOpenDialogs) {
-                            Log.d("HomeButtonTest", "onResume - No pause path - Possibly home button on launcher, opening LAYOUT_ACTIVITIES")
-                            lastActivitiesShownTime = System.currentTimeMillis()
-                            // Use post with a small delay to avoid interfering with the resume lifecycle
-                            window.decorView.postDelayed({
-                                // Double-check we're still on LAYOUT_MAIN and no dialogs opened
-                                if (currentLayout == Layouts.LAYOUT_MAIN && 
-                                    (shortcutPopup?.isShowing != true) && 
-                                    (colorPickerPopup?.isShowing != true)) {
-                                    showLayout(Layouts.LAYOUT_ACTIVITIES)
-                                }
-                            }, 100)
-                        }
-                    } else if (currentLayout == Layouts.LAYOUT_ACTIVITIES) {
-                        Log.d("HomeButtonTest", "onResume - No pause path - Possibly home button on LAYOUT_ACTIVITIES, switching to LAYOUT_MAIN")
-                        lastActivitiesShownTime = System.currentTimeMillis()
-                        window.decorView.postDelayed({
-                            if (currentLayout == Layouts.LAYOUT_ACTIVITIES) {
-                                showLayout(Layouts.LAYOUT_MAIN)
-                            }
-                        }, 100)
-                    }
-                }
-            }
-        }
+        // Home button toggle disabled - keeping logging for debugging
+        Log.d("HomeButtonTest", "onResume - Home button toggle disabled")
         
         // Reset pause time after checking
         lastPauseTime = 0
@@ -791,35 +692,8 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         super.onWindowFocusChanged(hasFocus)
         Log.d("HomeButtonTest", "onWindowFocusChanged - hasFocus: $hasFocus, currentLayout: $currentLayout")
         
-        if (hasFocus && (currentLayout == Layouts.LAYOUT_MAIN || currentLayout == Layouts.LAYOUT_ACTIVITIES)) {
-            val timeSinceFocusLost = System.currentTimeMillis() - lastWindowFocusLostTime
-            val timeSinceLastShown = System.currentTimeMillis() - lastActivitiesShownTime
-            val wasRecentFocusChange = timeSinceFocusLost > 0 && timeSinceFocusLost < HOME_BUTTON_DETECTION_WINDOW_MS
-            val notRecentlyShown = timeSinceLastShown > TOGGLE_COOLDOWN_MS // Don't toggle again if we just toggled recently
-            
-            Log.d("HomeButtonTest", "onWindowFocusChanged - timeSinceFocusLost: $timeSinceFocusLost, wasRecentFocusChange: $wasRecentFocusChange, notRecentlyShown: $notRecentlyShown, currentLayout: $currentLayout")
-            
-            if (wasRecentFocusChange && notRecentlyShown) {
-                if (currentLayout == Layouts.LAYOUT_MAIN) {
-                    val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
-                    Log.d("HomeButtonTest", "onWindowFocusChanged - Checking for dialogs: hasOpenDialogs=$hasOpenDialogs")
-                    if (!hasOpenDialogs) {
-                        Log.d("HomeButtonTest", "onWindowFocusChanged - Home button detected on LAYOUT_MAIN, opening LAYOUT_ACTIVITIES")
-                        lastActivitiesShownTime = System.currentTimeMillis()
-                        // Use post to avoid interfering with the focus change
-                        window.decorView.post {
-                            showLayout(Layouts.LAYOUT_ACTIVITIES)
-                        }
-                    }
-                } else if (currentLayout == Layouts.LAYOUT_ACTIVITIES) {
-                    Log.d("HomeButtonTest", "onWindowFocusChanged - Home button detected on LAYOUT_ACTIVITIES, switching to LAYOUT_MAIN")
-                    lastActivitiesShownTime = System.currentTimeMillis()
-                    window.decorView.post {
-                        showLayout(Layouts.LAYOUT_MAIN)
-                    }
-                }
-            }
-        } else if (!hasFocus) {
+        // Home button toggle disabled - keeping logging for debugging
+        if (!hasFocus) {
             lastWindowFocusLostTime = System.currentTimeMillis()
             Log.d("HomeButtonTest", "onWindowFocusChanged - Window lost focus, timestamp: $lastWindowFocusLostTime")
         }
