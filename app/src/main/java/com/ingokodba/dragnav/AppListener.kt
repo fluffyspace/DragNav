@@ -11,19 +11,29 @@ import com.google.gson.Gson
 class AppListener : BroadcastReceiver() {
     // broadcasts of application installs, uninstalls, updates
     override fun onReceive(context: Context, intent: Intent) {
-        // TODO Auto-generated method stub
-        if(intent.extras != null){
-            Log.v("ingokodba", "there is a broadcast " + intent.extras!!.keySet().map{it}.toString() + ", packageName: " + intent.data!!.schemeSpecificPart + " " + Gson().toJson(intent))
-            if(intent.extras!!.containsKey(Intent.ACTION_PACKAGE_ADDED) || intent.extras!!.containsKey("android.content.pm.extra.DATA_LOADER_TYPE")) {
-                Log.d("ingokodba", "loading app!")
-                MainActivity.getInstance()?.loadApp(intent.data!!.schemeSpecificPart)
+        val packageName = intent.data?.schemeSpecificPart ?: return
+
+        Log.v("ingokodba", "Received broadcast: action=${intent.action}, packageName=$packageName")
+
+        when (intent.action) {
+            Intent.ACTION_PACKAGE_ADDED, Intent.ACTION_PACKAGE_REPLACED -> {
+                // Don't reload app if it's just being updated (REPLACING flag is set)
+                if (intent.action == Intent.ACTION_PACKAGE_ADDED &&
+                    intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                    Log.d("ingokodba", "Package is being replaced, skipping initial add")
+                    return
+                }
+                Log.d("ingokodba", "Loading/updating app: $packageName")
+                MainActivity.getInstance()?.loadApp(packageName)
             }
-            if(intent.extras!!.containsKey(Intent.ACTION_PACKAGE_REMOVED) || intent.extras!!.containsKey(Intent.ACTION_PACKAGE_FULLY_REMOVED) || intent.extras!!.containsKey("android.intent.extra.REMOVED_FOR_ALL_USERS")) {
-                Log.d("ingokodba", "removing an app " + intent.data!!.schemeSpecificPart)
-                MainActivity.getInstance()?.appDeleted(intent.data!!.schemeSpecificPart)
-                /*Intent(context, RemoveAppService::class.java).apply {putExtra("packageName", intent.data!!.schemeSpecificPart)}.also { intent ->
-                    context.startForegroundService(intent)
-                }*/
+            Intent.ACTION_PACKAGE_REMOVED -> {
+                // Don't remove if it's being replaced (will be re-added)
+                if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                    Log.d("ingokodba", "Package is being replaced, skipping removal")
+                    return
+                }
+                Log.d("ingokodba", "Removing app: $packageName")
+                MainActivity.getInstance()?.appDeleted(packageName)
             }
         }
     }

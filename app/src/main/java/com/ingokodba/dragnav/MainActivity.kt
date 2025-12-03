@@ -153,6 +153,10 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     lateinit var actionsFragment:ActionsFragment
     lateinit var fragmentContainer: FragmentContainerView
 
+    private var appListener: AppListener? = null
+    private var launcherCallbacks: ModelLauncherCallbacks? = null
+    private lateinit var launcherApps: android.content.pm.LauncherApps
+
     fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
         radapter = ShortcutsAdapter(this, onShortcutClick)
@@ -359,13 +363,20 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             }
         }
 
-        val br: AppListener = AppListener()
+        // Register LauncherApps.Callback for modern app lifecycle events
+        launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
+        launcherCallbacks = ModelLauncherCallbacks()
+        launcherApps.registerCallback(launcherCallbacks)
+
+        // Legacy BroadcastReceiver (kept as fallback for older Android versions)
+        // Will be completely removed after testing confirms LauncherApps.Callback works
+        appListener = AppListener()
         val intentFilter = IntentFilter()
         intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED)
         intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED)
         intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED)
         intentFilter.addDataScheme("package")
-        registerReceiver(br, intentFilter)
+        registerReceiver(appListener, intentFilter)
 
     }
 
@@ -741,6 +752,28 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         EventBus.getDefault().unregister(this);
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+
+        // Unregister LauncherApps.Callback
+        launcherCallbacks?.let {
+            try {
+                launcherApps.unregisterCallback(it)
+            } catch (e: Exception) {
+                Log.w("MainActivity", "Error unregistering LauncherApps callback", e)
+            }
+        }
+
+        // Unregister BroadcastReceiver
+        appListener?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: IllegalArgumentException) {
+                Log.w("MainActivity", "Receiver not registered", e)
+            }
+        }
+    }
+
     fun showMyDialog(editSelected:Int) {
         if(editSelected == -1) return
         viewModel.trenutnoPrikazanaPolja[editSelected].let { krugSAplikacijom ->
@@ -807,56 +840,58 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         }
     }
 
-    fun loadApp(packageName: String){ // ovo poziva samo broadcast
-        if(viewModel.appsList.value!!.find{it.packageName == packageName} != null || viewModel.currentlyLoadingApps.contains(packageName)){
-            Log.d("ingokodba", "app is already installed")
+    fun loadApp(packageName: String){
+        if(viewModel.appsList.value!!.find{it.packageName == packageName} != null ||
+           viewModel.currentlyLoadingApps.contains(packageName)){
+            Log.d("ingokodba", "App already installed or loading: $packageName")
             return
         }
+
         viewModel.currentlyLoadingApps.add(packageName)
         val ctx = this
+
         lifecycleScope.launch(Dispatchers.IO) {
-            val applicationInfo = ctx.packageManager.getApplicationInfo(packageName, 0)
-            val appName = applicationInfo.loadLabel(ctx.packageManager).toString()
-            Log.d("ingokodba", "loading newly installed app " + appName + " " + packageName)
-            val res: Resources = ctx.packageManager.getResourcesForApplication(applicationInfo)
-            var colorPrimary: Int = 0
-            iconDrawable = res.getDrawableForDensity(
-                applicationInfo.icon,
-                DisplayMetrics.DENSITY_LOW,
-                null
-            )
-            if (iconDrawable != null) {
-                colorPrimary = getBestPrimaryColor(iconDrawable!!)
-                Log.d("ingo", "icondrawable nije null getBestPrimaryColor $colorPrimary")
-            }
-            viewModel.icons.value!![packageName] = iconDrawable
-            Log.d("ingokodba", packageName + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth)
+            try {
+                val appLoader = AppLoader(ctx)
+                val newApp = appLoader.loadApp(packageName, quality_icons)
 
-            if (appName != packageName) { // zašto ova provjera?
-                val newApp =
-                    AppInfo(
-                        applicationInfo.uid,
-                        appName,
-                        packageName,
-                        colorPrimary.toString(),
-                        installed = true
-                    )
+                if (newApp == null) {
+                    Log.w("ingokodba", "Failed to load app: $packageName (not a launcher app?)")
+                    viewModel.currentlyLoadingApps.remove(packageName)
+                    return@launch
+                }
 
+                Log.d("ingokodba", "Loading newly installed app: ${newApp.label} ($packageName)")
+
+                // Load icon
+                loadIcon(packageName)
+
+                // Save to database
                 val db = AppDatabase.getInstance(ctx)
                 val appDao: AppInfoDao = db.appInfoDao()
                 try {
                     appDao.insertAll(newApp)
                 } catch(exception: android.database.sqlite.SQLiteConstraintException){
-                    Log.d("ingo", exception.toString())
+                    Log.d("ingo", "App already in database: ${exception.message}")
                 }
+
+                // Add to ViewModel
                 withContext(Dispatchers.Main) {
                     viewModel.addApps(mutableListOf(newApp))
                 }
+
                 delay(200)
+
+                // Notify UI
                 withContext(Dispatchers.Main) {
-                    val index = viewModel.appsList.value!!.indexOf(viewModel.appsList.value!!.find{it.packageName == packageName})
+                    val index = viewModel.appsList.value!!.indexOf(
+                        viewModel.appsList.value!!.find{it.packageName == packageName}
+                    )
                     activitiesFragment.radapter?.notifyItemInserted(index)
                 }
+            } catch (e: Exception) {
+                Log.e("ingokodba", "Error loading app $packageName", e)
+            } finally {
                 viewModel.currentlyLoadingApps.remove(packageName)
             }
         }
@@ -955,34 +990,104 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     fun appDeleted(packageName: String){
         lifecycleScope.launch(Dispatchers.IO) {
-            delay(20000)
-            // check if app is really deleted
+            // Verify app is really deleted (quick check)
             if(isPackageNameOnDevice(packageName)) {
-                Log.d("ingo", "package not deleted, it's still on the device")
+                Log.d("ingo", "Package not deleted, it's still on the device")
                 return@launch
             }
+
             val db = AppDatabase.getInstance(this@MainActivity)
             val appDao: AppInfoDao = db.appInfoDao()
+
+            // Remove from database
             val lista = appDao.getAll()
-            lista.find { it.packageName == packageName }.let { app ->
-                Log.v("ingokodba", "all apps -> " + lista.map { it.packageName }.toString())
-                Log.v("ingokodba", "removing app " + packageName)
-                if (app != null) {
-                    appDao.delete(app)
-                    Log.v("ingokodba", "app removed")
-                }
+            lista.find { it.packageName == packageName }?.let { app ->
+                appDao.delete(app)
+                Log.v("ingokodba", "App removed from database: $packageName")
             }
-            val app =
-                viewModel.appsList.value!!.find { it.packageName == packageName }
+
+            // Remove from ViewModel
+            val app = viewModel.appsList.value?.find { it.packageName == packageName }
             if (app != null) {
                 withContext(Dispatchers.Main) {
                     viewModel.removeApp(app)
                     activitiesFragment?.radapter?.notifyDataSetChanged()
-                    Log.v("ingokodba", "app removed for sure!")
+                    Log.v("ingokodba", "App removed from UI: $packageName")
+                }
+            }
+
+            // Remove from menu items (KrugSAplikacijama)
+            val krugSAplikacijamaDao = db.krugSAplikacijamaDao()
+            val krugSAplikacijama = krugSAplikacijamaDao.getAll()
+            for (polje in krugSAplikacijama) {
+                if (polje.nextIntent == packageName) {
+                    krugSAplikacijamaDao.delete(polje)
+                    viewModel.sviKrugovi.remove(polje)
+                    Log.v("ingokodba", "Removed menu item for: $packageName")
                 }
             }
         }
     }
+
+    // New methods for ModelLauncherCallbacks support
+
+    fun updateApp(packageName: String) {
+        Log.d("ingo", "Updating app: $packageName")
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Reload the app info and icon
+            val appLoader = AppLoader(this@MainActivity)
+            val updatedApp = appLoader.loadApp(packageName, quality_icons)
+
+            if (updatedApp != null) {
+                // Update existing app in ViewModel
+                val existingApp = viewModel.appsList.value?.find { it.packageName == packageName }
+                if (existingApp != null) {
+                    // Update mutable fields
+                    existingApp.color = updatedApp.color
+                    existingApp.installed = true
+
+                    // Reload icon (force refresh)
+                    viewModel.icons.value?.remove(packageName)
+                    loadIcon(packageName)
+
+                    // Update database
+                    val db = AppDatabase.getInstance(this@MainActivity)
+                    val appDao: AppInfoDao = db.appInfoDao()
+                    appDao.update(existingApp)
+
+                    withContext(Dispatchers.Main) {
+                        activitiesFragment?.radapter?.notifyDataSetChanged()
+                    }
+                }
+            }
+        }
+    }
+
+    fun onAppSuspended(packageName: String, suspended: Boolean) {
+        Log.d("ingo", "App ${if (suspended) "suspended" else "unsuspended"}: $packageName")
+        // For now, just log. Could add visual indication in the future
+        // (e.g., gray out suspended apps)
+    }
+
+    fun onShortcutsChanged(packageName: String, shortcuts: MutableList<android.content.pm.ShortcutInfo>) {
+        Log.d("ingo", "Shortcuts changed for $packageName: ${shortcuts.size} shortcuts")
+        // Update hasShortcuts flag
+        val app = viewModel.appsList.value?.find { it.packageName == packageName }
+        if (app != null) {
+            app.hasShortcuts = shortcuts.isNotEmpty()
+            lifecycleScope.launch(Dispatchers.IO) {
+                val db = AppDatabase.getInstance(this@MainActivity)
+                val appDao: AppInfoDao = db.appInfoDao()
+                appDao.update(app)
+            }
+        }
+    }
+
+    fun onInstallProgress(packageName: String, progress: Float) {
+        Log.v("ingo", "Install progress for $packageName: ${(progress * 100).toInt()}%")
+        // Could show progress bar in the future
+    }
+
     fun Bitmap.scaleWith(scale: Float) = Bitmap.createScaledBitmap(
         this,
         (width * scale).toInt(),
@@ -991,39 +1096,27 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     )
     fun loadIcon(pname: String){
         if (pname == "" || viewModel.icons.value!!.containsKey(pname)) return
+
         try {
-            val applicationInfo = packageManager.getApplicationInfo(pname, 0)
-            val res: Resources = packageManager.getResourcesForApplication(applicationInfo)
-            try {
-                val quality_density:Int = if (quality_icons) DisplayMetrics.DENSITY_HIGH else DisplayMetrics.DENSITY_LOW
-                iconDrawable = res.getDrawableForDensity(
-                    applicationInfo.icon,
-                    quality_density,
-                    null
-                )
-                if(iconDrawable != null) {
-                    iconBitmap = iconDrawable!!.toBitmap()
-                    //Log.d("ingo", "bitmap width for $pname is ${iconBitmap!!.width}")
-                    if(iconBitmap!!.width > 200){
-                        iconBitmap = iconBitmap!!.scaleWith(200f/iconBitmap!!.width)
-                        iconDrawable = BitmapDrawable(resources, iconBitmap!!)
-                    }
-                    //Log.d("ingo", "beforecolor ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color} ${Color.BLACK} ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK}")
-                    //if(viewModel.appsList.value!!.findLast { it.packageName == pname }?.color?.toInt() == Color.BLACK) {
-                        val color = getBestPrimaryColor(iconDrawable!!).toString()
-                        viewModel.appsList.value!!.findLast { it.packageName == pname }?.color =
-                            color
-                        newApps.findLast { it.packageName == pname }?.color = color
-                    //}
-                    //Log.d("ingo", "loadIcon getBestPrimaryColor $pname ${viewModel.appsList.value!!.findLast { it.packageName == pname }?.color}")
-                    viewModel.icons.value!![pname] = iconDrawable
-                    //Log.d("ikone2", pname + ", " + iconDrawable!!.intrinsicHeight  + " , " + iconDrawable!!.intrinsicWidth + " " + Gson().toJson(iconDrawable))
-                } else {
-                    viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
-                    //Log.d("ikone3", pname + ", " + viewModel.icons.value!![pname]!!.intrinsicHeight  + " , " + viewModel.icons.value!![pname]!!.intrinsicWidth)
-                }
-            } catch (e: Resources.NotFoundException){}
-        } catch (e: PackageManager.NameNotFoundException){}
+            // Use IconCache for persistent caching
+            val iconCache = IconCache(this)
+            val (iconDrawable, color) = iconCache.getIcon(pname, quality_icons)
+
+            if (iconDrawable != null) {
+                // Update app color
+                viewModel.appsList.value?.findLast { it.packageName == pname }?.color = color
+                newApps.findLast { it.packageName == pname }?.color = color
+
+                // Store in ViewModel for runtime access
+                viewModel.icons.value!![pname] = iconDrawable
+            } else {
+                // Fallback icon if loading failed
+                viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
+            }
+        } catch (e: Exception) {
+            Log.w("ingo", "Error loading icon for $pname", e)
+            viewModel.icons.value!![pname] = resources.getDrawable(R.drawable.ic_baseline_close_50)
+        }
     }
 
     fun loadIcons(){
@@ -1094,57 +1187,29 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     @SuppressWarnings("ResourceType")
     fun loadNewApps(): MutableList<AppInfo>{
-        //Log.d("ingo5", "getinstalledpackages start")
-        //Log.d("ingokodba", "loadNewApps, current apps -> " + viewModel.appsList.value!!.map { it.packageName }.toString())
-
+        Log.d("ingo", "loadNewApps using LauncherApps API")
 
         val newApps: MutableList<AppInfo> = mutableListOf()
-        var colorPrimary: Int = Color.BLACK
-        val packs = packageManager.getInstalledPackages(0)
-        for (i in packs.indices) {
-            val p = packs[i]
-            //Log.d("ingo4", "${p.packageName} getInstalledPackages")
-            if (!isSystemPackage(p)) {
-                //Log.d("ingo3", "${p.packageName} not system")
-                //Log.d("ingokodba", "aplikacija ${gson.toJson(p)}")
-                val appInfo = p.applicationInfo ?: continue
-                if(isAppLoaded(appInfo.uid)) {
-                    val app = viewModel.appsList.value?.find { it.packageName == p.packageName }
-                    //Log.d("ingo", "isAppLoaded " + p.packageName)
-                    if(app != null) {
-                        app.installed = true
-                        //Log.d("ingo", "installed true " + app.packageName)
-                    }
-                    continue
-                }
-                //Log.d("ingo3", "${p.packageName} not loaded")
-                val appName = appInfo.loadLabel(packageManager).toString()
-                //Log.d("ingokodba", "discovered new app " + appName + " " + p.packageName)
-                colorPrimary = Color.BLACK
-                val packageName = appInfo.packageName
-                if (appName != packageName.toString()) {
-                    newApps.add(AppInfo(appInfo.uid, appName, packageName, colorPrimary.toString(), installed = true))
-                }
-            }
-        }
-        //Log.d("ingo5", "getinstalledpackages finish")
+        val appLoader = AppLoader(this)
 
-        val i = Intent(Intent.ACTION_MAIN, null)
-        i.addCategory(Intent.CATEGORY_LAUNCHER)
-        val launcherIntentActivities = packageManager.queryIntentActivities(i, 0)
-        for (activity in launcherIntentActivities) {
-            //Log.d("ingo5", activity.activityInfo.packageName)
-            val uid = packageManager.getPackageUid(activity.activityInfo.packageName, 0)
-            //Log.d("ingo", "uid " + uid)
-            if(isAppLoaded(uid) || newApps.map{it.id}.contains(uid)) {
-                viewModel.appsList.value?.find { it.id == uid }?.installed = true
+        // Load all launcher apps using the modern LauncherApps API
+        val allApps = appLoader.loadAllApps(quality_icons)
+
+        for (app in allApps) {
+            // Check if app is already loaded
+            if (isAppLoaded(app.id)) {
+                val existingApp = viewModel.appsList.value?.find { it.packageName == app.packageName }
+                if (existingApp != null) {
+                    existingApp.installed = true
+                }
                 continue
             }
-            //Log.d("ingokodba", "discovered new app2 " + activity.loadLabel(packageManager).toString() + " " + activity.activityInfo.packageName)
-            colorPrimary = 0
-            newApps.add(AppInfo(uid, activity.loadLabel(packageManager).toString(), activity.activityInfo.packageName, colorPrimary.toString(), installed = true))
+
+            // Add to new apps list
+            newApps.add(app)
         }
-        //Log.d("ingo5", "queryIntentActivities finish")
+
+        Log.d("ingo", "loadNewApps found ${newApps.size} new apps")
         return newApps
     }
 

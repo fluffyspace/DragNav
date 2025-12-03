@@ -7,6 +7,7 @@ import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
+import com.ingokodba.dragnav.modeli.IconCacheEntry
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import java.io.File
@@ -15,14 +16,14 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class), version = 8, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class, IconCacheEntry::class), version = 9, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun krugSAplikacijamaDao(): KrugSAplikacijamaDao
     abstract fun rainbowMapaDao(): RainbowMapaDao
     abstract fun appInfoDao(): AppInfoDao
-    //abstract fun meniPoljaDao(): MeniPoljaDao
+    abstract fun iconCacheDao(): IconCacheDao
 
     fun setInstanceToNull(){
         instance = WeakReference(null)
@@ -61,7 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     //.fallbackToDestructiveMigration()
                     .build()
         }
@@ -140,6 +141,23 @@ abstract class AppDatabase : RoomDatabase() {
                 
                 // Ensure RainbowMapa table exists (in case it was missing)
                 database.execSQL("CREATE TABLE IF NOT EXISTS RainbowMapa (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, folderName TEXT NOT NULL, apps TEXT NOT NULL, favorite INTEGER NOT NULL)")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create icon_cache table for persistent icon caching
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS icon_cache (
+                        packageName TEXT PRIMARY KEY NOT NULL,
+                        iconData BLOB,
+                        dominantColor TEXT NOT NULL,
+                        label TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        versionCode INTEGER NOT NULL,
+                        density INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
 
