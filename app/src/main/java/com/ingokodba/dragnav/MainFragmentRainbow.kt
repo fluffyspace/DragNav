@@ -207,7 +207,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
         }
         if(viewModel.icons.value != null){
             circleView.icons = viewModel.icons.value!!
-            Log.d("ingo", "icons who??")
+            Log.d("ingo", "icons initial set in Rainbow: icons map size = ${viewModel.icons.value?.size ?: 0}, contains com.block.juggle = ${viewModel.icons.value?.containsKey("com.block.juggle") ?: false}, viewModel identity=${System.identityHashCode(viewModel.icons.value)}, circleView identity=${System.identityHashCode(circleView.icons)}")
         }
         
         // Start monitoring quick swipe state for letter indicator
@@ -294,6 +294,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
                         Log.d("ingo", "precaci ${shortcuts.map { it.id + " " + it.`package` }}")
                     } else {
                         Log.d("ingo", "držali smo mapu")
+                        globalThing = thing
                         val actions = listOf(ShortcutAction(getTranslatedString(R.string.rename_folder), getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24)), ShortcutAction(getTranslatedString(R.string.delete_folder), getDrawable(R.drawable.ic_baseline_delete_24)), if(thing.favorite == true) ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) else ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty)))
                         dialogState = DialogStates.FOLDER_OPTIONS
                         mactivity.showDialogWithActions(actions, this@MainFragmentRainbow, this@MainFragmentRainbow.circleView)
@@ -510,6 +511,7 @@ class MainFragmentRainbow(leftOrRight: Boolean = true) : Fragment(), MainFragmen
 
     override fun iconsUpdated(){
         circleView.icons = viewModel.icons.value!!
+        Log.d("ingo", "iconsUpdated in Rainbow: icons map size = ${viewModel.icons.value?.size ?: 0}, contains com.block.juggle = ${viewModel.icons.value?.containsKey("com.block.juggle") ?: false}, viewModel identity=${System.identityHashCode(viewModel.icons.value)}, circleView identity=${System.identityHashCode(circleView.icons)}")
         circleView.invalidate()
     }
 

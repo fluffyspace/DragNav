@@ -466,9 +466,9 @@ class RainbowPathView @JvmOverloads constructor(
         textPaint.typeface = typeface
         textBorderPaint.typeface = typeface
 
-        // Set text alignment to center both horizontally and vertically
-        textPaint.textAlign = Paint.Align.CENTER
-        textBorderPaint.textAlign = Paint.Align.CENTER
+        // Set text alignment to left horizontally, center vertically
+        textPaint.textAlign = Paint.Align.LEFT
+        textBorderPaint.textAlign = Paint.Align.LEFT
 
         // Apply style-specific effects
         when (config.appNameStyle) {
@@ -688,7 +688,8 @@ class RainbowPathView @JvmOverloads constructor(
                 // Offset is relative to icon size, ranging from -1 to 1, multiplied by 3 for larger offset range
                 val textOffsetX = config.appNameOffsetX * iconSizePx * 3f
                 val textOffsetY = config.appNameOffsetY * iconSizePx * 3f
-                val textX = screenX + textOffsetX
+                // For left alignment, start text from left edge + offset
+                val textX = screenX - iconSizePx / 2 + textOffsetX
                 // For vertical centering, adjust Y position to text baseline
                 val textMetrics = textPaint.fontMetrics
                 val textCenterY = screenY + textOffsetY - (textMetrics.ascent + textMetrics.descent) / 2f

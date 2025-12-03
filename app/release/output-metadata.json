@@ -12,12 +12,38 @@
       "filters": [
         {
           "filterType": "ABI",
+          "value": "mips64"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 15,
+      "versionName": "1.0.0",
+      "outputFile": "app-mips64-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "arm64-v8a"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 15,
+      "versionName": "1.0.0",
+      "outputFile": "app-arm64-v8a-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
           "value": "x86_64"
         }
       ],
       "attributes": [],
-      "versionCode": 14,
-      "versionName": "0.8.6",
+      "versionCode": 15,
+      "versionName": "1.0.0",
       "outputFile": "app-x86_64-release.apk"
     },
     {
@@ -29,8 +55,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 14,
-      "versionName": "0.8.6",
+      "versionCode": 15,
+      "versionName": "1.0.0",
       "outputFile": "app-armeabi-v7a-release.apk"
     },
     {
@@ -42,8 +68,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 14,
-      "versionName": "0.8.6",
+      "versionCode": 15,
+      "versionName": "1.0.0",
       "outputFile": "app-x86-release.apk"
     },
     {
@@ -51,14 +77,71 @@
       "filters": [
         {
           "filterType": "ABI",
-          "value": "arm64-v8a"
+          "value": "riscv64"
         }
       ],
       "attributes": [],
-      "versionCode": 14,
-      "versionName": "0.8.6",
-      "outputFile": "app-arm64-v8a-release.apk"
+      "versionCode": 15,
+      "versionName": "1.0.0",
+      "outputFile": "app-riscv64-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "mips"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 15,
+      "versionName": "1.0.0",
+      "outputFile": "app-mips-release.apk"
+    },
+    {
+      "type": "ONE_OF_MANY",
+      "filters": [
+        {
+          "filterType": "ABI",
+          "value": "armeabi"
+        }
+      ],
+      "attributes": [],
+      "versionCode": 15,
+      "versionName": "1.0.0",
+      "outputFile": "app-armeabi-release.apk"
     }
   ],
-  "elementType": "File"
+  "elementType": "File",
+  "baselineProfiles": [
+    {
+      "minApi": 28,
+      "maxApi": 30,
+      "baselineProfiles": [
+        "baselineProfiles/1/app-mips64-release.dm",
+        "baselineProfiles/1/app-arm64-v8a-release.dm",
+        "baselineProfiles/1/app-x86_64-release.dm",
+        "baselineProfiles/1/app-armeabi-v7a-release.dm",
+        "baselineProfiles/1/app-x86-release.dm",
+        "baselineProfiles/1/app-riscv64-release.dm",
+        "baselineProfiles/1/app-mips-release.dm",
+        "baselineProfiles/1/app-armeabi-release.dm"
+      ]
+    },
+    {
+      "minApi": 31,
+      "maxApi": 2147483647,
+      "baselineProfiles": [
+        "baselineProfiles/0/app-mips64-release.dm",
+        "baselineProfiles/0/app-arm64-v8a-release.dm",
+        "baselineProfiles/0/app-x86_64-release.dm",
+        "baselineProfiles/0/app-armeabi-v7a-release.dm",
+        "baselineProfiles/0/app-x86-release.dm",
+        "baselineProfiles/0/app-riscv64-release.dm",
+        "baselineProfiles/0/app-mips-release.dm",
+        "baselineProfiles/0/app-armeabi-release.dm"
+      ]
+    }
+  ],
+  "minSdkVersionForDexing": 26
 }

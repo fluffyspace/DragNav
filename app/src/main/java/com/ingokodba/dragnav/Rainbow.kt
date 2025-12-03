@@ -759,8 +759,11 @@ class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
                 for(j in 0..1){
                     //Log.d("ingo", "i: $i j: $j")
                     if(i*2 + j >= app_list[index].apps.size) break
-                    bitmap = icons[app_list[index].apps[i*2+j].packageName]?.toBitmap()
-                    if(bitmap != null) {
+                    val packageName = app_list[index].apps[i*2+j].packageName
+                    val drawable = icons[packageName]
+                    bitmap = drawable?.toBitmap()
+                    Log.d("ingo", "Folder icon for $packageName: drawable=${drawable != null}, bitmap=${bitmap != null}, draw_icons=$draw_icons, icons map size=${icons.size}, icons identity=${System.identityHashCode(icons)}")
+                    if(bitmap != null && draw_icons) {
                         canvas.drawBitmap(
                             bitmap!!, null, Rect(
                                 (draw_pointF.x - detectSize + detectSize * j).toInt(),
