@@ -25,6 +25,73 @@ class IconCache(private val context: Context) {
     private val iconCacheDao = db.iconCacheDao()
 
     /**
+     * Bulk load icons for multiple packages.
+     * This is much more efficient than loading icons one-by-one.
+     * Returns a map of packageName -> (Drawable, dominantColor)
+     */
+    fun getIconsInBulk(
+        packageNames: List<String>,
+        qualityIcons: Boolean
+    ): Map<String, Pair<Drawable?, String>> {
+        val result = mutableMapOf<String, Pair<Drawable?, String>>()
+
+        if (packageNames.isEmpty()) return result
+
+        // Step 1: Bulk query from cache (single SQL query!)
+        val allCached = iconCacheDao.getAllCachedIcons()
+        val cachedMap = allCached.associateBy { it.packageName }
+
+        val packagesToLoad = mutableListOf<String>()
+
+        // Step 2: Process cached icons and identify missing ones
+        for (packageName in packageNames) {
+            val cached = cachedMap[packageName]
+
+            if (cached != null && cached.iconData != null) {
+                try {
+                    // Verify version
+                    val currentVersionCode = try {
+                        packageManager.getPackageInfo(packageName, 0).versionCode
+                    } catch (e: PackageManager.NameNotFoundException) {
+                        -1
+                    }
+
+                    if (currentVersionCode == cached.versionCode) {
+                        // Valid cache entry
+                        val bitmap = BitmapFactory.decodeByteArray(
+                            cached.iconData, 0, cached.iconData.size
+                        )
+                        if (bitmap != null) {
+                            val drawable = BitmapDrawable(context.resources, bitmap)
+                            result[packageName] = Pair(drawable, cached.dominantColor)
+                            continue
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error loading cached icon for $packageName", e)
+                }
+            }
+
+            // Cache miss or invalid - need to load
+            packagesToLoad.add(packageName)
+        }
+
+        // Step 3: Load missing icons (if any)
+        if (packagesToLoad.isNotEmpty()) {
+            Log.d(TAG, "Bulk loading ${packagesToLoad.size} icons from system")
+            for (packageName in packagesToLoad) {
+                result[packageName] = loadAndCacheIcon(packageName, qualityIcons)
+            }
+        }
+
+        Log.d(TAG, "Bulk load complete: ${result.size} icons loaded, " +
+                   "${packageNames.size - packagesToLoad.size} from cache, " +
+                   "${packagesToLoad.size} from system")
+
+        return result
+    }
+
+    /**
      * Get an icon from cache or load it if not cached.
      * Returns a pair of (Drawable, dominantColor)
      */

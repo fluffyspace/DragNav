@@ -157,6 +157,9 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     private var launcherCallbacks: ModelLauncherCallbacks? = null
     private lateinit var launcherApps: android.content.pm.LauncherApps
 
+    // Icon loading executor for async, priority-based icon loading
+    private var iconLoadExecutor: IconLoadExecutor? = null
+
     fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
         val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
         radapter = ShortcutsAdapter(this, onShortcutClick)
@@ -377,6 +380,9 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED)
         intentFilter.addDataScheme("package")
         registerReceiver(appListener, intentFilter)
+
+        // Initialize icon loading executor
+        iconLoadExecutor = IconLoadExecutor(this, quality_icons)
 
     }
 
@@ -755,6 +761,10 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     override fun onDestroy() {
         super.onDestroy()
 
+        // Shutdown icon loading executor
+        iconLoadExecutor?.shutdown()
+        iconLoadExecutor = null
+
         // Unregister LauncherApps.Callback
         launcherCallbacks?.let {
             try {
@@ -1120,8 +1130,47 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     }
 
     fun loadIcons(){
-        for(app in viewModel.appsList.value!!) {
-            loadIcon(app.packageName)
+        val apps = viewModel.appsList.value ?: return
+        val packageNames = apps.map { it.packageName }
+
+        // Submit bulk icon loading tasks with low priority (background loading)
+        iconLoadExecutor?.submitBulk(
+            packageNames,
+            IconLoadTask.Priority.LOW
+        ) { packageName, drawable, color ->
+            // Callback executed when icon is loaded
+            lifecycleScope.launch(Dispatchers.Main) {
+                if (drawable != null) {
+                    viewModel.icons.value?.set(packageName, drawable)
+
+                    // Update app color
+                    viewModel.appsList.value?.find { it.packageName == packageName }?.color = color
+                    newApps.find { it.packageName == packageName }?.color = color
+                }
+            }
+        }
+
+        Log.d("ingo", "Submitted ${packageNames.size} icons for async loading")
+    }
+
+    /**
+     * Load a single icon with high priority (for immediate display).
+     */
+    fun loadIconAsync(packageName: String, priority: IconLoadTask.Priority = IconLoadTask.Priority.MEDIUM): IconLoadTask? {
+        if (packageName.isEmpty() || viewModel.icons.value?.containsKey(packageName) == true) {
+            return null
+        }
+
+        return iconLoadExecutor?.submitTask(packageName, priority) { pkgName, drawable, color ->
+            lifecycleScope.launch(Dispatchers.Main) {
+                if (drawable != null) {
+                    viewModel.icons.value?.set(pkgName, drawable)
+
+                    // Update app color
+                    viewModel.appsList.value?.find { it.packageName == pkgName }?.color = color
+                    newApps.find { it.packageName == pkgName }?.color = color
+                }
+            }
         }
     }
 
