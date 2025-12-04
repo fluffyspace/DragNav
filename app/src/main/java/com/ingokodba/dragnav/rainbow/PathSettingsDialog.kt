@@ -24,7 +24,8 @@ import com.google.android.material.tabs.TabLayout
 class PathSettingsDialog(
     context: Context,
     private var config: PathConfig,
-    private val onConfigChanged: (PathConfig) -> Unit
+    private val onConfigChanged: (PathConfig) -> Unit,
+    private val onCategoryChanged: ((Category) -> Unit)? = null
 ) : Dialog(context) {
 
     private lateinit var tabLayout: TabLayout
@@ -56,6 +57,15 @@ class PathSettingsDialog(
         setupWindow()
         setupTabs()
         showCategory(Category.PATH)
+
+        // Notify initial category
+        onCategoryChanged?.invoke(Category.PATH)
+    }
+
+    override fun dismiss() {
+        // Notify that we're leaving all categories
+        onCategoryChanged?.invoke(Category.PATH)  // Reset to default when closing
+        super.dismiss()
     }
 
     private fun setupWindow() {
@@ -138,7 +148,9 @@ class PathSettingsDialog(
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                showCategory(categories[tab.position])
+                val category = categories[tab.position]
+                showCategory(category)
+                onCategoryChanged?.invoke(category)
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -353,6 +365,18 @@ class PathSettingsDialog(
             addView(createLabel("Padding from Edge"))
             addView(createSlider(0f, 0.1f, config.letterIndexPadding) {
                 config = config.copy(letterIndexPadding = it)
+                notifyChange()
+            })
+
+            // Pan from letters
+            addView(createLabel("Pan from Letters"))
+            addView(TextView(context).apply {
+                text = "Clickable area padding from letters toward edge"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(0f, 0.3f, config.letterIndexPanFromLetters) {
+                config = config.copy(letterIndexPanFromLetters = it)
                 notifyChange()
             })
         }

@@ -124,6 +124,7 @@ class RainbowPathView @JvmOverloads constructor(
     private val letterPositions = mutableMapOf<Char, Int>()
     private var letterIndexRect: RectF? = null
     private var isInLetterIndex = false
+    var showLetterIndexBackground = false  // Force show background (e.g., when in settings)
 
     // Shortcuts
     private var shortcutsAppIndex: Int? = null
@@ -148,6 +149,10 @@ class RainbowPathView @JvmOverloads constructor(
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
         setShadowLayer(2f, 1f, 1f, Color.BLACK)
+    }
+    private val letterIndexBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#88000000")
+        style = Paint.Style.FILL
     }
     private val favButtonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#88000000")
@@ -745,7 +750,32 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
         val letterHeight = h / letters.size.coerceAtLeast(1)
-        letterIndexRect = RectF(left, 0f, left + indexWidth, h)
+
+        // Calculate touchable area - always extends to screen edge with configurable padding from letters
+        val paddingFromLetters = config.letterIndexPanFromLetters * w
+
+        val touchableLeft = if (config.letterIndexPosition == LetterIndexPosition.RIGHT) {
+            // Right side: extend inward from letters by padding amount
+            (left - paddingFromLetters).coerceAtLeast(0f)
+        } else {
+            // Left side: always start at screen edge
+            0f
+        }
+
+        val touchableRight = if (config.letterIndexPosition == LetterIndexPosition.RIGHT) {
+            // Right side: always extend to screen edge
+            w
+        } else {
+            // Left side: extend outward from letters by padding amount
+            (left + indexWidth + paddingFromLetters).coerceAtMost(w)
+        }
+
+        letterIndexRect = RectF(touchableLeft, 0f, touchableRight, h)
+
+        // Draw background when user is actively touching the letter index OR when forced (e.g., in settings)
+        if (isInLetterIndex || showLetterIndexBackground) {
+            canvas.drawRoundRect(letterIndexRect!!, 16f, 16f, letterIndexBgPaint)
+        }
 
         letters.forEachIndexed { index, letter ->
             val y = letterHeight * index + letterHeight / 2 + letterPaint.textSize / 3

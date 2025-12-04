@@ -53,6 +53,7 @@ data class PathConfig(
     val letterIndexPosition: LetterIndexPosition = LetterIndexPosition.RIGHT,
     val letterIndexSize: Float = 0.04f,              // Size relative to screen width
     val letterIndexPadding: Float = 0.02f,           // Padding from edge
+    val letterIndexPanFromLetters: Float = 0.05f,    // Padding from letters toward edge for touch area (0-0.3)
 
     // App sorting
     val appSortOrder: AppSortOrder = AppSortOrder.ASCENDING,  // Alphabetical order (A-Z or Z-A)

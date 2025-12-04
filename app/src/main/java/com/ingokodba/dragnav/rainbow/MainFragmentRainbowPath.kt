@@ -210,11 +210,20 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     private fun showSettingsDialog() {
-        PathSettingsDialog(requireContext(), config) { newConfig ->
-            config = newConfig
-            pathView.config = config
-            saveConfig()
-        }.show()
+        PathSettingsDialog(
+            requireContext(),
+            config,
+            onConfigChanged = { newConfig ->
+                config = newConfig
+                pathView.config = config
+                saveConfig()
+            },
+            onCategoryChanged = { category ->
+                // Show letter index background when Letters tab is active
+                pathView.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
+                pathView.invalidate()
+            }
+        ).show()
     }
 
     fun updateApps() {
