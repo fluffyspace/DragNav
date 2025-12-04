@@ -27,6 +27,13 @@ class RainbowPathView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    // ========== FLING CONFIGURATION ==========
+    // Adjust these values to tune fling behavior
+    private val flingFriction = 0.97f           // Higher = slower deceleration, longer fling (0.97 = ~3 second duration)
+    private val minFlingVelocity = 0.0001f      // Almost always trigger fling (very small threshold)
+    private val flingStopThreshold = 0.001f     // Velocity below which fling stops
+    // =========================================
+
     // Configuration
     var config: PathConfig = PathConfig()
         set(value) {
@@ -83,14 +90,21 @@ class RainbowPathView @JvmOverloads constructor(
     private var touchStartY: Float = 0f
     private var isDragging: Boolean = false
     private var isFling: Boolean = false
+    private var lastMoveTime: Long = 0L
 
     // Long press detection
     private var longPressTriggered: Boolean = false
     private var touchedAppIndex: Int? = null
 
-    // Fling physics
-    private val flingFriction = 0.92f
-    private val minFlingVelocity = 2f
+    // Fling animation runnable
+    private val flingRunnable = object : Runnable {
+        override fun run() {
+            if (isFling) {
+                flingUpdate()
+                postOnAnimation(this)
+            }
+        }
+    }
 
     // Overscroll effects
     private var topEdgeEffect: EdgeEffect? = null
@@ -406,7 +420,8 @@ class RainbowPathView @JvmOverloads constructor(
             }
         }
 
-        if (abs(scrollVelocity) < minFlingVelocity) {
+        // Stop fling when velocity gets very low
+        if (abs(scrollVelocity) < flingStopThreshold) {
             isFling = false
             eventListener?.onFlingEnded()
         }
@@ -555,7 +570,7 @@ class RainbowPathView @JvmOverloads constructor(
 
     private fun drawAppsOnPath(canvas: Canvas, w: Float, h: Float) {
         val apps = getDisplayedApps()
-        Log.d("RainbowPath", "drawAppsOnPath: ${apps.size} apps, appList size: ${appList.size}")
+        //Log.d("RainbowPath", "drawAppsOnPath: ${apps.size} apps, appList size: ${appList.size}")
         if (apps.isEmpty()) return
 
         val provider = PathShapeRegistry.getProvider(config.pathShape)
@@ -810,7 +825,12 @@ class RainbowPathView @JvmOverloads constructor(
                 lastTouchX = event.x
                 lastTouchY = event.y
                 isDragging = false
-                isFling = false
+                // Stop any ongoing fling
+                if (isFling) {
+                    removeCallbacks(flingRunnable)
+                    isFling = false
+                    eventListener?.onFlingEnded()
+                }
                 scrollVelocity = 0f
                 longPressTriggered = false
                 touchedAppIndex = null
@@ -911,11 +931,20 @@ class RainbowPathView @JvmOverloads constructor(
                             } else if (atBottom && scrollDelta < 0) {
                                 bottomEdgeEffect?.onPull(pullAmount, 0.5f)
                             }
+
+                            // Reset velocity when hitting boundary
+                            scrollVelocity = 0f
                         } else {
                             // Normal scrolling
                             scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
-                            // Velocity already includes sensitivity from scrollDelta
-                            scrollVelocity = scrollDelta * 10
+                            // Update folder scroll position if in folder
+                            updateFolderScrollPosition()
+
+                            // Track velocity - use actual finger movement speed without multiplier
+                            // Fling will continue at this natural velocity and decelerate with friction
+                            scrollVelocity = scrollDelta
+
+                            Log.d("RainbowPath", "Tracking velocity: scrollDelta=$scrollDelta, velocity=$scrollVelocity")
 
                             // Release overscroll if moving away from boundary
                             if (overscrollDistance != 0f) {
@@ -983,8 +1012,13 @@ class RainbowPathView @JvmOverloads constructor(
                 } else {
                     // Start fling if velocity is high enough
                     if (abs(scrollVelocity) > minFlingVelocity) {
+                        Log.d("RainbowPath", "Starting fling with velocity: $scrollVelocity")
                         isFling = true
                         eventListener?.onFlingStarted()
+                        // Start the fling animation loop
+                        postOnAnimation(flingRunnable)
+                    } else {
+                        Log.d("RainbowPath", "Velocity too low for fling: $scrollVelocity (min: $minFlingVelocity)")
                     }
                 }
 
