@@ -124,6 +124,8 @@ class RainbowPathView @JvmOverloads constructor(
     private val letterPositions = mutableMapOf<Char, Int>()
     private var letterIndexRect: RectF? = null
     private var isInLetterIndex = false
+    private var touchStartedInLetterIndex = false  // Track if touch started in letter index
+    private var currentLetterIndexLetter: Char? = null  // Track current letter to avoid repeated haptic feedback
     var showLetterIndexBackground = false  // Force show background (e.g., when in settings)
 
     // Shortcuts
@@ -149,6 +151,16 @@ class RainbowPathView @JvmOverloads constructor(
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
         setShadowLayer(2f, 1f, 1f, Color.BLACK)
+    }
+    private val bigLetterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textAlign = Paint.Align.LEFT
+        typeface = Typeface.DEFAULT_BOLD
+        setShadowLayer(8f, 2f, 2f, Color.BLACK)
+    }
+    private val bigLetterBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#CC000000")
+        style = Paint.Style.FILL
     }
     private val letterIndexBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#88000000")
@@ -527,6 +539,11 @@ class RainbowPathView @JvmOverloads constructor(
             drawShortcutsPopup(canvas, w, h)
         }
 
+        // Draw big letter indicator when scrolling through letter index
+        if (isInLetterIndex && currentLetterIndexLetter != null) {
+            drawBigLetterIndicator(canvas, w, h)
+        }
+
         // Draw edge effects for overscroll (LAST, with isolated canvas state)
         drawEdgeEffects(canvas, w.toInt(), h.toInt())
     }
@@ -847,6 +864,38 @@ class RainbowPathView @JvmOverloads constructor(
         }
     }
 
+    private fun drawBigLetterIndicator(canvas: Canvas, w: Float, h: Float) {
+        val letter = currentLetterIndexLetter ?: return
+
+        // Set text size to be large and bold
+        val textSize = w * 0.5f  // % of screen width
+        bigLetterPaint.textSize = textSize
+
+        // Calculate text dimensions
+        val letterStr = letter.toString()
+        val textWidth = bigLetterPaint.measureText(letterStr)
+        val textMetrics = bigLetterPaint.fontMetrics
+        val textHeight = textMetrics.descent - textMetrics.ascent
+
+        // Position in upper left corner with padding
+        val padding = w * 0.05f
+        val bgPadding = w * 0.02f
+        val left = padding + bgPadding
+        val top = padding - textMetrics.ascent + bgPadding
+
+        // Draw background rectangle with equal padding on all sides
+        val bgRect = RectF(
+            left - bgPadding,
+            top + textMetrics.ascent - bgPadding,
+            left + textWidth + bgPadding,
+            top + textMetrics.descent + bgPadding
+        )
+        canvas.drawRoundRect(bgRect, 16f, 16f, bigLetterBgPaint)
+
+        // Draw the letter
+        canvas.drawText(letterStr, left, top, bigLetterPaint)
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -869,10 +918,12 @@ class RainbowPathView @JvmOverloads constructor(
                 letterIndexRect?.let {
                     if (it.contains(event.x, event.y)) {
                         isInLetterIndex = true
+                        touchStartedInLetterIndex = true
                         handleLetterIndexTouch(event.y)
                         return true
                     }
                 }
+                touchStartedInLetterIndex = false
 
                 // Check shortcuts popup
                 if (shortcutsAppIndex != null) {
@@ -996,6 +1047,7 @@ class RainbowPathView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP -> {
                 isInLetterIndex = false
+                currentLetterIndexLetter = null  // Reset letter tracking
 
                 // Release edge effects
                 topEdgeEffect?.onRelease()
@@ -1007,8 +1059,8 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (!isDragging) {
-                    // Only process taps if long press wasn't triggered
-                    if (!longPressTriggered) {
+                    // Only process taps if long press wasn't triggered and touch didn't start in letter index
+                    if (!longPressTriggered && !touchStartedInLetterIndex) {
                         // Check for tap on favorites button
                         val w = width.toFloat()
                         val h = height.toFloat()
@@ -1074,7 +1126,13 @@ class RainbowPathView @JvmOverloads constructor(
 
         letterPositions[letter]?.let { appIndex ->
             scrollOffset = -appIndex * config.appSpacing
-            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+
+            // Only trigger haptic feedback if the letter changed
+            if (currentLetterIndexLetter != letter) {
+                currentLetterIndexLetter = letter
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+
             invalidate()
         }
     }

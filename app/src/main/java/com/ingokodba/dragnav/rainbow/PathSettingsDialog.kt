@@ -206,7 +206,7 @@ class PathSettingsDialog(
 
             // Curve intensity (for curved paths)
             addView(createLabel("Curve Intensity"))
-            addView(createSlider(0f, 1f, config.curveIntensity) {
+            addView(createSlider(-1f, 1f, config.curveIntensity) {
                 config = config.copy(curveIntensity = it)
                 notifyChange()
             })
