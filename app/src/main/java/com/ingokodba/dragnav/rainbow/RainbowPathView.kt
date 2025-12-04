@@ -937,8 +937,8 @@ class RainbowPathView @JvmOverloads constructor(
                     // Touch outside popup - close it
                     hideShortcuts()
                 } else {
-                    // Check if touch is on an app and start long press countdown
-                    drawnApps.forEach { drawnApp ->
+                    // Check if touch is on an app and start long press countdown (reverse order for topmost app)
+                    drawnApps.asReversed().forEach { drawnApp ->
                         if (drawnApp.rect.contains(event.x, event.y)) {
                             touchedAppIndex = drawnApp.index
                             eventListener?.onLongPressStart(drawnApp.index)
@@ -1083,8 +1083,8 @@ class RainbowPathView @JvmOverloads constructor(
                             return true
                         }
 
-                        // Check for tap on app
-                        drawnApps.forEach { drawnApp ->
+                        // Check for tap on app (reverse order to check topmost apps first)
+                        drawnApps.asReversed().forEach { drawnApp ->
                             if (drawnApp.rect.contains(event.x, event.y)) {
                                 eventListener?.onAppClicked(drawnApp.index)
                                 return true
@@ -1138,7 +1138,8 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     fun getAppIndexAtPosition(x: Float, y: Float): Int? {
-        drawnApps.forEach { drawnApp ->
+        // Iterate in reverse order to check topmost (last-drawn) apps first
+        drawnApps.asReversed().forEach { drawnApp ->
             if (drawnApp.rect.contains(x, y)) {
                 return drawnApp.index
             }
