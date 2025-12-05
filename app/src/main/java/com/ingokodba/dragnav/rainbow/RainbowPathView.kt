@@ -1126,6 +1126,32 @@ class RainbowPathView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
+    /**
+     * Calculate valid scroll limits based on current app list
+     * Returns a Pair of (validMinScroll, validMaxScroll)
+     */
+    private fun getValidScrollLimits(): Pair<Float, Float> {
+        val apps = getDisplayedApps()
+        if (apps.isEmpty()) {
+            return Pair(0f, 0f)
+        }
+        
+        // Allow scrolling one app space before first app (maxScroll = config.appSpacing)
+        // and three app spaces after last app appears at end of path (t=1.0)
+        // Last app is at index (apps.size - 1), so:
+        // baseT = (apps.size - 1) * spacing + minScroll should equal 1.0 + 3*spacing
+        // minScroll = 1.0 + 3*spacing - (apps.size - 1)*spacing = 1.0 - (apps.size - 4)*spacing
+        // But we want to scroll 3 app spaces PAST the end, so we need MORE negative scrolling
+        val maxScroll = config.appSpacing
+        val minScroll = 1.0f - (apps.size + 2) * config.appSpacing
+
+        // Ensure valid range (for very few apps, minScroll might be > maxScroll)
+        val validMinScroll = minScroll.coerceAtMost(maxScroll)
+        val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
+        
+        return Pair(validMinScroll, validMaxScroll)
+    }
+
     private fun handleLetterIndexTouch(y: Float) {
         // Use same reversed order as visual display
         val letters = when (config.appSortOrder) {
@@ -1139,7 +1165,12 @@ class RainbowPathView @JvmOverloads constructor(
         val letter = letters[index]
 
         letterPositions[letter]?.let { appIndex ->
-            scrollOffset = -appIndex * config.appSpacing
+            // Calculate desired scroll position
+            val desiredScrollOffset = -appIndex * config.appSpacing
+            
+            // Apply scroll limits to prevent overscrolling
+            val (validMinScroll, validMaxScroll) = getValidScrollLimits()
+            scrollOffset = desiredScrollOffset.coerceIn(validMinScroll, validMaxScroll)
 
             // Only trigger haptic feedback if the letter changed
             if (currentLetterIndexLetter != letter) {
@@ -1164,11 +1195,16 @@ class RainbowPathView @JvmOverloads constructor(
     fun scrollToApp(index: Int) {
         // When scrolling to first app (index 0), use maxScroll to show it fully visible
         // For other apps, calculate normal scroll position
-        scrollOffset = if (index == 0) {
+        val desiredScrollOffset = if (index == 0) {
             config.appSpacing
         } else {
             -index * config.appSpacing
         }
+        
+        // Apply scroll limits to prevent overscrolling
+        val (validMinScroll, validMaxScroll) = getValidScrollLimits()
+        scrollOffset = desiredScrollOffset.coerceIn(validMinScroll, validMaxScroll)
+        
         invalidate()
     }
 
