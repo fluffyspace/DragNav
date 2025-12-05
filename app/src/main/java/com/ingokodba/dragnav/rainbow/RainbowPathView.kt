@@ -91,6 +91,7 @@ class RainbowPathView @JvmOverloads constructor(
     private var isDragging: Boolean = false
     private var isFling: Boolean = false
     private var lastMoveTime: Long = 0L
+    private var initialScrollOffset: Float = 0f  // Track scroll offset when drag starts
 
     // Long press detection
     private var longPressTriggered: Boolean = false
@@ -904,6 +905,7 @@ class RainbowPathView @JvmOverloads constructor(
                 lastTouchX = event.x
                 lastTouchY = event.y
                 isDragging = false
+                initialScrollOffset = 0f
                 // Stop any ongoing fling
                 if (isFling) {
                     removeCallbacks(flingRunnable)
@@ -967,6 +969,7 @@ class RainbowPathView @JvmOverloads constructor(
 
                 if (!isDragging && distanceFromStart > 30f) {
                     isDragging = true
+                    initialScrollOffset = scrollOffset  // Save current scroll position
                     // Cancel long press if user starts dragging
                     if (!longPressTriggered && touchedAppIndex != null) {
                         touchedAppIndex = null
@@ -974,9 +977,18 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (isDragging) {
-                    // Scroll based on movement along path direction
-                    // Apply scroll sensitivity multiplier
-                    val scrollDelta = ((-dy + dx) / (height * config.appSpacing * 10)) * config.scrollSensitivity
+                    // Calculate total distance from touch start to current position
+                    val totalDistance = sqrt(
+                        (event.x - touchStartX) * (event.x - touchStartX) +
+                        (event.y - touchStartY) * (event.y - touchStartY)
+                    )
+                    
+                    // Use Y direction as boolean: if moved up (event.y < touchStartY), scroll positive
+                    val scrollDirection = if (event.y < touchStartY) 1f else -1f
+                    
+                    // Calculate scroll amount based on total distance
+                    val scrollAmount = (totalDistance / (height * config.appSpacing * 10)) * config.scrollSensitivity
+                    
                     val apps = getDisplayedApps()
 
                     if (apps.isNotEmpty()) {
@@ -993,7 +1005,9 @@ class RainbowPathView @JvmOverloads constructor(
                         val validMinScroll = minScroll.coerceAtMost(maxScroll)
                         val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
 
-                        val newScrollOffset = scrollOffset + scrollDelta
+                        // Set scroll offset based on initial position + distance * direction
+                        val newScrollOffset = initialScrollOffset + scrollAmount * scrollDirection
+                        val scrollDelta = newScrollOffset - scrollOffset
 
                         // Check if we're at boundaries
                         val atTop = scrollOffset >= validMaxScroll
