@@ -289,15 +289,11 @@ class RainbowPathView @JvmOverloads constructor(
         val filtered = if (inFolder) {
             appList
         } else if (onlyFavorites) {
-            appList.filter { 
-                if (it.folderName == null) {
-                    it.apps.firstOrNull()?.favorite == true
-                } else {
-                    it.favorite == true
-                }
-            }
+            // When onlyFavorites is true, show only folders (folderName != null)
+            appList.filter { it.folderName != null }
         } else {
-            appList
+            // When onlyFavorites is false, show only individual apps (folderName == null)
+            appList.filter { it.folderName == null }
         }
 
         // Sort based on config

@@ -73,9 +73,16 @@ class ViewModel : ViewModel() {
     }
 
     fun updateRainbowFiltered(onlyfavorites: Boolean){
-        val filtered = curateAppsInFolders(appsList.value!!).filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
-            addAll(rainbowMape.value!!.filter{if(onlyfavorites) it.favorite else true }.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)})
-            sortBy { if(it.folderName == null && it.apps.isNotEmpty()) it.apps.first().label.lowercase() else it.folderName?.lowercase() ?: "" }
+        val filtered = if (onlyfavorites) {
+            // When onlyFavorites is true, show only folders (all folders, no favorite filter)
+            rainbowMape.value!!.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)}.toMutableList().apply {
+                sortBy { it.folderName?.lowercase() ?: "" }
+            }
+        } else {
+            // When onlyFavorites is false, show ALL apps (including apps in folders), but don't show folders
+            appsList.value!!.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
+                sortBy { if(it.apps.isNotEmpty()) it.apps.first().label.lowercase() else "" }
+            }
         }
         rainbowFiltered = filtered
         Log.d("ingo22", Gson().toJson(filtered.map{sveit -> sveit.apps.map{appit -> appit.label}}))
