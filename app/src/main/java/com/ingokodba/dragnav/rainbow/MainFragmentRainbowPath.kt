@@ -266,10 +266,12 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
         val thing = apps[appIndex]
         if (thing.folderName != null) return // Should not happen, but safety check
-        
+
         val app = thing.apps.first()
         val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
+            // Save scroll position before launching app
+            pathView.saveScrollPosition()
             startActivity(launchIntent)
         }
     }
@@ -575,9 +577,12 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
     override fun onPause() {
         super.onPause()
+        // Save scroll position as safety net when fragment pauses
+        pathView.saveScrollPosition()
         flingJob?.cancel()
         countdownJob?.cancel()
         settingsCountdownJob?.cancel()
+        Log.d("MainFragmentRainbowPath", "onPause - scroll position saved")
     }
 
     override fun onDestroy() {
