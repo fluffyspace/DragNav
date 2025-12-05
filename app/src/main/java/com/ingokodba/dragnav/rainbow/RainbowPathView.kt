@@ -939,13 +939,12 @@ class RainbowPathView @JvmOverloads constructor(
                     // Touch outside popup - close it
                     hideShortcuts()
                 } else {
-                    // Check if touch is on an app and start long press countdown (reverse order for topmost app)
-                    drawnApps.asReversed().forEach { drawnApp ->
-                        if (drawnApp.rect.contains(event.x, event.y)) {
-                            touchedAppIndex = drawnApp.index
-                            eventListener?.onLongPressStart(drawnApp.index)
-                            return@forEach
-                        }
+                    // Check if touch is on an app and start long press countdown
+                    // Calculate directly to avoid stale drawnApps data
+                    val touchedIndex = getAppIndexAtTouchPosition(event.x, event.y)
+                    if (touchedIndex != null) {
+                        touchedAppIndex = touchedIndex
+                        eventListener?.onLongPressStart(touchedIndex)
                     }
                 }
 
@@ -1097,12 +1096,12 @@ class RainbowPathView @JvmOverloads constructor(
                             return true
                         }
 
-                        // Check for tap on app (reverse order to check topmost apps first)
-                        drawnApps.asReversed().forEach { drawnApp ->
-                            if (drawnApp.rect.contains(event.x, event.y)) {
-                                eventListener?.onAppClicked(drawnApp.index)
-                                return true
-                            }
+                        // Check for tap on app - calculate directly from touch coordinates
+                        // to avoid stale drawnApps data
+                        val clickedAppIndex = getAppIndexAtTouchPosition(event.x, event.y)
+                        if (clickedAppIndex != null) {
+                            eventListener?.onAppClicked(clickedAppIndex)
+                            return true
                         }
                     }
                 } else {
@@ -1166,7 +1165,11 @@ class RainbowPathView @JvmOverloads constructor(
 
         letterPositions[letter]?.let { appIndex ->
             // Calculate desired scroll position
-            val desiredScrollOffset = -appIndex * config.appSpacing
+            // Add an offset to ensure the first app with this letter is fully visible
+            // The offset brings the app up a bit so it's not cut off at the bottom
+            val baseScrollOffset = -appIndex * config.appSpacing
+            val visibilityOffset = config.appSpacing * 1f // Offset to ensure app is fully visible
+            val desiredScrollOffset = baseScrollOffset + visibilityOffset
             
             // Apply scroll limits to prevent overscrolling
             val (validMinScroll, validMaxScroll) = getValidScrollLimits()
@@ -1187,6 +1190,49 @@ class RainbowPathView @JvmOverloads constructor(
         drawnApps.asReversed().forEach { drawnApp ->
             if (drawnApp.rect.contains(x, y)) {
                 return drawnApp.index
+            }
+        }
+        return null
+    }
+
+    /**
+     * Calculate which app is at the given touch position by recalculating positions
+     * This avoids using potentially stale drawnApps data
+     */
+    private fun getAppIndexAtTouchPosition(x: Float, y: Float): Int? {
+        val apps = getDisplayedApps()
+        if (apps.isEmpty()) return null
+
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val iconSizePx = config.appIconSize * w
+        val bounceOffset = overscrollDistance * config.appSpacing
+
+        // Check apps in reverse order (last drawn = topmost)
+        // This matches the visual order when apps overlap
+        for (index in apps.size - 1 downTo 0) {
+            val thing = apps[index]
+            val baseT = index * config.appSpacing + scrollOffset + bounceOffset
+            val t = baseT.coerceIn(0f, 1f)
+
+            // Skip if outside visible range
+            if (baseT < -0.1f || baseT > 1.1f) continue
+
+            val point = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
+            val screenX = point.x * w
+            val screenY = (1 - point.y) * h
+
+            // Create rect for this app
+            val rect = RectF(
+                screenX - iconSizePx / 2,
+                screenY - iconSizePx / 2,
+                screenX + iconSizePx / 2,
+                screenY + iconSizePx / 2
+            )
+
+            if (rect.contains(x, y)) {
+                return index
             }
         }
         return null

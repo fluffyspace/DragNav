@@ -270,6 +270,8 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         val app = thing.apps.first()
         val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
+            // Cancel any pending long press countdown to prevent menu from opening on return
+            countdownJob?.cancel()
             // Save scroll position before launching app
             pathView.saveScrollPosition()
             startActivity(launchIntent)
