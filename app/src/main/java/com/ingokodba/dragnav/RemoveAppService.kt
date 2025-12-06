@@ -36,7 +36,7 @@ class RemoveAppService : Service() {
                 if (app != null) {
                     withContext(Dispatchers.Main) {
                         mainActivity.viewModel.removeApp(app)
-                        mainActivity.activitiesFragment.radapter?.notifyDataSetChanged()
+                        mainActivity.activitiesFragment?.radapter?.notifyDataSetChanged()
                         Log.v("ingo", "app removed for sure!")
                     }
                 }

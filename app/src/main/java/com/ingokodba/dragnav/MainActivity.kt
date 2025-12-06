@@ -25,9 +25,15 @@ import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.ListPopupWindow
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.blue
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.green
@@ -38,8 +44,12 @@ import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.ingokodba.dragnav.navigation.NavRoute
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ingokodba.dragnav.compose.AppNavigation
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
@@ -147,11 +157,14 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     var import_export_action:Int = 0
 
-    lateinit var mainFragment:MainFragmentInterface
-    lateinit var searchFragment:SearchFragment
-    lateinit var activitiesFragment:ActivitiesFragment
-    lateinit var actionsFragment:ActionsFragment
-    lateinit var fragmentContainer: FragmentContainerView
+    var mainFragment: MainFragmentInterface? = null
+    var searchFragment: SearchFragment? = null
+    var activitiesFragment: ActivitiesFragment? = null
+    var actionsFragment: ActionsFragment? = null
+    var fragmentContainer: FragmentContainerView? = null
+    
+    // Navigation controller for Compose navigation
+    var navController: androidx.navigation.NavController? = null
 
     private var appListener: AppListener? = null
     private var launcherCallbacks: ModelLauncherCallbacks? = null
@@ -313,36 +326,31 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         
         // Enable edge-to-edge for Android 15+ compatibility
         enableEdgeToEdge()
-        this.setContentView(R.layout.activity_main)
-
-        // Handle window insets to prevent content from going behind system bars
-        val mainLayout = findViewById<FrameLayout>(R.id.mainlayout)
-        ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-            WindowInsetsCompat.CONSUMED
-        }
         
-        // Set up key event handling in root view
-        mainLayout.isFocusableInTouchMode = true
-        mainLayout.requestFocus()
-        mainLayout.setOnKeyListener { _, keyCode, event ->
-            if (keyCode == android.view.KeyEvent.KEYCODE_HOME) {
-                Log.d("HomeButtonTest", "Root view OnKeyListener - Home button detected - action: ${event?.action}, currentLayout: $currentLayout")
-                if (event?.action == android.view.KeyEvent.ACTION_UP && currentLayout == Layouts.LAYOUT_MAIN) {
-                    val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
-                    Log.d("HomeButtonTest", "Root view OnKeyListener - hasOpenDialogs: $hasOpenDialogs")
-                    if (!hasOpenDialogs) {
-                        Log.d("HomeButtonTest", "Root view OnKeyListener - Opening LAYOUT_ACTIVITIES")
-                        showLayout(Layouts.LAYOUT_ACTIVITIES)
-                        return@setOnKeyListener true
+        // Set up Compose UI
+        setContent {
+            MaterialTheme {
+                val navController = rememberNavController()
+                
+                // Track current layout state
+                var currentLayoutState by remember { mutableStateOf(Layouts.LAYOUT_MAIN) }
+                
+                // Handle back press
+                androidx.activity.compose.BackHandler(enabled = currentLayoutState != Layouts.LAYOUT_MAIN) {
+                    if (currentLayoutState != Layouts.LAYOUT_MAIN) {
+                        navController.popBackStack()
+                        currentLayoutState = Layouts.LAYOUT_MAIN
                     }
                 }
+                
+                AppNavigation(
+                    navController = navController,
+                    mainActivity = this@MainActivity,
+                    currentLayout = currentLayoutState,
+                    onLayoutChange = { currentLayoutState = it }
+                )
             }
-            false
         }
-        
-        fragmentContainer = findViewById(R.id.fragment_container)
 
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
@@ -353,16 +361,18 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         lifecycleScope.launch(Dispatchers.IO) {
             initializeRoom()
             withContext(Dispatchers.Main) {
-                mainFragment.iconsUpdated()
-                mainFragment.goToHome()
-                //mainFragment.updateStuff();
+                // Wait for mainFragment to be initialized by Compose
+                // This will be called after the fragment is created
+                // mainFragment.iconsUpdated()
+                // mainFragment.goToHome()
             }
             if(circleViewLoadIcons) loadIcons()
             Log.d("ingo", "initializeRoom after loadicons")
             saveNewApps()
             withContext(Dispatchers.Main) {
                 Log.d("ingo", "vm.pocetna ima id " + viewModel.pocetnaId.toString())
-                mainFragment.iconsUpdated()
+                // Wait for fragment initialization
+                // mainFragment.iconsUpdated()
             }
         }
 
@@ -402,31 +412,10 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         }
     }
 
+    // Fragments are now loaded via Compose navigation, but we keep references for compatibility
     fun loadFragments(){
-        mainFragment = when(uiDesignMode){
-            UiDesignEnum.CIRCLE, UiDesignEnum.CIRCLE_RIGHT_HAND, UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragment()
-            //UiDesignEnum.CIRCLE_RIGHT_HAND -> MainFragmentRightHand(true)
-            //UiDesignEnum.CIRCLE_LEFT_HAND -> MainFragmentRightHand(false)
-            UiDesignEnum.RAINBOW_RIGHT -> MainFragmentRainbow(true)
-            UiDesignEnum.RAINBOW_LEFT -> MainFragmentRainbow(false)
-            UiDesignEnum.KEYPAD -> MainFragmentTipke()
-            UiDesignEnum.RAINBOW_PATH -> com.ingokodba.dragnav.rainbow.MainFragmentRainbowPath()
-        }
-
-        searchFragment = SearchFragment()
-        activitiesFragment = ActivitiesFragment(uiDesignMode)
-        actionsFragment = ActionsFragment()
-        supportFragmentManager
-            .beginTransaction()
-            .setReorderingAllowed(true)
-            .replace(R.id.fragment_container, mainFragment.fragment, "main")
-            .setReorderingAllowed(true)
-            .commit()
-
-        if(uiDesignMode == UiDesignEnum.RAINBOW_RIGHT || uiDesignMode == UiDesignEnum.RAINBOW_LEFT){
-            // TODO: provjeri da li se ovo postavi ili ne
-            activitiesFragment.radapter?.showAddToHomescreen = false
-        }
+        // Fragments will be created by Compose composables as needed
+        // This method is kept for compatibility but fragments are created lazily
     }
 
     fun getPolje(id:Int): KrugSAplikacijama?{
@@ -434,50 +423,20 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     }
 
     fun showMainFragment(){
-        supportFragmentManager.popBackStack()
+        navController?.popBackStack(NavRoute.Main.route, false)
+        mainFragment?.refreshCurrentMenu()
     }
 
     fun showActionsFragment(){
-        supportFragmentManager.commit {
-            setCustomAnimations(
-                R.anim.slideup,
-                R.anim.fadeout,
-                R.anim.fadein,
-                R.anim.slidedown
-            )
-            replace(R.id.fragment_container, actionsFragment, "actions")
-            setReorderingAllowed(true)
-            addToBackStack(null)
-        }
+        navController?.navigate(NavRoute.Actions.route)
     }
 
     fun showActivitiesFragment(){
-        supportFragmentManager.commit {
-            setCustomAnimations(
-                R.anim.slideup,
-                R.anim.fadeout,
-                R.anim.fadein,
-                R.anim.slidedown
-            )
-            replace(R.id.fragment_container, activitiesFragment, "activities")
-            setReorderingAllowed(true)
-            addToBackStack("activities")
-        }
-
+        navController?.navigate(NavRoute.Activities.route)
     }
 
     fun showSearchFragment(){
-        supportFragmentManager.commit {
-            setCustomAnimations(
-                R.anim.slidein,
-                R.anim.fadeout,
-                R.anim.fadein,
-                R.anim.slideout
-            )
-            replace(R.id.fragment_container, searchFragment, "search")
-            setReorderingAllowed(true)
-            addToBackStack(null)
-        }
+        navController?.navigate(NavRoute.Search.route)
     }
 
 
@@ -513,7 +472,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                 Log.d("ingo", "showActivitiesFragment")
             }
             Layouts.LAYOUT_ACTIONS -> {
-                actionsFragment.actions = actions
+                actionsFragment?.actions = actions
                 showActionsFragment()
                 Log.d("ingo", "showActionsFragment")
             }
@@ -522,7 +481,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             }
             Layouts.LAYOUT_MAIN -> {
                 showMainFragment()
-                mainFragment.refreshCurrentMenu()
+                mainFragment?.refreshCurrentMenu()
             }
             Layouts.LAYOUT_SETTINGS -> {
                 val intent = Intent(this, SettingsActivity::class.java)
@@ -586,14 +545,14 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
             if(data != null){
                 if(data.hasExtra("refresh"))
                 {
-                    mainFragment.refreshCurrentMenu()
+                    mainFragment?.refreshCurrentMenu()
                 }
                 if(data.hasExtra("reload_apps"))
                 {
                     lifecycleScope.launch(Dispatchers.IO) {
                     initializeRoom()
                         withContext(Dispatchers.Main){
-                            mainFragment.refreshCurrentMenu()
+                            mainFragment?.refreshCurrentMenu()
                         }
                     }
                 }
@@ -669,7 +628,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                 withContext(Dispatchers.Main) {
                     toggleAppMenu(0)
                     showLayout(Layouts.LAYOUT_MAIN)
-                    mainFragment.refreshCurrentMenu()
+                    mainFragment?.refreshCurrentMenu()
                 }
             }
         }
@@ -701,7 +660,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         lastPauseTime = 0
         
         //recreate()
-        mainFragment.refreshCurrentMenu()
+        mainFragment?.refreshCurrentMenu()
         Log.d("ingo", "invalidated")
     }
 
@@ -787,12 +746,16 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     fun showMyDialog(editSelected:Int) {
         if(editSelected == -1) return
         viewModel.trenutnoPrikazanaPolja[editSelected].let { krugSAplikacijom ->
-            openFolderNameMenu(fragmentContainer, true, krugSAplikacijom.text, false) { ime ->
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val novoPolje = krugSAplikacijom.copy(text=ime, color=this@MainActivity.gcolor.toString())
-                    databaseUpdateItem(novoPolje)
-                    withContext(Dispatchers.Main){
-                        mainFragment.refreshCurrentMenu()
+            // Use window decor view as fallback if fragmentContainer is null
+            val containerView = fragmentContainer ?: window?.decorView?.rootView
+            if (containerView != null) {
+                openFolderNameMenu(containerView, true, krugSAplikacijom.text, false) { ime ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val novoPolje = krugSAplikacijom.copy(text=ime, color=this@MainActivity.gcolor.toString())
+                        databaseUpdateItem(novoPolje)
+                        withContext(Dispatchers.Main){
+                            mainFragment?.refreshCurrentMenu()
+                        }
                     }
                 }
             }
@@ -897,7 +860,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                     val index = viewModel.appsList.value!!.indexOf(
                         viewModel.appsList.value!!.find{it.packageName == packageName}
                     )
-                    activitiesFragment.radapter?.notifyItemInserted(index)
+                    activitiesFragment?.radapter?.notifyItemInserted(index)
                 }
             } catch (e: Exception) {
                 Log.e("ingokodba", "Error loading app $packageName", e)
@@ -1318,19 +1281,19 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         if(currentLayout != Layouts.LAYOUT_MAIN){
             showLayout(Layouts.LAYOUT_MAIN)
         } else {
-            val processed = mainFragment.onBackPressed()
+            val processed = mainFragment?.onBackPressed() ?: false
             if(!processed){
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
             }
             /*
             if(viewModel.editMode){
-                mainFragment.toggleEditMode()
+                mainFragment?.toggleEditMode()
             } else if(backButtonAction) {
                 showLayout(Layouts.LAYOUT_SEARCH)
             } else {
                 showLayout(Layouts.LAYOUT_ACTIVITIES)
             }*/
-            //mainFragment.updateStuff()
+            //mainFragment?.updateStuff()
         }
         //super.onBackPressed()
     }
@@ -1488,7 +1451,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                 Log.d("ingo", trenutnoPolje.polja.toString())
             }
             withContext(Dispatchers.Main) {
-                mainFragment.refreshCurrentMenu()
+                mainFragment?.refreshCurrentMenu()
             }
         }
     }
@@ -1564,7 +1527,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         lifecycleScope.launch(Dispatchers.IO) {
             databaseDeleteById(viewModel.trenutnoPrikazanaPolja[editSelected].id)
             withContext(Dispatchers.Main){
-                mainFragment.selectedItemDeleted()
+                mainFragment?.selectedItemDeleted()
             }
         }
     }

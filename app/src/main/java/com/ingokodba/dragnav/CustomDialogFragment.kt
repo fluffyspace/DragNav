@@ -96,7 +96,7 @@ class CustomDialogFragment(polje: KrugSAplikacijama) : DialogFragment() {
                 polje.color = (activity as MainActivity).gcolor.toString()
                 (activity as MainActivity).databaseUpdateItem(polje)
                 withContext(Dispatchers.Main){
-                    (activity as MainActivity).mainFragment.refreshCurrentMenu()
+                    (activity as MainActivity).mainFragment?.refreshCurrentMenu()
                 }
             }
             dismiss()

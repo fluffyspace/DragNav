@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -209,10 +212,10 @@ private fun SearchBar(
                 ),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                 singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    imeAction = EditorInfo.IME_ACTION_SEARCH
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
                 ),
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                keyboardActions = KeyboardActions(
                     onSearch = { onSearch() }
                 )
             )
