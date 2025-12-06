@@ -106,6 +106,19 @@ class RainbowPathView @JvmOverloads constructor(
             }
         }
     }
+    
+    // Icon loading check runnable - periodically checks if visible app icons have been loaded
+    private val iconCheckRunnable = object : Runnable {
+        override fun run() {
+            if (visibleAppsMissingIcons.isNotEmpty()) {
+                checkAndInvalidateIfIconsLoaded()
+                // Continue checking every 100ms until all visible icons are loaded
+                postDelayed(this, 100)
+            }
+        }
+    }
+    
+    private var iconCheckActive = false
 
     // Overscroll effects
     private var topEdgeEffect: EdgeEffect? = null
@@ -120,6 +133,10 @@ class RainbowPathView @JvmOverloads constructor(
         val pathPosition: Float
     )
     private val drawnApps = mutableListOf<DrawnAppInfo>()
+    
+    // Visible apps tracking for icon loading detection
+    private val visiblePackageNames = mutableSetOf<String>()
+    private val visibleAppsMissingIcons = mutableSetOf<String>()
 
     // Letter index for fast scrolling
     private val letterPositions = mutableMapOf<Char, Int>()
@@ -254,6 +271,13 @@ class RainbowPathView @JvmOverloads constructor(
         Log.d("RainbowPath", "setApps: apps.size=${apps.size}, inFolder=$inFolder, scrollOffset=$scrollOffset, folderScrollOffset=$folderScrollOffset, allAppsScrollOffset=$allAppsScrollOffset, favoritesScrollOffset=$favoritesScrollOffset")
 
         invalidate()
+        
+        // After invalidate, the next draw will populate visibleAppsMissingIcons
+        // Post a check to start monitoring after the first draw completes
+        post {
+            // This will start the periodic check if there are missing icons after the first draw
+            checkAndInvalidateIfIconsLoaded()
+        }
     }
     
     fun saveScrollPosition() {
@@ -481,6 +505,10 @@ class RainbowPathView @JvmOverloads constructor(
 
         drawnApps.clear()
         shortcutRects.clear()
+        
+        // Track visible apps and missing icons for automatic rerender when icons load
+        visiblePackageNames.clear()
+        visibleAppsMissingIcons.clear()
 
         val w = width.toFloat()
         val h = height.toFloat()
@@ -551,6 +579,56 @@ class RainbowPathView @JvmOverloads constructor(
 
         // Draw edge effects for overscroll (LAST, with isolated canvas state)
         drawEdgeEffects(canvas, w.toInt(), h.toInt())
+        
+        // Check if any visible apps' icons have been loaded after draw completes
+        // Post this check to run after the draw cycle completes
+        if (visibleAppsMissingIcons.isNotEmpty()) {
+            post {
+                checkAndInvalidateIfIconsLoaded()
+            }
+        }
+    }
+    
+    /**
+     * Check if icons for visible apps that were previously missing have now been loaded.
+     * If so, invalidate to trigger a redraw.
+     * Also starts/stops the periodic check runnable based on whether icons are missing.
+     */
+    private fun checkAndInvalidateIfIconsLoaded() {
+        if (visibleAppsMissingIcons.isEmpty()) {
+            // No missing icons - stop periodic checking
+            if (iconCheckActive) {
+                removeCallbacks(iconCheckRunnable)
+                iconCheckActive = false
+            }
+            return
+        }
+        
+        // Start periodic checking if not already active
+        if (!iconCheckActive) {
+            iconCheckActive = true
+            post(iconCheckRunnable)
+        }
+        
+        // Check if any of the previously missing icons are now available
+        val nowAvailable = visibleAppsMissingIcons.filter { packageName ->
+            icons[packageName] != null
+        }
+        
+        if (nowAvailable.isNotEmpty()) {
+            // Remove from missing set since they're now available
+            visibleAppsMissingIcons.removeAll(nowAvailable)
+            // Trigger a redraw to show the newly loaded icons
+            invalidate()
+        }
+    }
+    
+    /**
+     * Public method to notify that icons may have been updated.
+     * This should be called when icons are set/updated externally.
+     */
+    fun onIconsUpdated() {
+        checkAndInvalidateIfIconsLoaded()
     }
 
     private fun drawEdgeEffects(canvas: Canvas, width: Int, height: Int) {
@@ -645,6 +723,7 @@ class RainbowPathView @JvmOverloads constructor(
                     for (j in 0..1) {
                         if (i * 2 + j >= thing.apps.size) break
                         val app = thing.apps[i * 2 + j]
+                        visiblePackageNames.add(app.packageName)
                         val icon = icons[app.packageName]?.toBitmap()
                         if (icon != null) {
                             val iconRect = RectF(
@@ -655,6 +734,8 @@ class RainbowPathView @JvmOverloads constructor(
                             )
                             canvas.drawBitmap(icon, null, iconRect, iconPaint)
                         } else {
+                            // Track that this visible app is missing its icon
+                            visibleAppsMissingIcons.add(app.packageName)
                             // Fallback: draw colored circle
                             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                                 color = try {
@@ -687,10 +768,13 @@ class RainbowPathView @JvmOverloads constructor(
             } else {
                 // Draw single app icon
                 val app = thing.apps.first()
+                visiblePackageNames.add(app.packageName)
                 val icon = icons[app.packageName]?.toBitmap()
                 if (icon != null) {
                     canvas.drawBitmap(icon, null, rect, iconPaint)
                 } else {
+                    // Track that this visible app is missing its icon
+                    visibleAppsMissingIcons.add(app.packageName)
                     // Fallback: draw colored circle
                     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                         color = try {

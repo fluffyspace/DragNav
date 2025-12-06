@@ -161,6 +161,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         // Load icons if available
         viewModel.icons.value?.let {
             pathView.icons = it
+            pathView.onIconsUpdated() // Check if visible app icons have been loaded
         }
 
         // Load apps
@@ -191,6 +192,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             icons?.let {
                 pathView.icons = it
                 pathView.invalidate()
+                pathView.onIconsUpdated() // Check if visible app icons have been loaded
                 searchOverlay.setIcons(it)
             }
         }
@@ -251,6 +253,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
         viewModel.icons.value?.let {
             pathView.icons = it
+            pathView.onIconsUpdated() // Check if visible app icons have been loaded
         }
         pathView.invalidate()
     }
@@ -656,6 +659,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         viewModel.icons.value?.let {
             pathView.icons = it
             pathView.invalidate()
+            pathView.onIconsUpdated() // Check if visible app icons have been loaded
         }
     }
 
