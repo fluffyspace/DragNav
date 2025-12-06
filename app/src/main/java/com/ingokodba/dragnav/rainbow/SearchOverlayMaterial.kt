@@ -26,11 +26,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
@@ -55,10 +61,40 @@ fun SearchOverlayMaterial(
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    val density = LocalDensity.current
+    val view = LocalView.current
     var searchQuery by remember { mutableStateOf("") }
     var filteredApps by remember { mutableStateOf(apps) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var wasKeyboardVisible by remember { mutableStateOf(false) }
+    var previousImeBottom by remember { mutableStateOf(0) }
+    
+    // Read IME bottom inset in composable context
+    val currentImeBottom = with(density) { WindowInsets.ime.getBottom(this) }
+    
+    // Control status bar appearance based on overlay visibility
+    var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(visible) {
+        val window = (view.context as? android.app.Activity)?.window
+        val windowInsetsController = window?.let { WindowCompat.getInsetsController(it, view) }
+        
+        if (visible) {
+            // Remember original state if not already remembered
+            if (originalStatusBarAppearance == null) {
+                originalStatusBarAppearance = windowInsetsController?.isAppearanceLightStatusBars
+            }
+            // Make status bar icons white (light icons) for dark background
+            windowInsetsController?.isAppearanceLightStatusBars = false
+        } else {
+            // Restore original status bar appearance
+            originalStatusBarAppearance?.let { original ->
+                windowInsetsController?.isAppearanceLightStatusBars = original
+            }
+            originalStatusBarAppearance = null
+        }
+    }
     
     // Update filtered apps when query or apps change
     LaunchedEffect(searchQuery, apps) {
@@ -73,14 +109,38 @@ fun SearchOverlayMaterial(
         }
     }
     
-    // Show keyboard when overlay becomes visible
+    // Show keyboard and focus when overlay becomes visible
     LaunchedEffect(visible) {
         if (visible) {
             delay(100)
+            focusRequester.requestFocus()
             keyboardController?.show()
+            wasKeyboardVisible = true
         } else {
             keyboardController?.hide()
             searchQuery = ""
+            wasKeyboardVisible = false
+            previousImeBottom = 0
+        }
+    }
+    
+    // Track IME bottom changes and detect when keyboard closes
+    LaunchedEffect(currentImeBottom, visible, wasKeyboardVisible) {
+        if (visible) {
+            if (currentImeBottom > 0) {
+                // Keyboard is visible - update tracking
+                if (previousImeBottom == 0) {
+                    // Keyboard just appeared
+                    previousImeBottom = currentImeBottom
+                } else if (currentImeBottom != previousImeBottom) {
+                    // Keyboard height changed
+                    previousImeBottom = currentImeBottom
+                }
+            } else if (wasKeyboardVisible && previousImeBottom > 0) {
+                // Keyboard was visible but now closed - dismiss overlay
+                delay(100) // Small delay to ensure keyboard is fully closed
+                onDismiss()
+            }
         }
     }
     
@@ -103,7 +163,10 @@ fun SearchOverlayMaterial(
                 }
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.systemBars)
+                    .windowInsetsPadding(WindowInsets.ime)
             ) {
                 // Search bar
                 SearchBar(
@@ -115,6 +178,7 @@ fun SearchOverlayMaterial(
                         }
                     },
                     onDismiss = onDismiss,
+                    focusRequester = focusRequester,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 24.dp)
@@ -158,6 +222,7 @@ private fun SearchBar(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onDismiss: () -> Unit,
+    focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -187,6 +252,7 @@ private fun SearchBar(
                 onValueChange = onQueryChange,
                 modifier = Modifier
                     .weight(1f)
+                    .focusRequester(focusRequester)
                     .onKeyEvent { event ->
                         if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
                             onDismiss()
