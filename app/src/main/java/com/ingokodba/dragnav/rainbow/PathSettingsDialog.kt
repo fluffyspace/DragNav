@@ -220,6 +220,42 @@ class PathSettingsDialog(
                 config = config.copy(polygonSegments = it.toInt())
                 notifyChange()
             })
+
+            // Path line color (hue)
+            addView(createLabel("Path Line Color (Hue)"))
+            addView(TextView(context).apply {
+                text = "0 = Red, 120 = Green, 240 = Blue, 360 = Red"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(0f, 360f, config.pathHue) {
+                config = config.copy(pathHue = it)
+                notifyChange()
+            })
+
+            // Path line transparency
+            addView(createLabel("Path Line Transparency"))
+            addView(TextView(context).apply {
+                text = "0 = Fully transparent, 255 = Fully opaque"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(0f, 255f, config.pathAlpha) {
+                config = config.copy(pathAlpha = it)
+                notifyChange()
+            })
+
+            // Path line width
+            addView(createLabel("Path Line Width"))
+            addView(TextView(context).apply {
+                text = "Line width in pixels"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(0.5f, 20f, config.pathWidth) {
+                config = config.copy(pathWidth = it)
+                notifyChange()
+            })
         }
     }
 

@@ -31,6 +31,11 @@ data class PathConfig(
     // For curved polygon, number of segments
     val polygonSegments: Int = 8,
 
+    // Path line color (hue in degrees, 0-360)
+    val pathHue: Float = 0f,  // 0 = red, 120 = green, 240 = blue
+    val pathAlpha: Float = 255f,  // Transparency (0 = fully transparent, 255 = fully opaque)
+    val pathWidth: Float = 2f,  // Line width in pixels
+
     // App display settings
     val appIconSize: Float = 0.08f,                  // Size relative to screen width
     val appSpacing: Float = 0.05f,                   // Spacing between apps (0-1 of path length)

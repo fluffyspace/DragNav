@@ -38,6 +38,8 @@ class RainbowPathView @JvmOverloads constructor(
     var config: PathConfig = PathConfig()
         set(value) {
             field = value
+            updateDebugPaintColor()
+            updateDebugPaintWidth()
             invalidate()
         }
 
@@ -209,9 +211,24 @@ class RainbowPathView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
     private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 2f
+    }
+    
+    private fun updateDebugPaintColor() {
+        // Convert hue (0-360) to RGB color using HSV color space
+        // Use full saturation (1.0) and full brightness (1.0) for vibrant colors
+        val hsv = floatArrayOf(
+            config.pathHue.coerceIn(0f, 360f),
+            1.0f,  // Saturation
+            1.0f   // Value (brightness)
+        )
+        val alpha = config.pathAlpha.coerceIn(0f, 255f).toInt()
+        debugPaint.color = Color.HSVToColor(alpha, hsv)
+    }
+    
+    private fun updateDebugPaintWidth() {
+        debugPaint.strokeWidth = config.pathWidth.coerceAtLeast(0.5f)
     }
 
     // Debug mode
@@ -239,6 +256,8 @@ class RainbowPathView @JvmOverloads constructor(
         bottomEdgeEffect = EdgeEffect(context)
         topEdgeEffect?.setSize(w, h)
         bottomEdgeEffect?.setSize(w, h)
+        updateDebugPaintColor()
+        updateDebugPaintWidth()
     }
 
     fun setApps(apps: List<EncapsulatedAppInfoWithFolder>) {
