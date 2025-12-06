@@ -1,10 +1,14 @@
 package com.ingokodba.dragnav.rainbow
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.*
 import android.graphics.drawable.Drawable
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
+import android.util.SparseArray
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -72,6 +76,9 @@ class RainbowPathView @JvmOverloads constructor(
 
                 // Rebuild letter index for the new app list
                 updateLetterPositions()
+
+                // Save state after toggling favorites
+                saveScrollStateToPrefs()
 
                 invalidate()
             }
@@ -155,6 +162,14 @@ class RainbowPathView @JvmOverloads constructor(
 
     // Event listener
     private var eventListener: EventListener? = null
+
+    // SharedPreferences for persistent scroll state storage (survives process death)
+    private val prefs: SharedPreferences by lazy {
+        context.getSharedPreferences("rainbow_path_view_state", Context.MODE_PRIVATE)
+    }
+    
+    // Unique ID for this view instance (used to differentiate multiple instances)
+    private val viewStateId: String = "rainbow_path_view_default"
 
     // Paints
     private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -259,17 +274,77 @@ class RainbowPathView @JvmOverloads constructor(
         updateDebugPaintColor()
         updateDebugPaintWidth()
     }
+    
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Save state when view is detached (e.g., Activity going to background)
+        saveScrollStateToPrefs()
+        Log.d("RainbowPath", "onDetachedFromWindow - saved scroll state")
+    }
+    
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Try to restore state when view is attached (may be after process death)
+        if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f && folderScrollOffset == 0f) {
+            loadScrollStateFromPrefs()
+            Log.d("RainbowPath", "onAttachedToWindow - restored scroll state from prefs")
+        }
+    }
+    
+    /**
+     * Save scroll state to SharedPreferences (survives process death)
+     */
+    private fun saveScrollStateToPrefs() {
+        prefs.edit().apply {
+            putFloat("${viewStateId}_all_apps_scroll", allAppsScrollOffset)
+            putFloat("${viewStateId}_favorites_scroll", favoritesScrollOffset)
+            putFloat("${viewStateId}_folder_scroll", folderScrollOffset)
+            putBoolean("${viewStateId}_only_favorites", onlyFavorites)
+            putBoolean("${viewStateId}_in_folder", inFolder)
+            putFloat("${viewStateId}_current_scroll", scrollOffset)
+            apply()
+        }
+        Log.d("RainbowPath", "Saved scroll state: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset, inFolder=$inFolder, current=$scrollOffset")
+    }
+    
+    /**
+     * Load scroll state from SharedPreferences (called after process death)
+     */
+    private fun loadScrollStateFromPrefs() {
+        allAppsScrollOffset = prefs.getFloat("${viewStateId}_all_apps_scroll", 0f)
+        favoritesScrollOffset = prefs.getFloat("${viewStateId}_favorites_scroll", 0f)
+        folderScrollOffset = prefs.getFloat("${viewStateId}_folder_scroll", 0f)
+        val savedOnlyFavorites = prefs.getBoolean("${viewStateId}_only_favorites", false)
+        val savedInFolder = prefs.getBoolean("${viewStateId}_in_folder", false)
+        val savedCurrentScroll = prefs.getFloat("${viewStateId}_current_scroll", 0f)
+        
+        // Only restore if we have saved values (not defaults)
+        if (allAppsScrollOffset != 0f || favoritesScrollOffset != 0f || folderScrollOffset != 0f || savedCurrentScroll != 0f) {
+            onlyFavorites = savedOnlyFavorites
+            inFolder = savedInFolder
+            scrollOffset = savedCurrentScroll
+            Log.d("RainbowPath", "Loaded scroll state from prefs: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset, inFolder=$inFolder, current=$scrollOffset")
+        }
+    }
 
     fun setApps(apps: List<EncapsulatedAppInfoWithFolder>) {
         Log.d("RainbowPath", "setApps called with ${apps.size} apps")
         appList = apps
         updateLetterPositions()
 
+        // Try to load saved scroll state from SharedPreferences first (for process death recovery)
+        if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f && folderScrollOffset == 0f) {
+            loadScrollStateFromPrefs()
+        }
+
         // Initialize scroll positions to show first app fully visible at start of path
         // Using maxScroll value to position first app at t≈0 (start of path)
+        // Only initialize to default if we still don't have saved values
         if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f) {
             allAppsScrollOffset = config.appSpacing
             favoritesScrollOffset = config.appSpacing
+            // Save default values
+            saveScrollStateToPrefs()
         }
         
         // Initialize folder scroll offset if not set
@@ -307,6 +382,8 @@ class RainbowPathView @JvmOverloads constructor(
         } else {
             allAppsScrollOffset = scrollOffset
         }
+        // Also save to SharedPreferences for process death recovery
+        saveScrollStateToPrefs()
     }
     
     fun restoreScrollPosition() {
@@ -329,6 +406,8 @@ class RainbowPathView @JvmOverloads constructor(
         // Update folder scroll offset when scrolling inside folder
         if (inFolder) {
             folderScrollOffset = scrollOffset
+            // Save to SharedPreferences periodically during scrolling
+            saveScrollStateToPrefs()
         }
     }
 
@@ -474,6 +553,8 @@ class RainbowPathView @JvmOverloads constructor(
                 isFling = false
                 scrollVelocity = 0f
                 eventListener?.onFlingEnded()
+                // Save state when fling ends at boundary
+                saveScrollStateToPrefs()
             } else {
                 // Normal fling
                 scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
@@ -486,6 +567,8 @@ class RainbowPathView @JvmOverloads constructor(
         if (abs(scrollVelocity) < flingStopThreshold) {
             isFling = false
             eventListener?.onFlingEnded()
+            // Save state when fling ends
+            saveScrollStateToPrefs()
         }
 
         invalidate()
@@ -1160,7 +1243,7 @@ class RainbowPathView @JvmOverloads constructor(
                         } else {
                             // Normal scrolling
                             scrollOffset = newScrollOffset.coerceIn(validMinScroll, validMaxScroll)
-                            // Update folder scroll position if in folder
+                            // Update folder scroll position if in folder (this saves to prefs)
                             updateFolderScrollPosition()
 
                             // Track velocity - use actual finger movement speed without multiplier
@@ -1259,6 +1342,8 @@ class RainbowPathView @JvmOverloads constructor(
                         postOnAnimation(flingRunnable)
                     } else {
                         Log.d("RainbowPath", "Velocity too low for fling: $scrollVelocity (min: $minFlingVelocity)")
+                        // Save state when drag ends without fling
+                        saveScrollStateToPrefs()
                     }
                 }
 

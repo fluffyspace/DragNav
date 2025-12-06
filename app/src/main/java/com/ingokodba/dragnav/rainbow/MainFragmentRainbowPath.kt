@@ -75,6 +75,13 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         settingsButton = view.findViewById(R.id.settings_button)
         searchOverlay = view.findViewById(R.id.search_overlay)
 
+        // Restore fragment state if available
+        savedInstanceState?.let {
+            inFolder = it.getBoolean("in_folder", false)
+            pathView.inFolder = inFolder
+            Log.d("MainFragmentRainbowPath", "onViewCreated - restored inFolder=$inFolder from savedInstanceState")
+        }
+
         // Load saved config
         loadConfig()
 
@@ -676,6 +683,24 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Save fragment state (inFolder flag)
+        outState.putBoolean("in_folder", inFolder)
+        // The view will save scroll positions via SharedPreferences in onDetachedFromWindow
+        Log.d("MainFragmentRainbowPath", "onSaveInstanceState - saved inFolder=$inFolder")
+    }
+    
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        // Restore fragment state
+        savedInstanceState?.let {
+            inFolder = it.getBoolean("in_folder", false)
+            pathView.inFolder = inFolder
+            Log.d("MainFragmentRainbowPath", "onViewStateRestored - restored inFolder=$inFolder")
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         // Save scroll position as safety net when fragment pauses
@@ -688,9 +713,12 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
     override fun onDestroy() {
         super.onDestroy()
+        // Save scroll position one final time before destruction
+        pathView.saveScrollPosition()
         flingJob?.cancel()
         countdownJob?.cancel()
         settingsCountdownJob?.cancel()
+        Log.d("MainFragmentRainbowPath", "onDestroy - scroll position saved")
     }
 
     override fun onBackPressed(): Boolean {

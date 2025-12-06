@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -207,6 +208,7 @@ fun SearchOverlayMaterial(
                             },
                             onClick = { onAppClicked(item) },
                             onLongClick = { onAppLongPressed(item) },
+                            isSelected = index == 0,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -295,20 +297,36 @@ private fun AppListItem(
     icon: Drawable?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    isSelected: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
             .height(80.dp)
             .clip(RoundedCornerShape(16.dp))
+            .then(
+                if (isSelected) {
+                    Modifier.border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .pointerInput(item) {
                 detectTapGestures(
                     onTap = { onClick() },
                     onLongPress = { onLongClick() }
                 )
             },
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        tonalElevation = 2.dp
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f)
+        } else {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+        },
+        tonalElevation = if (isSelected) 4.dp else 2.dp
     ) {
         Row(
             modifier = Modifier
@@ -374,9 +392,13 @@ private fun AppListItem(
                 text = item.folderName ?: item.apps.firstOrNull()?.label ?: "",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
                 modifier = Modifier.weight(1f)
             )
         }
