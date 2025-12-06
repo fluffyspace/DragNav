@@ -41,6 +41,12 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintRight_toRightOf="parent" />
 
+        <com.ingokodba.dragnav.rainbow.SearchOverlayMaterialView
+            android:id="@+id/search_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </FrameLayout>

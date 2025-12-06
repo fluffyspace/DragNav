@@ -34,6 +34,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
     private lateinit var pathView: RainbowPathView
     private lateinit var settingsButton: ImageButton
+    private lateinit var searchOverlay: SearchOverlayMaterialView
     private lateinit var mActivity: MainActivity
 
     private val viewModel: ViewModel by activityViewModels()
@@ -72,6 +73,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
         pathView = view.findViewById(R.id.rainbow_path_view)
         settingsButton = view.findViewById(R.id.settings_button)
+        searchOverlay = view.findViewById(R.id.search_overlay)
 
         // Load saved config
         loadConfig()
@@ -120,6 +122,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
             override fun onLongPressStart(appIndex: Int) {
                 startLongPressCountdown()
+            }
+
+            override fun onSearchButtonClicked() {
+                showSearchOverlay()
             }
         })
 
@@ -185,6 +191,7 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             icons?.let {
                 pathView.icons = it
                 pathView.invalidate()
+                searchOverlay.setIcons(it)
             }
         }
 
@@ -333,6 +340,94 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
 
     private fun stopCountdownForSettings() {
         settingsCountdownJob?.cancel()
+    }
+
+    private fun showSearchOverlay() {
+        // Get all apps and folders for search
+        val allAppsForSearch = mutableListOf<EncapsulatedAppInfoWithFolder>()
+        
+        // Add all individual apps
+        viewModel.appsList.value?.let { apps ->
+            allAppsForSearch.addAll(
+                apps.map { EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) }
+            )
+        }
+        
+        // Add all folders
+        viewModel.rainbowMape.value?.let { folders ->
+            allAppsForSearch.addAll(
+                folders.map { EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) }
+            )
+        }
+        
+        searchOverlay.setApps(allAppsForSearch)
+        viewModel.icons.value?.let {
+            searchOverlay.setIcons(it)
+        }
+        
+        searchOverlay.setListener(object : SearchOverlayMaterialView.SearchOverlayListener {
+            override fun onAppClicked(app: EncapsulatedAppInfoWithFolder) {
+                searchOverlay.hide()
+                if (app.folderName == null && app.apps.isNotEmpty()) {
+                    // Launch app
+                    val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(app.apps.first().packageName)
+                    if (launchIntent != null) {
+                        pathView.saveScrollPosition()
+                        startActivity(launchIntent)
+                    }
+                } else if (app.folderName != null) {
+                    // Open folder - need to find it in current displayed apps
+                    // First ensure we're not in folder view
+                    if (inFolder) {
+                        onBackPressed()
+                    }
+                    // Switch to favorites view (which shows folders)
+                    val wasOnlyFavorites = pathView.onlyFavorites
+                    pathView.onlyFavorites = true
+                    updateApps()
+                    
+                    // Find folder in displayed apps
+                    val apps = getDisplayedApps()
+                    val folderIndex = apps.indexOfFirst { 
+                        it.folderName == app.folderName
+                    }
+                    if (folderIndex >= 0) {
+                        openFolder(folderIndex)
+                    } else {
+                        // Folder not found - restore previous state
+                        pathView.onlyFavorites = wasOnlyFavorites
+                        updateApps()
+                        Log.d("SearchOverlay", "Folder not found in displayed apps: ${app.folderName}")
+                    }
+                }
+            }
+
+            override fun onAppLongPressed(app: EncapsulatedAppInfoWithFolder) {
+                // Show shortcuts menu (overlay stays open)
+                globalThing = app
+                if (app.folderName == null && app.apps.isNotEmpty()) {
+                    openShortcutsMenu(app)
+                } else if (app.folderName != null) {
+                    // Folder options menu
+                    val actions = listOf(
+                        ShortcutAction(getTranslatedString(R.string.rename_folder), getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24)),
+                        ShortcutAction(getTranslatedString(R.string.delete_folder), getDrawable(R.drawable.ic_baseline_delete_24)),
+                        if (app.favorite == true) 
+                            ShortcutAction(getTranslatedString(R.string.remove_from_favorites), getDrawable(R.drawable.star_fill)) 
+                        else 
+                            ShortcutAction(getTranslatedString(R.string.add_to_favorites), getDrawable(R.drawable.star_empty))
+                    )
+                    dialogState = DialogStates.FOLDER_OPTIONS
+                    mActivity.showDialogWithActions(actions, this@MainFragmentRainbowPath, searchOverlay)
+                }
+            }
+
+            override fun onDismiss() {
+                searchOverlay.hide()
+            }
+        })
+        
+        searchOverlay.show()
     }
 
     private fun showShortcuts(appIndex: Int) {
@@ -595,6 +690,11 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     override fun onBackPressed(): Boolean {
+        // If search overlay is visible, dismiss it first
+        if (searchOverlay.visibility == View.VISIBLE) {
+            searchOverlay.hide()
+            return true
+        }
         if (inFolder) {
             goToHome()
             return true

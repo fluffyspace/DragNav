@@ -48,6 +48,10 @@ data class PathConfig(
     val favButtonPosition: PointF = PointF(0.15f, 0.15f),  // Position (normalized)
     val favButtonSize: Float = 0.08f,                       // Size relative to screen width
 
+    // Search button settings
+    val searchButtonPosition: PointF = PointF(0.85f, 0.15f),  // Position (normalized)
+    val searchButtonSize: Float = 0.08f,                       // Size relative to screen width
+
     // Letter index settings (for fast scrolling)
     val letterIndexEnabled: Boolean = true,
     val letterIndexPosition: LetterIndexPosition = LetterIndexPosition.RIGHT,

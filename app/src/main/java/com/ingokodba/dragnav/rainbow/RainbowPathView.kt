@@ -171,6 +171,10 @@ class RainbowPathView @JvmOverloads constructor(
         color = Color.parseColor("#88000000")
         style = Paint.Style.FILL
     }
+    private val searchButtonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#88000000")
+        style = Paint.Style.FILL
+    }
     private val shortcutBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#CC333333")
         style = Paint.Style.FILL
@@ -205,6 +209,7 @@ class RainbowPathView @JvmOverloads constructor(
         fun onFlingStarted()
         fun onFlingEnded()
         fun onLongPressStart(appIndex: Int)
+        fun onSearchButtonClicked()
     }
 
     fun setEventListener(listener: EventListener) {
@@ -531,6 +536,9 @@ class RainbowPathView @JvmOverloads constructor(
         // Draw favorites button
         drawFavoritesButton(canvas, w, h)
 
+        // Draw search button
+        drawSearchButton(canvas, w, h)
+
         // Draw shortcuts popup if active
         if (shortcutsAppIndex != null && shortcuts.isNotEmpty()) {
             drawShortcutsPopup(canvas, w, h)
@@ -831,6 +839,28 @@ class RainbowPathView @JvmOverloads constructor(
         }
     }
 
+    private fun drawSearchButton(canvas: Canvas, w: Float, h: Float) {
+        val buttonSize = config.searchButtonSize * w
+        val centerX = config.searchButtonPosition.x * w
+        val centerY = (1 - config.searchButtonPosition.y) * h
+
+        canvas.drawCircle(centerX, centerY, buttonSize / 2, searchButtonPaint)
+
+        // Draw search icon
+        val iconDrawable = AppCompatResources.getDrawable(context, R.drawable.ic_baseline_search_50)
+        iconDrawable?.let {
+            it.setTint(Color.WHITE)
+            val iconSize = buttonSize * 0.6f
+            it.setBounds(
+                (centerX - iconSize / 2).toInt(),
+                (centerY - iconSize / 2).toInt(),
+                (centerX + iconSize / 2).toInt(),
+                (centerY + iconSize / 2).toInt()
+            )
+            it.draw(canvas)
+        }
+    }
+
     private fun drawShortcutsPopup(canvas: Canvas, w: Float, h: Float) {
         val appInfo = drawnApps.find { it.index == shortcutsAppIndex } ?: return
         val iconSizePx = config.appIconSize * w
@@ -1089,6 +1119,22 @@ class RainbowPathView @JvmOverloads constructor(
                             } else {
                                 eventListener?.onFavoritesToggled()
                             }
+                            return true
+                        }
+
+                        // Check for tap on search button
+                        val searchButtonSize = config.searchButtonSize * w
+                        val searchCenterX = config.searchButtonPosition.x * w
+                        val searchCenterY = (1 - config.searchButtonPosition.y) * h
+
+                        val searchDist = sqrt(
+                            (event.x - searchCenterX) * (event.x - searchCenterX) +
+                            (event.y - searchCenterY) * (event.y - searchCenterY)
+                        )
+
+                        if (searchDist < searchButtonSize / 2) {
+                            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            eventListener?.onSearchButtonClicked()
                             return true
                         }
 

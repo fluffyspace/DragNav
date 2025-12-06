@@ -36,6 +36,7 @@ class PathSettingsDialog(
         Category.APPS,
         Category.APP_NAMES,
         Category.FAVORITES,
+        Category.SEARCH,
         Category.LETTERS
     )
 
@@ -44,6 +45,7 @@ class PathSettingsDialog(
         APPS("Apps"),
         APP_NAMES("App Names"),
         FAVORITES("Favorites"),
+        SEARCH("Search"),
         LETTERS("Letters")
     }
 
@@ -172,6 +174,7 @@ class PathSettingsDialog(
             Category.APPS -> createAppsSettings()
             Category.APP_NAMES -> createAppNamesSettings()
             Category.FAVORITES -> createFavoritesSettings()
+            Category.SEARCH -> createSearchSettings()
             Category.LETTERS -> createLettersSettings()
         }
 
@@ -334,6 +337,28 @@ class PathSettingsDialog(
             addView(createLabel("Button Size"))
             addView(createSlider(0.05f, 0.5f, config.favButtonSize) {
                 config = config.copy(favButtonSize = it)
+                notifyChange()
+            })
+        }
+    }
+
+    private fun createSearchSettings(): View {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16)
+
+            // Button position
+            addView(createLabel("Button Position"))
+            addView(createPointSliders("search",
+                config.searchButtonPosition,
+                { x -> config = config.copy(searchButtonPosition = PointF(x, config.searchButtonPosition.y)); notifyChange() },
+                { y -> config = config.copy(searchButtonPosition = PointF(config.searchButtonPosition.x, y)); notifyChange() }
+            ))
+
+            // Button size
+            addView(createLabel("Button Size"))
+            addView(createSlider(0.05f, 0.5f, config.searchButtonSize) {
+                config = config.copy(searchButtonSize = it)
                 notifyChange()
             })
         }
