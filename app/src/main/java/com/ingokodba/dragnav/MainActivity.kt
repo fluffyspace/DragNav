@@ -1283,7 +1283,9 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         } else {
             val processed = mainFragment?.onBackPressed() ?: false
             if(!processed){
-                showLayout(Layouts.LAYOUT_ACTIVITIES)
+                if(uiDesignMode != UiDesignEnum.RAINBOW_PATH){
+                    showLayout(Layouts.LAYOUT_ACTIVITIES)
+                }
             }
             /*
             if(viewModel.editMode){
