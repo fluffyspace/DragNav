@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
-import com.example.dragnav.databinding.ApplicationRowBindingBinding
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.MessageEvent
 import com.ingokodba.dragnav.modeli.MessageEventType
@@ -43,23 +42,15 @@ class ApplicationsListAdapter(viewModel: ViewModel, designEnum: UiDesignEnum) :
      * The MarsPhotosViewHolder constructor takes the binding variable from the associated
      * GridViewItem, which nicely gives it access to the full [MarsPhoto] information.
      */
-    class MarsPhotosViewHolder(
-        private var binding: ApplicationRowBindingBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
-        var textView: TextView
-        var img: ImageView
-        init {
-            textView = itemView.findViewById(R.id.text) as TextView
-            img = itemView.findViewById(R.id.img) as ImageView
-        }
+    class MarsPhotosViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        var textView: TextView = view.findViewById(R.id.text)
+        var img: ImageView = view.findViewById(R.id.img)
 
         fun bind(aplikacija: AppInfo, viewModel: ViewModel) {
-            binding.aplikacija = aplikacija
-            binding.viewModel = viewModel
-            // This is important, because it forces the data binding to execute immediately,
-            // which allows the RecyclerView to make the correct view size measurements
-
-            binding.executePendingBindings()
+            // Set icon from viewModel
+            viewModel.icons.value?.get(aplikacija.packageName)?.let { drawable ->
+                img.setImageDrawable(drawable)
+            }
         }
     }
 
@@ -88,9 +79,9 @@ class ApplicationsListAdapter(viewModel: ViewModel, designEnum: UiDesignEnum) :
             val v = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_menu, parent, false);
             return MenuViewHolder(v);
         }else{
-            return MarsPhotosViewHolder(
-                ApplicationRowBindingBinding.inflate(LayoutInflater.from(parent.context))
-            )
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.application_row_binding, parent, false)
+            return MarsPhotosViewHolder(view)
         }
     }
 

@@ -619,7 +619,7 @@ class RainbowPathView @JvmOverloads constructor(
             val screenY = (1 - point.y) * h
 
             if (index < 3) {
-                Log.d("RainbowPath", "App $index: baseT=$baseT, t=$t, point=(${point.x}, ${point.y}), screen=($screenX, $screenY)")
+                //Log.d("RainbowPath", "App $index: baseT=$baseT, t=$t, point=(${point.x}, ${point.y}), screen=($screenX, $screenY)")
             }
 
             // Create rect for this app
