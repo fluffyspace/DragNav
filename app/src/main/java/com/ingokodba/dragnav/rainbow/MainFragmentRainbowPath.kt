@@ -93,9 +93,24 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         pathView.setEventListener(object : RainbowPathView.EventListener {
             override fun onAppClicked(appIndex: Int) {
                 val apps = getDisplayedApps()
-                if (appIndex < 0 || appIndex >= apps.size) return
+                Log.d("RainbowPath", "onAppClicked: appIndex=$appIndex, apps.size=${apps.size}, inFolder=$inFolder")
+                
+                if (appIndex < 0 || appIndex >= apps.size) {
+                    Log.e("RainbowPath", "onAppClicked: Invalid appIndex=$appIndex (apps.size=${apps.size})")
+                    return
+                }
                 
                 val thing = apps[appIndex]
+                val appName = getNameOfApp(thing)
+                Log.d("RainbowPath", "onAppClicked: Clicked on app at index $appIndex: '$appName' (packageName=${if (thing.apps.isNotEmpty()) thing.apps.first().packageName else "N/A"})")
+                
+                // Log all apps for debugging
+                apps.forEachIndexed { idx, app ->
+                    val name = getNameOfApp(app)
+                    val pkg = if (app.apps.isNotEmpty()) app.apps.first().packageName else "N/A"
+                    Log.d("RainbowPath", "  App[$idx]: '$name' ($pkg)")
+                }
+                
                 if (thing.folderName == null) {
                     launchApp(appIndex)
                 } else {
@@ -248,6 +263,12 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             val folderApps = viewModel.rainbowFiltered.map { 
                 EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) 
             }
+            Log.d("RainbowPath", "updateApps (inFolder=true): Setting ${folderApps.size} apps")
+            folderApps.forEachIndexed { idx, app ->
+                val name = getNameOfApp(app)
+                val pkg = if (app.apps.isNotEmpty()) app.apps.first().packageName else "N/A"
+                Log.d("RainbowPath", "  FolderApp[$idx] (before sort): '$name' ($pkg)")
+            }
             pathView.setApps(folderApps)
         } else {
             // Normal view - combine apps and folders
@@ -266,7 +287,8 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     private fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
-        return if (inFolder) {
+        // Get apps from viewModel (same as what was passed to pathView.setApps)
+        val apps = if (inFolder) {
             viewModel.rainbowFiltered.map { 
                 EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) 
             }
@@ -275,16 +297,75 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
                 EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) 
             }
         }
+        
+        // Apply same sorting logic as RainbowPathView.getDisplayedApps()
+        // This ensures the index from pathView matches the index in this list
+        val filtered = if (inFolder) {
+            apps
+        } else if (pathView.onlyFavorites) {
+            // When onlyFavorites is true, show only folders (folderName != null)
+            apps.filter { it.folderName != null }
+        } else {
+            // When onlyFavorites is false, show only individual apps (folderName == null)
+            apps.filter { it.folderName == null }
+        }
+
+        // Sort based on config (same logic as RainbowPathView)
+        val sorted = when (config.appSortOrder) {
+            AppSortOrder.ASCENDING -> filtered.sortedBy { 
+                val name = if (it.folderName == null) {
+                    it.apps.firstOrNull()?.label ?: ""
+                } else {
+                    it.folderName ?: ""
+                }
+                name.lowercase()
+            }
+            AppSortOrder.DESCENDING -> filtered.sortedByDescending { 
+                val name = if (it.folderName == null) {
+                    it.apps.firstOrNull()?.label ?: ""
+                } else {
+                    it.folderName ?: ""
+                }
+                name.lowercase()
+            }
+        }
+        
+        return sorted
+    }
+    
+    private fun getNameOfApp(thing: EncapsulatedAppInfoWithFolder): String {
+        return if (thing.folderName != null && thing.folderName!!.isNotEmpty()) {
+            thing.folderName!!
+        } else if (thing.apps.isNotEmpty()) {
+            try {
+                val firstApp = thing.apps.first()
+                val label = firstApp.label
+                (label as? String)?.takeIf { it.isNotEmpty() } ?: ""
+            } catch (e: Exception) {
+                ""
+            }
+        } else {
+            ""
+        }
     }
 
     private fun launchApp(appIndex: Int) {
         val apps = getDisplayedApps()
-        if (appIndex < 0 || appIndex >= apps.size) return
+        if (appIndex < 0 || appIndex >= apps.size) {
+            Log.e("RainbowPath", "launchApp: Invalid appIndex=$appIndex (apps.size=${apps.size})")
+            return
+        }
 
         val thing = apps[appIndex]
-        if (thing.folderName != null) return // Should not happen, but safety check
+        if (thing.folderName != null) {
+            Log.e("RainbowPath", "launchApp: Expected app but got folder at index $appIndex")
+            return // Should not happen, but safety check
+        }
 
         val app = thing.apps.first()
+        val appName = getNameOfApp(thing)
+        Log.d("RainbowPath", "launchApp: Launching app at index $appIndex: '$appName' (${app.packageName})")
+        
         val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
             // Cancel any pending long press countdown to prevent menu from opening on return
@@ -292,6 +373,8 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             // Save scroll position before launching app
             pathView.saveScrollPosition()
             startActivity(launchIntent)
+        } else {
+            Log.e("RainbowPath", "launchApp: No launch intent found for ${app.packageName}")
         }
     }
     

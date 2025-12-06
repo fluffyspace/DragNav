@@ -328,8 +328,25 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     fun setApps(apps: List<EncapsulatedAppInfoWithFolder>) {
-        Log.d("RainbowPath", "setApps called with ${apps.size} apps")
+        Log.d("RainbowPath", "setApps called with ${apps.size} apps, inFolder=$inFolder, onlyFavorites=$onlyFavorites")
         appList = apps
+        
+        // Log apps in the order they're received
+        apps.forEachIndexed { idx, app ->
+            val name = getNameOfApp(app)
+            val pkg = if (app.apps.isNotEmpty()) app.apps.first().packageName else "N/A"
+            Log.d("RainbowPath", "  setApps[$idx] (raw order): '$name' ($pkg)")
+        }
+        
+        // Log what getDisplayedApps() will return (after sorting)
+        val displayed = getDisplayedApps()
+        Log.d("RainbowPath", "setApps: getDisplayedApps() returns ${displayed.size} apps (after filtering/sorting)")
+        displayed.forEachIndexed { idx, app ->
+            val name = getNameOfApp(app)
+            val pkg = if (app.apps.isNotEmpty()) app.apps.first().packageName else "N/A"
+            Log.d("RainbowPath", "  DisplayedApp[$idx] (after sort): '$name' ($pkg)")
+        }
+        
         updateLetterPositions()
 
         // Try to load saved scroll state from SharedPreferences first (for process death recovery)
@@ -1462,6 +1479,9 @@ class RainbowPathView @JvmOverloads constructor(
             )
 
             if (rect.contains(x, y)) {
+                val appName = getNameOfApp(thing)
+                val pkg = if (thing.apps.isNotEmpty()) thing.apps.first().packageName else "N/A"
+                Log.d("RainbowPath", "getAppIndexAtTouchPosition: Touch detected at index $index: '$appName' ($pkg)")
                 return index
             }
         }
