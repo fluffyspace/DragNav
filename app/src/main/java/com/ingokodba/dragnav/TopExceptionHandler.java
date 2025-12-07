@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
+    public static final String ERORI_FILE = "erori.txt";
     private Thread.UncaughtExceptionHandler defaultUEH;
     private Activity app = null;
 
@@ -47,7 +48,7 @@ public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
                     ContextCompat.getExternalFilesDirs(app.getApplicationContext(), null);
             File primaryExternalStorage = externalStorageVolumes[0];*/
 
-            File appSpecificExternalDir = new File(app.getExternalFilesDir(null), "erori.txt");
+            File appSpecificExternalDir = new File(app.getExternalFilesDir(null), ERORI_FILE);
 
             FileOutputStream stream = new FileOutputStream(appSpecificExternalDir);
             stream.write(report.getBytes());

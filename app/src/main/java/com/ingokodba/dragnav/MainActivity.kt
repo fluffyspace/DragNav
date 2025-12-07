@@ -29,6 +29,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.ListPopupWindow
+import android.widget.PopupWindow
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,12 +49,13 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.ingokodba.dragnav.navigation.NavRoute
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.RecyclerView
+
 import com.ingokodba.dragnav.compose.AppNavigation
 import com.example.dragnav.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
 import com.ingokodba.dragnav.MySettingsFragment.Companion.UI_DESIGN
+import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
@@ -149,8 +151,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     )
 
     // shortcuts dialog
-    var shortcuts_recycler_view: RecyclerView? = null
-    var radapter: ShortcutsAdapter? = null
+    // shortcuts dialog
     var shortcuts: List<ShortcutInfo> = listOf()
     var dialogState: DialogStates? = null
 
@@ -173,20 +174,12 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     // Icon loading executor for async, priority-based icon loading
     private var iconLoadExecutor: IconLoadExecutor? = null
 
-    fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
-        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_shortcut, null)
-        radapter = ShortcutsAdapter(this, onShortcutClick)
-        shortcuts_recycler_view = contentView.findViewById(R.id.shortcutList)
-        radapter?.actionsList = actions
-        shortcuts_recycler_view?.adapter = radapter
-        shortcuts_recycler_view?.addItemDecoration(SimpleDivider(this))
+    var shortcutDialogActions by mutableStateOf<List<ShortcutAction>?>(null)
+    var shortcutDialogListener: OnShortcutClick? = null
 
-        shortcutPopup?.dismiss()
-        shortcutPopup = PopupWindow(contentView,
-            ListPopupWindow.WRAP_CONTENT,
-            ListPopupWindow.WRAP_CONTENT, true)
-        //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(view, Gravity.CENTER, 0, 0)
+    fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
+        shortcutDialogActions = actions
+        shortcutDialogListener = onShortcutClick
     }
 
     fun openShortcutsMenu(app_index: Int){
@@ -262,48 +255,11 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         }
         super.onCreate(savedInstanceState)
 
-
-
         Log.d("ingo", "oncreate mainactivity")
         Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this));
         //Thread.getDefaultUncaughtExceptionHandler()
 
-        var trace = ""
-        var line: String? = null
-        try {
-            val appSpecificExternalDir: File = File(getExternalFilesDir(null), "erori.txt")
-            val reader = BufferedReader(
-                InputStreamReader(FileInputStream(appSpecificExternalDir)))
-
-            while (reader.readLine().also { line = it } != null) {
-                trace += line + "\n"
-            }
-            reader.close()
-        } catch (fnfe: FileNotFoundException) {
-            Log.e("ingo", fnfe.toString())
-        } catch (ioe: IOException) {
-            Log.e("ingo", ioe.toString())
-        }
-
-        if(trace != "") {
-            Log.d("ingo", "trace je $trace")
-            val sendIntent = Intent(Intent.ACTION_SEND)
-            val subject = "Error report"
-            val body = """
-            ${"Pošalji ovaj zapis na ingokodba@gmail.com: \n$trace"}
-            
-            """.trimIndent()
-
-            sendIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gmail.com"))
-            sendIntent.putExtra(Intent.EXTRA_TEXT, body)
-            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject)
-            sendIntent.type = "message/rfc822"
-
-            //this@MainActivity.startActivity(Intent.createChooser(sendIntent, "Title:"))
-            //this@MainActivity.deleteFile("stack.trace")
-        } else {
-            Log.d("ingo", "trace je prazan")
-        }
+        checkErrors()
 
         instance = this as MainActivity
 
@@ -349,6 +305,22 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                     currentLayout = currentLayoutState,
                     onLayoutChange = { currentLayoutState = it }
                 )
+                
+                if (shortcutDialogActions != null) {
+                    com.ingokodba.dragnav.compose.ShortcutDialog(
+                        actions = shortcutDialogActions!!,
+                        onDismissRequest = { 
+                            shortcutDialogActions = null 
+                            shortcutDialogListener = null
+                        },
+                        onActionClick = { index ->
+                            val listener = shortcutDialogListener
+                            shortcutDialogActions = null
+                            shortcutDialogListener = null
+                            listener?.onShortcutClick(index)
+                        }
+                    )
+                }
             }
         }
 
@@ -394,6 +366,45 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         // Initialize icon loading executor
         iconLoadExecutor = IconLoadExecutor(this, quality_icons)
 
+    }
+
+    private fun checkErrors() {
+        var trace = ""
+        var line: String? = null
+        try {
+            val appSpecificExternalDir: File = File(getExternalFilesDir(null), ERORI_FILE)
+            val reader = BufferedReader(
+                InputStreamReader(FileInputStream(appSpecificExternalDir)))
+
+            while (reader.readLine().also { line = it } != null) {
+                trace += line + "\n"
+            }
+            reader.close()
+        } catch (fnfe: FileNotFoundException) {
+            Log.e("ingo", fnfe.toString())
+        } catch (ioe: IOException) {
+            Log.e("ingo", ioe.toString())
+        }
+
+        if(trace != "") {
+            Log.d("ingo", "trace je $trace")
+            val sendIntent = Intent(Intent.ACTION_SEND)
+            val subject = "Error report"
+            val body = """
+            ${"Pošalji ovaj zapis na ingokodba@gmail.com: \n$trace"}
+            
+            """.trimIndent()
+
+            sendIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gmail.com"))
+            sendIntent.putExtra(Intent.EXTRA_TEXT, body)
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject)
+            sendIntent.type = "message/rfc822"
+
+            //this@MainActivity.startActivity(Intent.createChooser(sendIntent, "Title:"))
+            //this@MainActivity.deleteFile("stack.trace")
+        } else {
+            Log.d("ingo", "trace je prazan")
+        }
     }
 
     fun saveNewApps(){
@@ -685,7 +696,7 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
         if (event.keyCode == android.view.KeyEvent.KEYCODE_HOME) {
             Log.d("HomeButtonTest", "dispatchKeyEvent - Home button detected - action: ${event.action}, currentLayout: $currentLayout")
             if (event.action == android.view.KeyEvent.ACTION_UP && currentLayout == Layouts.LAYOUT_MAIN) {
-                val hasOpenDialogs = (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
+                val hasOpenDialogs = (shortcutDialogActions != null) || (shortcutPopup?.isShowing == true) || (colorPickerPopup?.isShowing == true)
                 Log.d("HomeButtonTest", "dispatchKeyEvent - hasOpenDialogs: $hasOpenDialogs")
                 if (!hasOpenDialogs) {
                     Log.d("HomeButtonTest", "dispatchKeyEvent - Opening LAYOUT_ACTIVITIES")
