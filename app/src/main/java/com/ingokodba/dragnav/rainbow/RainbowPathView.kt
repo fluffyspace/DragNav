@@ -260,6 +260,11 @@ class RainbowPathView @JvmOverloads constructor(
         fun onLongPressStart(appIndex: Int)
         fun onSearchButtonClicked()
     }
+    
+    // Log when event listener is called
+    private fun logEventListenerCall(methodName: String, appIndex: Int? = null) {
+        Log.d("RainbowPathTouch", "EventListener.$methodName called${if (appIndex != null) " with appIndex=$appIndex" else ""}")
+    }
 
     fun setEventListener(listener: EventListener) {
         eventListener = listener
@@ -273,6 +278,54 @@ class RainbowPathView @JvmOverloads constructor(
         bottomEdgeEffect?.setSize(w, h)
         updateDebugPaintColor()
         updateDebugPaintWidth()
+    }
+    
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        val timestamp = System.currentTimeMillis()
+        Log.d("RainbowPathTouch", "onWindowFocusChanged: hasWindowFocus=$hasWindowFocus, timestamp=$timestamp, isDragging=$isDragging, isFling=$isFling, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex")
+        // Reset touch state when window regains focus (e.g., after returning from another app)
+        // This ensures touch events work correctly after the app returns to foreground
+        if (hasWindowFocus) {
+            Log.d("RainbowPathTouch", "onWindowFocusChanged: Window gained focus, resetting touch state at timestamp=$timestamp")
+            resetTouchState()
+            Log.d("RainbowPathTouch", "onWindowFocusChanged: Touch state reset complete at timestamp=$timestamp, longPressTriggered=$longPressTriggered")
+        } else {
+            Log.d("RainbowPathTouch", "onWindowFocusChanged: Window lost focus at timestamp=$timestamp - NOTE: Fragment should cancel countdown job in onPause")
+        }
+    }
+    
+    /**
+     * Reset all touch-related state variables to their initial state.
+     * Called when touch is cancelled or window regains focus.
+     */
+    private fun resetTouchState() {
+        Log.d("RainbowPathTouch", "resetTouchState: BEFORE - isDragging=$isDragging, isFling=$isFling, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex")
+        isInLetterIndex = false
+        currentLetterIndexLetter = null
+        isDragging = false
+        longPressTriggered = false
+        touchedAppIndex = null
+        touchStartedInLetterIndex = false
+        scrollVelocity = 0f
+        
+        // Release edge effects
+        topEdgeEffect?.onRelease()
+        bottomEdgeEffect?.onRelease()
+        
+        // Stop any ongoing fling
+        if (isFling) {
+            removeCallbacks(flingRunnable)
+            isFling = false
+            eventListener?.onFlingEnded()
+        }
+        
+        // Reset overscroll
+        if (overscrollDistance != 0f) {
+            overscrollDistance = 0f
+            invalidate()
+        }
+        Log.d("RainbowPathTouch", "resetTouchState: AFTER - isDragging=$isDragging, isFling=$isFling, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex")
     }
     
     override fun onDetachedFromWindow() {
@@ -1127,8 +1180,19 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        val actionName = when (event.action) {
+            MotionEvent.ACTION_DOWN -> "ACTION_DOWN"
+            MotionEvent.ACTION_MOVE -> "ACTION_MOVE"
+            MotionEvent.ACTION_UP -> "ACTION_UP"
+            MotionEvent.ACTION_CANCEL -> "ACTION_CANCEL"
+            else -> "ACTION_${event.action}"
+        }
+        val timestamp = System.currentTimeMillis()
+        Log.d("RainbowPathTouch", "onTouchEvent: $actionName at (${event.x}, ${event.y}), timestamp=$timestamp, isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex, shortcutsAppIndex=$shortcutsAppIndex")
+        
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                Log.d("RainbowPathTouch", "ACTION_DOWN: Starting touch at (${event.x}, ${event.y})")
                 touchStartX = event.x
                 touchStartY = event.y
                 lastTouchX = event.x
@@ -1137,6 +1201,7 @@ class RainbowPathView @JvmOverloads constructor(
                 initialScrollOffset = 0f
                 // Stop any ongoing fling
                 if (isFling) {
+                    Log.d("RainbowPathTouch", "ACTION_DOWN: Stopping ongoing fling")
                     removeCallbacks(flingRunnable)
                     isFling = false
                     eventListener?.onFlingEnded()
@@ -1148,6 +1213,7 @@ class RainbowPathView @JvmOverloads constructor(
                 // Check if touch is in letter index
                 letterIndexRect?.let {
                     if (it.contains(event.x, event.y)) {
+                        Log.d("RainbowPathTouch", "ACTION_DOWN: Touch in letter index")
                         isInLetterIndex = true
                         touchStartedInLetterIndex = true
                         handleLetterIndexTouch(event.y)
@@ -1158,22 +1224,28 @@ class RainbowPathView @JvmOverloads constructor(
 
                 // Check shortcuts popup
                 if (shortcutsAppIndex != null) {
+                    Log.d("RainbowPathTouch", "ACTION_DOWN: Shortcuts popup is open, checking if touch is on shortcut")
                     shortcutRects.forEachIndexed { index, rect ->
                         if (rect.contains(event.x, event.y)) {
+                            Log.d("RainbowPathTouch", "ACTION_DOWN: Touch on shortcut $index")
                             eventListener?.onShortcutClicked(index)
                             hideShortcuts()
                             return true
                         }
                     }
                     // Touch outside popup - close it
+                    Log.d("RainbowPathTouch", "ACTION_DOWN: Touch outside shortcuts popup, closing it")
                     hideShortcuts()
                 } else {
                     // Check if touch is on an app and start long press countdown
                     // Calculate directly to avoid stale drawnApps data
                     val touchedIndex = getAppIndexAtTouchPosition(event.x, event.y)
                     if (touchedIndex != null) {
+                        Log.d("RainbowPathTouch", "ACTION_DOWN: Touch on app at index $touchedIndex, starting long press countdown")
                         touchedAppIndex = touchedIndex
                         eventListener?.onLongPressStart(touchedIndex)
+                    } else {
+                        Log.d("RainbowPathTouch", "ACTION_DOWN: Touch not on any app")
                     }
                 }
 
@@ -1182,6 +1254,7 @@ class RainbowPathView @JvmOverloads constructor(
 
             MotionEvent.ACTION_MOVE -> {
                 if (isInLetterIndex) {
+                    Log.d("RainbowPathTouch", "ACTION_MOVE: In letter index")
                     handleLetterIndexTouch(event.y)
                     return true
                 }
@@ -1196,10 +1269,12 @@ class RainbowPathView @JvmOverloads constructor(
                 )
 
                 if (!isDragging && distanceFromStart > 30f) {
+                    Log.d("RainbowPathTouch", "ACTION_MOVE: Starting drag, distanceFromStart=$distanceFromStart")
                     isDragging = true
                     initialScrollOffset = scrollOffset  // Save current scroll position
                     // Cancel long press if user starts dragging
                     if (!longPressTriggered && touchedAppIndex != null) {
+                        Log.d("RainbowPathTouch", "ACTION_MOVE: Cancelling long press due to drag")
                         touchedAppIndex = null
                     }
                 }
@@ -1288,6 +1363,7 @@ class RainbowPathView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
+                Log.d("RainbowPathTouch", "ACTION_UP: isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex, touchedAppIndex=$touchedAppIndex")
                 isInLetterIndex = false
                 currentLetterIndexLetter = null  // Reset letter tracking
 
@@ -1301,8 +1377,10 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (!isDragging) {
+                    Log.d("RainbowPathTouch", "ACTION_UP: Not dragging, checking for tap")
                     // Only process taps if long press wasn't triggered and touch didn't start in letter index
                     if (!longPressTriggered && !touchStartedInLetterIndex) {
+                        Log.d("RainbowPathTouch", "ACTION_UP: Conditions met for tap processing (longPressTriggered=false, touchStartedInLetterIndex=false)")
                         // Check for tap on favorites button
                         val w = width.toFloat()
                         val h = height.toFloat()
@@ -1316,6 +1394,7 @@ class RainbowPathView @JvmOverloads constructor(
                         )
 
                         if (dist < buttonSize / 2) {
+                            Log.d("RainbowPathTouch", "ACTION_UP: Tap on favorites button")
                             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             if (inFolder) {
                                 eventListener?.onBackButtonPressed()
@@ -1336,6 +1415,7 @@ class RainbowPathView @JvmOverloads constructor(
                         )
 
                         if (searchDist < searchButtonSize / 2) {
+                            Log.d("RainbowPathTouch", "ACTION_UP: Tap on search button")
                             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             eventListener?.onSearchButtonClicked()
                             return true
@@ -1345,11 +1425,22 @@ class RainbowPathView @JvmOverloads constructor(
                         // to avoid stale drawnApps data
                         val clickedAppIndex = getAppIndexAtTouchPosition(event.x, event.y)
                         if (clickedAppIndex != null) {
-                            eventListener?.onAppClicked(clickedAppIndex)
+                            Log.d("RainbowPathTouch", "ACTION_UP: Tap on app at index $clickedAppIndex, calling onAppClicked")
+                            if (eventListener == null) {
+                                Log.e("RainbowPathTouch", "ACTION_UP: ERROR - eventListener is NULL! Cannot call onAppClicked")
+                            } else {
+                                Log.d("RainbowPathTouch", "ACTION_UP: eventListener is not null, calling onAppClicked($clickedAppIndex)")
+                                eventListener?.onAppClicked(clickedAppIndex)
+                            }
                             return true
+                        } else {
+                            Log.d("RainbowPathTouch", "ACTION_UP: Tap not on any app (clickedAppIndex=null)")
                         }
+                    } else {
+                        Log.d("RainbowPathTouch", "ACTION_UP: Tap processing BLOCKED - longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex")
                     }
                 } else {
+                    Log.d("RainbowPathTouch", "ACTION_UP: Was dragging, checking for fling")
                     // Start fling if velocity is high enough
                     if (abs(scrollVelocity) > minFlingVelocity) {
                         Log.d("RainbowPath", "Starting fling with velocity: $scrollVelocity")
@@ -1365,6 +1456,19 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 isDragging = false
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                Log.d("RainbowPathTouch", "ACTION_CANCEL: Touch cancelled, resetting touch state")
+                // Reset all touch state when touch is cancelled (e.g., when app goes to background)
+                resetTouchState()
+                
+                // Animate overscroll back to normal
+                if (overscrollDistance != 0f) {
+                    animateOverscrollRelease()
+                }
+                
                 return true
             }
         }
@@ -1511,13 +1615,19 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     fun triggerLongPress() {
+        Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: CALLED, touchedAppIndex=$touchedAppIndex, isDragging=$isDragging")
         // Called by fragment when long press countdown completes
         // When inFolder is true, all items are apps (not folders), so allow long press
         touchedAppIndex?.let { appIndex ->
             if (!isDragging) {
+                Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: Setting longPressTriggered=true, calling onAppLongPressed($appIndex)")
                 longPressTriggered = true
                 eventListener?.onAppLongPressed(appIndex)
+            } else {
+                Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: BLOCKED - isDragging=true")
             }
+        } ?: run {
+            Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: BLOCKED - touchedAppIndex is null")
         }
     }
 }

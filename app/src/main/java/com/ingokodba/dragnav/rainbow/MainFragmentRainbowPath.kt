@@ -92,11 +92,12 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         // Set up event listener
         pathView.setEventListener(object : RainbowPathView.EventListener {
             override fun onAppClicked(appIndex: Int) {
+                Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onAppClicked: CALLED with appIndex=$appIndex")
                 val apps = getDisplayedApps()
                 Log.d("RainbowPath", "onAppClicked: appIndex=$appIndex, apps.size=${apps.size}, inFolder=$inFolder")
                 
                 if (appIndex < 0 || appIndex >= apps.size) {
-                    Log.e("RainbowPath", "onAppClicked: Invalid appIndex=$appIndex (apps.size=${apps.size})")
+                    Log.e("RainbowPathTouch", "MainFragmentRainbowPath.onAppClicked: BLOCKED - Invalid appIndex=$appIndex (apps.size=${apps.size})")
                     return
                 }
                 
@@ -112,8 +113,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
                 }
                 
                 if (thing.folderName == null) {
+                    Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onAppClicked: Calling launchApp($appIndex)")
                     launchApp(appIndex)
                 } else {
+                    Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onAppClicked: Calling openFolder($appIndex)")
                     openFolder(appIndex)
                 }
             }
@@ -350,15 +353,16 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     private fun launchApp(appIndex: Int) {
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: CALLED with appIndex=$appIndex")
         val apps = getDisplayedApps()
         if (appIndex < 0 || appIndex >= apps.size) {
-            Log.e("RainbowPath", "launchApp: Invalid appIndex=$appIndex (apps.size=${apps.size})")
+            Log.e("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: BLOCKED - Invalid appIndex=$appIndex (apps.size=${apps.size})")
             return
         }
 
         val thing = apps[appIndex]
         if (thing.folderName != null) {
-            Log.e("RainbowPath", "launchApp: Expected app but got folder at index $appIndex")
+            Log.e("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: BLOCKED - Expected app but got folder at index $appIndex")
             return // Should not happen, but safety check
         }
 
@@ -368,13 +372,18 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         
         val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
+            Log.d("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: Launch intent found, starting activity for ${app.packageName}")
             // Cancel any pending long press countdown to prevent menu from opening on return
+            val countdownWasActive = countdownJob?.isActive == true
             countdownJob?.cancel()
+            Log.d("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: Cancelled countdown job (wasActive=$countdownWasActive)")
             // Save scroll position before launching app
             pathView.saveScrollPosition()
+            Log.d("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: About to call startActivity()")
             startActivity(launchIntent)
+            Log.d("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: startActivity() called")
         } else {
-            Log.e("RainbowPath", "launchApp: No launch intent found for ${app.packageName}")
+            Log.e("RainbowPathTouch", "MainFragmentRainbowPath.launchApp: BLOCKED - No launch intent found for ${app.packageName}")
         }
     }
     
@@ -413,11 +422,23 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     private fun startLongPressCountdown() {
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: Starting countdown")
+        val wasActive = countdownJob?.isActive == true
         countdownJob?.cancel()
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: Previous job wasActive=$wasActive, cancelled")
         countdownJob = lifecycleScope.launch {
-            delay(250)
-            pathView.triggerLongPress()
+            Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: Waiting 250ms... (job started at ${System.currentTimeMillis()})")
+            try {
+                delay(250)
+                val currentTime = System.currentTimeMillis()
+                Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: 250ms elapsed at $currentTime, calling triggerLongPress")
+                pathView.triggerLongPress()
+                Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: triggerLongPress completed")
+            } catch (e: Exception) {
+                Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: Countdown job cancelled or failed: ${e.message}")
+            }
         }
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.startLongPressCountdown: New countdown job created, isActive=${countdownJob?.isActive}")
     }
 
     private fun startCountdownForSettings() {
@@ -784,13 +805,33 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        // Save scroll position as safety net when fragment pauses
-        pathView.saveScrollPosition()
+    override fun onResume() {
+        super.onResume()
+        val resumeTimestamp = System.currentTimeMillis()
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onResume: CALLED at $resumeTimestamp")
+        // Cancel any lingering countdown jobs when resuming (safety measure)
+        val countdownWasActive = countdownJob?.isActive == true
+        val countdownJobInfo = if (countdownJob != null) "exists" else "null"
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onResume: countdownJob=$countdownJobInfo, isActive=$countdownWasActive")
         flingJob?.cancel()
         countdownJob?.cancel()
         settingsCountdownJob?.cancel()
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onResume: Cancelled countdown job (wasActive=$countdownWasActive) at $resumeTimestamp")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val pauseTimestamp = System.currentTimeMillis()
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onPause: CALLED at $pauseTimestamp")
+        // Save scroll position as safety net when fragment pauses
+        pathView.saveScrollPosition()
+        val countdownWasActive = countdownJob?.isActive == true
+        val countdownJobInfo = if (countdownJob != null) "exists" else "null"
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onPause: countdownJob=$countdownJobInfo, isActive=$countdownWasActive")
+        flingJob?.cancel()
+        countdownJob?.cancel()
+        settingsCountdownJob?.cancel()
+        Log.d("RainbowPathTouch", "MainFragmentRainbowPath.onPause: Cancelled countdown job (wasActive=$countdownWasActive) at $pauseTimestamp")
         Log.d("MainFragmentRainbowPath", "onPause - scroll position saved")
     }
 
