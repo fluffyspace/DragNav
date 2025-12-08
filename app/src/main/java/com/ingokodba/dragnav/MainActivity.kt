@@ -177,6 +177,8 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
     var shortcutDialogActions by mutableStateOf<List<ShortcutAction>?>(null)
     var shortcutDialogListener: OnShortcutClick? = null
 
+    var folderNameDialogState by mutableStateOf<com.ingokodba.dragnav.compose.FolderNameDialogState?>(null)
+
     fun showDialogWithActions(actions: List<ShortcutAction>, onShortcutClick: OnShortcutClick, view: View){
         shortcutDialogActions = actions
         shortcutDialogListener = onShortcutClick
@@ -321,6 +323,13 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
                         }
                     )
                 }
+
+                com.ingokodba.dragnav.compose.FolderNameDialog(
+                    state = folderNameDialogState,
+                    onDismissRequest = {
+                        folderNameDialogState = null
+                    }
+                )
             }
         }
 
@@ -1343,48 +1352,20 @@ class MainActivity : AppCompatActivity(), OnShortcutClick{
 
     fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, showPickColor: Boolean, callback: (String) -> Unit){
         gcolor = Color.GRAY
-        val contentView = LayoutInflater.from(this).inflate(R.layout.popup_folder_name, null)
-        val popupFolderName = contentView.findViewById<TextView>(R.id.popup_folder_name)
-        contentView.findViewById<TextView>(R.id.title).text = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
-        popupFolderName.text = name
-        contentView.findViewById<Button>(R.id.popup_folder_cancel).setOnClickListener {
-            shortcutPopup?.dismiss()
-        }
-        contentView.findViewById<Button>(R.id.pick_folder_color).apply {
-            if(showPickColor) {
-                setOnClickListener {
-                    startColorpicker()
-                }
+        val title = if(addingOrEditing) getString(R.string.editing_a_folder) else getString(R.string.adding_a_folder)
+        folderNameDialogState = com.ingokodba.dragnav.compose.FolderNameDialogState(
+            title = title,
+            initialName = name,
+            showPickColor = showPickColor,
+            onSubmit = { folderName ->
+                callback(folderName)
+            },
+            onPickColor = if (showPickColor) {
+                { startColorpicker() }
             } else {
-                visibility = View.GONE
+                null
             }
-        }
-        contentView.findViewById<Button>(R.id.popup_folder_submit).apply {
-            text = if(addingOrEditing) getString(R.string.save) else getString(R.string.add_folder)
-            setOnClickListener {
-                val ime: String =
-                    popupFolderName.text.toString()
-                if (ime != "") {
-                    Log.d("ingo", "usli")
-                    shortcutPopup?.dismiss()
-                    // create folder
-                    callback(ime)
-                }
-            }
-        }
-
-        val locations = IntArray(2, {0})
-        view.getLocationOnScreen(locations)
-        shortcutPopup?.dismiss()
-        shortcutPopup = PopupWindow(contentView,
-            ListPopupWindow.MATCH_PARENT,
-            ListPopupWindow.WRAP_CONTENT, true)
-        //shortcutPopup?.animationStyle = R.style.PopupAnimation
-        shortcutPopup?.showAtLocation(view, Gravity.TOP, 0, 0)
-        //popupFolderName.requestFocus()
-        val inputMethodManager: InputMethodManager =
-            this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputMethodManager.showSoftInput(popupFolderName, InputMethodManager.SHOW_IMPLICIT)
+        )
     }
 
     fun showIntroPopup(){
