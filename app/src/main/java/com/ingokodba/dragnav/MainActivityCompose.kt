@@ -22,6 +22,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -123,7 +127,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Set up Compose UI
         setContent {
             MaterialTheme {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.systemBars)
+                        .windowInsetsPadding(WindowInsets.ime)
+                ) {
                     RainbowPathScreen(
                         mainActivity = this@MainActivityCompose,
                         modifier = Modifier.fillMaxSize(),

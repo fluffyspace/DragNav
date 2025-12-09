@@ -727,24 +727,9 @@ fun RainbowPathScreen(
     }
     
     Box(modifier = modifier.fillMaxSize()) {
-        // Main container with RainbowPathView and SearchOverlay
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Show notifications at the top if there are any
-            if (notifications.isNotEmpty()) {
-                Log.d(TAG, "Composing NotificationsList with ${notifications.size} notifications")
-                NotificationsList(
-                    notifications = notifications,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                )
-            } else {
-                Log.d(TAG, "Not showing NotificationsList - empty list")
-            }
-
-            // Main RainbowPathView and SearchOverlay
-            AndroidView(
-                factory = { ctx ->
+        // Main RainbowPathView and SearchOverlay (full size, underneath)
+        AndroidView(
+            factory = { ctx ->
                 FrameLayout(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -958,11 +943,22 @@ fun RainbowPathScreen(
                     }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+            modifier = Modifier.fillMaxSize()
             // Remove update block entirely - all updates handled by LaunchedEffect
+        )
+
+        // Notifications overlay at the top (over everything else)
+        if (notifications.isNotEmpty()) {
+            Log.d(TAG, "Composing NotificationsList with ${notifications.size} notifications")
+            NotificationsList(
+                notifications = notifications,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .align(Alignment.TopCenter)
             )
+        } else {
+            Log.d(TAG, "Not showing NotificationsList - empty list")
         }
     }
     
