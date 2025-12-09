@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.Gson
+import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
@@ -17,6 +18,7 @@ class ViewModel : ViewModel() {
     private val _rainbow_mape = MutableLiveData<MutableList<RainbowMapa>>()
     //private val _rainbow_filtered = MutableLiveData<MutableList<EncapsulatedAppInfoWithFolder>>()
     private var _icons = MutableLiveData<MutableMap<String, Drawable?>>()
+    private val _notifications = MutableLiveData<List<AppNotification>>()
 
     // The external immutable LiveData for the request status
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
@@ -24,6 +26,7 @@ class ViewModel : ViewModel() {
     var rainbowFiltered: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()//_rainbow_filtered
     var rainbowAll: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
+    val notifications: LiveData<List<AppNotification>> = _notifications
 
     lateinit var currentMenu: KrugSAplikacijama
     var currentMenuId: Int = -1
@@ -45,6 +48,7 @@ class ViewModel : ViewModel() {
         _icons.value = mutableMapOf()
         _popis_aplikacija.value = mutableListOf()
         _rainbow_mape.value = mutableListOf()
+        _notifications.value = emptyList()
         trenutnoPrikazanaPolja = listOf()
         sviKrugovi = mutableListOf()
         currentMenuId = -1
@@ -133,5 +137,9 @@ class ViewModel : ViewModel() {
 
     fun setIcons(icons: MutableMap<String, Drawable?>){
         _icons.value = icons
+    }
+
+    fun updateNotifications(notifications: List<AppNotification>) {
+        _notifications.postValue(notifications)
     }
 }

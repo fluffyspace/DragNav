@@ -255,6 +255,17 @@ fun RainbowPathScreen(
     val appsList by viewModel.appsList.observeAsState()
     val rainbowMape by viewModel.rainbowMape.observeAsState()
     val icons by viewModel.icons.observeAsState()
+    val notifications by viewModel.notifications.observeAsState(emptyList())
+
+    // Log notifications for debugging
+    LaunchedEffect(notifications) {
+        Log.d(TAG, "=== NOTIFICATIONS UPDATE ===")
+        Log.d(TAG, "Notifications count: ${notifications.size}")
+        notifications.forEachIndexed { index, notification ->
+            Log.d(TAG, "[$index] Package: ${notification.packageName}, Title: ${notification.title}, Content: ${notification.content}")
+        }
+        Log.d(TAG, "=========================")
+    }
 
     // Log state changes
     LaunchedEffect(appsList) {
@@ -717,8 +728,23 @@ fun RainbowPathScreen(
     
     Box(modifier = modifier.fillMaxSize()) {
         // Main container with RainbowPathView and SearchOverlay
-        AndroidView(
-            factory = { ctx ->
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Show notifications at the top if there are any
+            if (notifications.isNotEmpty()) {
+                Log.d(TAG, "Composing NotificationsList with ${notifications.size} notifications")
+                NotificationsList(
+                    notifications = notifications,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                )
+            } else {
+                Log.d(TAG, "Not showing NotificationsList - empty list")
+            }
+
+            // Main RainbowPathView and SearchOverlay
+            AndroidView(
+                factory = { ctx ->
                 FrameLayout(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -932,9 +958,12 @@ fun RainbowPathScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
             // Remove update block entirely - all updates handled by LaunchedEffect
-        )
+            )
+        }
     }
     
     // Handle shortcut click callbacks

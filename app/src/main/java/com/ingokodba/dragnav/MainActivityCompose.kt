@@ -31,6 +31,7 @@ import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.RainbowMapaDao
+import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.compose.RainbowPathScreen
 import com.ingokodba.dragnav.modeli.*
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +83,9 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     // Icon loading executor for async, priority-based icon loading
     private var iconLoadExecutor: IconLoadExecutor? = null
+
+    // Notification broadcast receiver
+    private var notificationReceiver: android.content.BroadcastReceiver? = null
 
     // Compose state for dialogs
     var shortcutDialogActions by mutableStateOf<List<ShortcutAction>?>(null)
@@ -178,8 +182,53 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         intentFilter.addDataScheme("package")
         registerReceiver(appListener, intentFilter)
 
+        // Register notification broadcast receiver
+        notificationReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                Log.d("MainActivityCompose", "=== Broadcast received ===")
+                Log.d("MainActivityCompose", "Action: ${intent?.action}")
+                if (intent?.action == NotificationListener.ACTION_NOTIFICATIONS_UPDATED) {
+                    Log.d("MainActivityCompose", "Processing notification update")
+                    val notificationDataList = intent.getParcelableArrayListExtra<NotificationData>(
+                        NotificationListener.EXTRA_NOTIFICATIONS
+                    ) ?: emptyList()
+                    Log.d("MainActivityCompose", "Received ${notificationDataList.size} notification data items")
+                    val notifications = notificationDataList.map { it.toAppNotification() }
+                    viewModel.updateNotifications(notifications)
+                    Log.d("MainActivityCompose", "Updated ViewModel with ${notifications.size} notifications")
+                } else {
+                    Log.d("MainActivityCompose", "Action doesn't match, expected: ${NotificationListener.ACTION_NOTIFICATIONS_UPDATED}")
+                }
+            }
+        }
+        val notificationFilter = IntentFilter(NotificationListener.ACTION_NOTIFICATIONS_UPDATED)
+        Log.d("MainActivityCompose", "Registering receiver for action: ${NotificationListener.ACTION_NOTIFICATIONS_UPDATED}")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationReceiver, notificationFilter, Context.RECEIVER_NOT_EXPORTED)
+            Log.d("MainActivityCompose", "Receiver registered with RECEIVER_NOT_EXPORTED")
+        } else {
+            registerReceiver(notificationReceiver, notificationFilter)
+            Log.d("MainActivityCompose", "Receiver registered (legacy)")
+        }
+
         // Initialize icon loading executor
         iconLoadExecutor = IconLoadExecutor(this, quality_icons)
+
+        // Set up direct callback from NotificationListener
+        NotificationListener.onNotificationsChanged = { notifications ->
+            Log.d("MainActivityCompose", "Received ${notifications.size} notifications via callback")
+            viewModel.updateNotifications(notifications)
+        }
+
+        // Request initial notification update from NotificationListener
+        Log.d("MainActivityCompose", "Requesting notification update from NotificationListener")
+        NotificationListener.getInstance()?.let { service ->
+            Log.d("MainActivityCompose", "NotificationListener service instance found, requesting update")
+            val requestIntent = Intent("com.ingokodba.dragnav.REQUEST_NOTIFICATION_UPDATE")
+            sendBroadcast(requestIntent)
+        } ?: run {
+            Log.d("MainActivityCompose", "NotificationListener service instance NOT found")
+        }
     }
 
     // ========== ERROR CHECKING ==========
@@ -520,6 +569,13 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         appListener?.let {
             unregisterReceiver(it)
         }
+
+        notificationReceiver?.let {
+            unregisterReceiver(it)
+        }
+
+        // Clear notification callback
+        NotificationListener.onNotificationsChanged = null
 
         iconLoadExecutor?.shutdown()
 
