@@ -151,6 +151,14 @@ fun RainbowPathScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
+    // Logging tag
+    val TAG = "RainbowPathScreen"
+
+    // Track recompositions
+    SideEffect {
+        Log.d(TAG, ">>> RECOMPOSITION TRIGGERED <<<")
+    }
+
     // Helper functions to call methods on either activity type
     fun callSaveAppInfo(app: AppInfo) {
         when (mainActivity) {
@@ -224,17 +232,17 @@ fun RainbowPathScreen(
     var shortcuts by remember { mutableStateOf<List<ShortcutInfo>>(emptyList()) }
     var globalThing by remember { mutableStateOf<EncapsulatedAppInfoWithFolder?>(null) }
     var dialogState by remember { mutableStateOf<DialogStates?>(null) }
-    
-    // Coroutine jobs
+
+    // Coroutine jobs - use plain variables, not state
     var flingJob by remember { mutableStateOf<Job?>(null) }
     var countdownJob by remember { mutableStateOf<Job?>(null) }
     var settingsCountdownJob by remember { mutableStateOf<Job?>(null) }
-    
-    // View references
-    var pathViewRef by remember { mutableStateOf<RainbowPathView?>(null) }
-    var searchOverlayRef by remember { mutableStateOf<SearchOverlayMaterialView?>(null) }
-    var topTouchAreaRef by remember { mutableStateOf<View?>(null) }
-    
+
+    // View references - use plain remember, not state (to avoid recomposition on ref updates)
+    val pathViewRef = remember { mutableStateOf<RainbowPathView?>(null) }
+    val searchOverlayRef = remember { mutableStateOf<SearchOverlayMaterialView?>(null) }
+    val topTouchAreaRef = remember { mutableStateOf<View?>(null) }
+
     // SharedPreferences
     val prefs = remember {
         context.getSharedPreferences("rainbow_path_config", Context.MODE_PRIVATE)
@@ -242,22 +250,42 @@ fun RainbowPathScreen(
     var onlyFavorites by remember {
         mutableStateOf(prefs.getBoolean("only_favorites", false))
     }
-    
-    // Observe ViewModel
+
+    // Observe ViewModel - these are already LiveData, no need for extra state
     val appsList by viewModel.appsList.observeAsState()
     val rainbowMape by viewModel.rainbowMape.observeAsState()
     val icons by viewModel.icons.observeAsState()
-    
+
+    // Log state changes
+    LaunchedEffect(appsList) {
+        Log.d(TAG, "appsList changed: ${appsList?.size} apps")
+    }
+    LaunchedEffect(rainbowMape) {
+        Log.d(TAG, "rainbowMape changed: ${rainbowMape?.size} folders")
+    }
+    LaunchedEffect(icons) {
+        Log.d(TAG, "icons changed: ${icons?.size} icons")
+    }
+    LaunchedEffect(inFolder) {
+        Log.d(TAG, "inFolder changed: $inFolder")
+    }
+    LaunchedEffect(onlyFavorites) {
+        Log.d(TAG, "onlyFavorites changed: $onlyFavorites")
+    }
+
     // Initialize rainbow filtered if needed
-    LaunchedEffect(Unit) {
+    LaunchedEffect(appsList) {
         if (viewModel.rainbowFiltered.isEmpty() && appsList != null) {
+            Log.d(TAG, "Initializing rainbowFiltered")
             viewModel.updateRainbowFiltered(onlyFavorites)
         }
     }
-    
-    // Update apps when data changes
-    LaunchedEffect(appsList, rainbowMape, inFolder, onlyFavorites) {
-        pathViewRef?.let { pathView ->
+
+    // Update apps when data changes - include icons in key
+    LaunchedEffect(appsList, rainbowMape, inFolder, onlyFavorites, icons) {
+        Log.d(TAG, "LaunchedEffect(update apps) triggered")
+        pathViewRef.value?.let { pathView ->
+            val startTime = System.currentTimeMillis()
             updateApps(
                 pathView = pathView,
                 viewModel = viewModel,
@@ -265,17 +293,17 @@ fun RainbowPathScreen(
                 onlyFavorites = onlyFavorites,
                 icons = icons
             )
+            pathView.invalidate()
+            val elapsed = System.currentTimeMillis() - startTime
+            Log.d(TAG, "updateApps + invalidate took ${elapsed}ms")
         }
     }
-    
-    // Update icons when they change
+
+    // Update search overlay icons separately
     LaunchedEffect(icons) {
-        icons?.let { iconMap: Map<String, Drawable?> ->
-            pathViewRef?.let { pathView: RainbowPathView ->
-                pathView.icons = iconMap.toMutableMap()
-                pathView.invalidate()
-            }
-            searchOverlayRef?.setIcons(iconMap)
+        icons?.let { iconMap ->
+            searchOverlayRef.value?.setIcons(iconMap)
+            Log.d(TAG, "Updated search overlay icons")
         }
     }
     
@@ -284,7 +312,7 @@ fun RainbowPathScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
-                    pathViewRef?.saveScrollPosition()
+                    pathViewRef.value?.saveScrollPosition()
                     flingJob?.cancel()
                     countdownJob?.cancel()
                     settingsCountdownJob?.cancel()
@@ -304,66 +332,70 @@ fun RainbowPathScreen(
         }
     }
     
-    // Helper functions
-    fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
-        return viewModel.rainbowFiltered.map {
-            EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
+    // Helper functions - use remember to avoid recreating on every recomposition
+    val getDisplayedApps = remember {
+        {
+            viewModel.rainbowFiltered.map {
+                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
+            }
         }
     }
-    
-    fun updateApps() {
-        pathViewRef?.let { pathView ->
-            updateApps(
-                pathView = pathView,
-                viewModel = viewModel,
-                inFolder = inFolder,
-                onlyFavorites = onlyFavorites,
-                icons = icons
-            )
+
+    val updateAppsCallback = remember {
+        {
+            pathViewRef.value?.let { pathView ->
+                updateApps(
+                    pathView = pathView,
+                    viewModel = viewModel,
+                    inFolder = inFolder,
+                    onlyFavorites = onlyFavorites,
+                    icons = icons
+                )
+            }
         }
     }
     
     fun launchApp(appIndex: Int) {
         val apps = getDisplayedApps()
         if (appIndex < 0 || appIndex >= apps.size) return
-        
+
         val thing = apps[appIndex]
         if (thing.folderName != null) return // Should not happen, but safety check
-        
+
         val app = thing.apps.first()
         val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
             countdownJob?.cancel()
-            pathViewRef?.saveScrollPosition()
+            pathViewRef.value?.saveScrollPosition()
             context.startActivity(launchIntent)
         }
     }
-    
+
     fun openFolder(appIndex: Int) {
         countdownJob?.cancel()
-        
+
         val apps = getDisplayedApps()
         if (appIndex < 0 || appIndex >= apps.size) return
-        
+
         val thing = apps[appIndex]
         if (thing.folderName == null) return
-        
-        pathViewRef?.saveScrollPosition()
-        
+
+        pathViewRef.value?.saveScrollPosition()
+
         val folderApps = thing.apps
         Log.d("RainbowPathScreen", "Opening folder with ${folderApps.size} apps: ${folderApps.map { it.label }}")
-        
+
         inFolder = true
-        pathViewRef?.inFolder = true
-        
+        pathViewRef.value?.inFolder = true
+
         val folderEncapsulated = folderApps.map {
             EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
         }.toMutableList()
         Log.d("RainbowPathScreen", "Setting rainbowFiltered with ${folderEncapsulated.size} items")
         viewModel.setRainbowFilteredValues(folderEncapsulated)
-        
-        pathViewRef?.resetFolderScroll()
-        updateApps()
+
+        pathViewRef.value?.resetFolderScroll()
+        updateAppsCallback()
     }
     
     // Create OnShortcutClick handler - must be defined before showShortcuts uses it
@@ -384,7 +416,7 @@ fun RainbowPathScreen(
                 val handler = shortcutClickHandlerRef ?: return@withContext
                 
                 if (thing.folderName == null) {
-                    openShortcutsMenu(thing, mainActivity, viewModel, icons, context, pathViewRef, shortcuts, handler) { newState, newShortcuts ->
+                    openShortcutsMenu(thing, mainActivity, viewModel, icons, context, pathViewRef.value, shortcuts, handler) { newState, newShortcuts ->
                         dialogState = newState
                         shortcuts = newShortcuts
                     }
@@ -410,10 +442,10 @@ fun RainbowPathScreen(
                             )
                     )
                     dialogState = DialogStates.FOLDER_OPTIONS
-                    callShowDialogWithActions(actions, handler, pathViewRef ?: return@withContext)
+                    callShowDialogWithActions(actions, handler, pathViewRef.value ?: return@withContext)
                 }
-                
-                pathViewRef?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+
+                pathViewRef.value?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             }
         }
     }
@@ -437,7 +469,7 @@ fun RainbowPathScreen(
                     val app = thing.apps.first()
                     app.favorite = !app.favorite
                     callSaveAppInfo(app)
-                    updateApps()
+                    updateAppsCallback()
                     dismissShortcutPopup()
                 } else if (index == shortcuts.size + 2) {
                     // Add/remove from folder
@@ -449,7 +481,7 @@ fun RainbowPathScreen(
                             val azurirana_mapa = mapa.copy(apps = mapa.apps.minus(thing.apps.first()).toMutableList())
                             viewModel.updateRainbowMapa(azurirana_mapa)
                             callRainbowMapaUpdateItem(azurirana_mapa)
-                            updateApps()
+                            updateAppsCallback()
                         }
                         dismissShortcutPopup()
                     } else {
@@ -463,7 +495,7 @@ fun RainbowPathScreen(
                                     add(ShortcutAction("Nova mapa", getDrawable(R.drawable.ic_baseline_create_new_folder_50, context)))
                                 } ?: mutableListOf(),
                                 handler,
-                                pathViewRef ?: return
+                                pathViewRef.value ?: return
                             )
                         }
                     }
@@ -490,13 +522,13 @@ fun RainbowPathScreen(
     fun addAppToMap(mapIndex: Int) {
         dismissShortcutPopup()
         if (mapIndex >= (rainbowMape?.size ?: 0)) {
-            openCreateFolderDialog(globalThing, mainActivity, pathViewRef)
+            openCreateFolderDialog(globalThing, mainActivity, pathViewRef.value)
         } else {
             val mapa = rainbowMape!![mapIndex]
             val nova_mapa = mapa.copy(apps = mapa.apps.plus(globalThing!!.apps.first()).toMutableList())
             viewModel.updateRainbowMapa(nova_mapa)
             callRainbowMapaUpdateItem(nova_mapa)
-            updateApps()
+            updateAppsCallback()
         }
     }
 
@@ -506,13 +538,13 @@ fun RainbowPathScreen(
             0 -> {
                 // Rename folder
                 val mapa = rainbowMape?.find { it.folderName == globalThing!!.folderName }
-                callOpenFolderNameMenu(pathViewRef ?: return, true, mapa!!.folderName, false) { ime ->
+                callOpenFolderNameMenu(pathViewRef.value ?: return, true, mapa!!.folderName, false) { ime ->
                     val nova_mapa = mapa?.copy(folderName = ime)
                     if (nova_mapa != null) {
                         viewModel.updateRainbowMapa(nova_mapa)
                         callRainbowMapaUpdateItem(nova_mapa)
                     }
-                    updateApps()
+                    updateAppsCallback()
                 }
             }
             1 -> {
@@ -522,7 +554,7 @@ fun RainbowPathScreen(
                     viewModel.deleteRainbowMapa(mapa)
                     callRainbowMapaDeleteItem(mapa)
                 }
-                updateApps()
+                updateAppsCallback()
             }
             2 -> {
                 // Toggle favorite
@@ -532,28 +564,28 @@ fun RainbowPathScreen(
                     viewModel.updateRainbowMapa(nova_mapa)
                     callRainbowMapaUpdateItem(nova_mapa)
                 }
-                updateApps()
+                updateAppsCallback()
             }
         }
     }
-    
+
     fun toggleFavorites() {
         if (inFolder) return
-        
+
         onlyFavorites = !onlyFavorites
         prefs.edit().putBoolean("only_favorites", onlyFavorites).apply()
-        pathViewRef?.onlyFavorites = onlyFavorites
-        updateApps()
+        pathViewRef.value?.onlyFavorites = onlyFavorites
+        updateAppsCallback()
     }
-    
+
     fun goToHome() {
         if (inFolder) {
-            pathViewRef?.restoreScrollPosition()
+            pathViewRef.value?.restoreScrollPosition()
         }
-        
+
         inFolder = false
-        pathViewRef?.inFolder = false
-        updateApps()
+        pathViewRef.value?.inFolder = false
+        updateAppsCallback()
     }
     
     // Create OnShortcutClick handler that delegates to screen functions
@@ -586,19 +618,19 @@ fun RainbowPathScreen(
                 folders.map { EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) }
             )
         }
-        
-        searchOverlayRef?.setApps(allAppsForSearch)
+
+        searchOverlayRef.value?.setApps(allAppsForSearch)
         icons?.let {
-            searchOverlayRef?.setIcons(it)
+            searchOverlayRef.value?.setIcons(it)
         }
-        
-        searchOverlayRef?.setListener(object : SearchOverlayMaterialView.SearchOverlayListener {
+
+        searchOverlayRef.value?.setListener(object : SearchOverlayMaterialView.SearchOverlayListener {
             override fun onAppClicked(app: EncapsulatedAppInfoWithFolder) {
-                searchOverlayRef?.hide()
+                searchOverlayRef.value?.hide()
                 if (app.folderName == null && app.apps.isNotEmpty()) {
                     val launchIntent = context.packageManager.getLaunchIntentForPackage(app.apps.first().packageName)
                     if (launchIntent != null) {
-                        pathViewRef?.saveScrollPosition()
+                        pathViewRef.value?.saveScrollPosition()
                         context.startActivity(launchIntent)
                     }
                 } else if (app.folderName != null) {
@@ -607,9 +639,9 @@ fun RainbowPathScreen(
                     }
                     val wasOnlyFavorites = onlyFavorites
                     onlyFavorites = true
-                    pathViewRef?.onlyFavorites = true
-                    updateApps()
-                    
+                    pathViewRef.value?.onlyFavorites = true
+                    updateAppsCallback()
+
                     val apps = getDisplayedApps()
                     val folderIndex = apps.indexOfFirst {
                         it.folderName == app.folderName
@@ -618,18 +650,18 @@ fun RainbowPathScreen(
                         openFolder(folderIndex)
                     } else {
                         onlyFavorites = wasOnlyFavorites
-                        pathViewRef?.onlyFavorites = wasOnlyFavorites
-                        updateApps()
+                        pathViewRef.value?.onlyFavorites = wasOnlyFavorites
+                        updateAppsCallback()
                         Log.d("RainbowPathScreen", "Folder not found in displayed apps: ${app.folderName}")
                     }
                 }
             }
-            
+
             override fun onAppLongPressed(app: EncapsulatedAppInfoWithFolder) {
                 globalThing = app
                 val handler = shortcutClickHandlerRef ?: return
                 if (app.folderName == null && app.apps.isNotEmpty()) {
-                    openShortcutsMenu(app, mainActivity, viewModel, icons, context, pathViewRef, shortcuts, handler) { newState, newShortcuts ->
+                    openShortcutsMenu(app, mainActivity, viewModel, icons, context, pathViewRef.value, shortcuts, handler) { newState, newShortcuts ->
                         dialogState = newState
                         shortcuts = newShortcuts
                     }
@@ -655,16 +687,16 @@ fun RainbowPathScreen(
                             )
                     )
                     dialogState = DialogStates.FOLDER_OPTIONS
-                    callShowDialogWithActions(actions, handler, searchOverlayRef ?: return)
+                    callShowDialogWithActions(actions, handler, searchOverlayRef.value ?: return)
                 }
             }
-            
+
             override fun onDismiss() {
-                searchOverlayRef?.hide()
+                searchOverlayRef.value?.hide()
             }
         })
-        
-        searchOverlayRef?.show()
+
+        searchOverlayRef.value?.show()
     }
     
     fun showSettingsDialog() {
@@ -673,12 +705,12 @@ fun RainbowPathScreen(
             config,
             onConfigChanged = { newConfig ->
                 config = newConfig
-                pathViewRef?.config = config
+                pathViewRef.value?.config = config
                 saveConfig(context, config)
             },
             onCategoryChanged = { category ->
-                pathViewRef?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
-                pathViewRef?.invalidate()
+                pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
+                pathViewRef.value?.invalidate()
             }
         ).show()
     }
@@ -692,7 +724,7 @@ fun RainbowPathScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    
+
                     // Top touch area for settings
                     val topTouchArea = View(ctx).apply {
                         layoutParams = FrameLayout.LayoutParams(
@@ -705,8 +737,8 @@ fun RainbowPathScreen(
                         setBackgroundColor(Color.TRANSPARENT)
                     }
                     addView(topTouchArea)
-                    topTouchAreaRef = topTouchArea
-                    
+                    topTouchAreaRef.value = topTouchArea
+
                     // RainbowPathView
                     val pathView = RainbowPathView(ctx).apply {
                         id = View.generateViewId()
@@ -716,10 +748,144 @@ fun RainbowPathScreen(
                         ).apply {
                             topMargin = (100 * resources.displayMetrics.density).toInt()
                         }
+
+                        // Set initial config
+                        this.config = config
+                        this.onlyFavorites = onlyFavorites
+
+                        // Set up event listener ONCE in factory
+                        setEventListener(object : RainbowPathView.EventListener {
+                            override fun onAppClicked(appIndex: Int) {
+                                // Use the view's getDisplayedApps() which applies sorting
+                                val apps = this@apply.getDisplayedApps()
+                                if (appIndex < 0 || appIndex >= apps.size) return
+
+                                val thing = apps[appIndex]
+                                if (thing.folderName == null) {
+                                    // Launch the app directly here instead of calling launchApp
+                                    // to avoid using the Composable's unsorted getDisplayedApps
+                                    val app = thing.apps.first()
+                                    val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                                    if (launchIntent != null) {
+                                        countdownJob?.cancel()
+                                        this@apply.saveScrollPosition()
+                                        context.startActivity(launchIntent)
+                                    }
+                                } else {
+                                    // Open folder - need to pass the thing directly
+                                    countdownJob?.cancel()
+                                    this@apply.saveScrollPosition()
+
+                                    val folderApps = thing.apps
+                                    Log.d("RainbowPathScreen", "Opening folder with ${folderApps.size} apps: ${folderApps.map { it.label }}")
+
+                                    inFolder = true
+                                    this@apply.inFolder = true
+
+                                    val folderEncapsulated = folderApps.map {
+                                        EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
+                                    }.toMutableList()
+                                    Log.d("RainbowPathScreen", "Setting rainbowFiltered with ${folderEncapsulated.size} items")
+                                    viewModel.setRainbowFilteredValues(folderEncapsulated)
+
+                                    this@apply.resetFolderScroll()
+                                    updateAppsCallback()
+                                }
+                            }
+
+                            override fun onAppLongPressed(appIndex: Int) {
+                                // Use the view's getDisplayedApps() which applies sorting
+                                countdownJob?.cancel()
+                                scope.launch(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
+                                        val apps = this@apply.getDisplayedApps()
+                                        if (appIndex < 0 || appIndex >= apps.size) return@withContext
+
+                                        currentAppIndex = appIndex
+                                        val thing = apps[appIndex]
+                                        globalThing = thing
+
+                                        val handler = shortcutClickHandlerRef ?: return@withContext
+
+                                        if (thing.folderName == null) {
+                                            openShortcutsMenu(thing, mainActivity, viewModel, icons, context, this@apply, shortcuts, handler) { newState, newShortcuts ->
+                                                dialogState = newState
+                                                shortcuts = newShortcuts
+                                            }
+                                        } else {
+                                            val actions = listOf(
+                                                ShortcutAction(
+                                                    getTranslatedString(R.string.rename_folder, context),
+                                                    getDrawable(R.drawable.ic_baseline_drive_file_rename_outline_24, context)
+                                                ),
+                                                ShortcutAction(
+                                                    getTranslatedString(R.string.delete_folder, context),
+                                                    getDrawable(R.drawable.ic_baseline_delete_24, context)
+                                                ),
+                                                if (thing.favorite == true)
+                                                    ShortcutAction(
+                                                        getTranslatedString(R.string.remove_from_favorites, context),
+                                                        getDrawable(R.drawable.star_fill, context)
+                                                    )
+                                                else
+                                                    ShortcutAction(
+                                                        getTranslatedString(R.string.add_to_favorites, context),
+                                                        getDrawable(R.drawable.star_empty, context)
+                                                    )
+                                            )
+                                            dialogState = DialogStates.FOLDER_OPTIONS
+                                            callShowDialogWithActions(actions, handler, this@apply)
+                                        }
+                                    }
+                                }
+                            }
+
+                            override fun onShortcutClicked(shortcutIndex: Int) {
+                                openShortcut(shortcutIndex)
+                            }
+
+                            override fun onFavoritesToggled() {
+                                toggleFavorites()
+                            }
+
+                            override fun onBackButtonPressed() {
+                                if (searchOverlayRef.value?.visibility == View.VISIBLE) {
+                                    searchOverlayRef.value?.hide()
+                                } else if (inFolder) {
+                                    goToHome()
+                                }
+                            }
+
+                            override fun onFlingStarted() {
+                                flingJob?.cancel()
+                                flingJob = scope.launch(Dispatchers.Main) {
+                                    while (isActive) {
+                                        delay(16) // ~60fps
+                                        pathViewRef.value?.flingUpdate()
+                                    }
+                                }
+                            }
+
+                            override fun onFlingEnded() {
+                                flingJob?.cancel()
+                            }
+
+                            override fun onLongPressStart(appIndex: Int) {
+                                countdownJob?.cancel()
+                                countdownJob = scope.launch {
+                                    delay(250)
+                                    pathViewRef.value?.triggerLongPress()
+                                }
+                            }
+
+                            override fun onSearchButtonClicked() {
+                                showSearchOverlay()
+                            }
+                        })
                     }
                     addView(pathView)
-                    pathViewRef = pathView
-                    
+                    pathViewRef.value = pathView
+
                     // SearchOverlayMaterialView
                     val searchOverlay = SearchOverlayMaterialView(ctx).apply {
                         id = View.generateViewId()
@@ -730,118 +896,44 @@ fun RainbowPathScreen(
                         visibility = View.GONE
                     }
                     addView(searchOverlay)
-                    searchOverlayRef = searchOverlay
+                    searchOverlayRef.value = searchOverlay
+
+                    // Set up top touch area for settings ONCE in factory
+                    var touchStartX = 0f
+                    var touchStartY = 0f
+                    topTouchArea.setOnTouchListener { v, event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                touchStartX = event.x
+                                touchStartY = event.y
+                                settingsCountdownJob?.cancel()
+                                settingsCountdownJob = scope.launch(Dispatchers.IO) {
+                                    delay(250)
+                                    withContext(Dispatchers.Main) {
+                                        showSettingsDialog()
+                                        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    }
+                                }
+                                true
+                            }
+                            MotionEvent.ACTION_MOVE -> {
+                                val moveDistance = kotlin.math.abs(event.x - touchStartX) + kotlin.math.abs(event.y - touchStartY)
+                                if (moveDistance > 50) {
+                                    settingsCountdownJob?.cancel()
+                                }
+                                true
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                settingsCountdownJob?.cancel()
+                                true
+                            }
+                            else -> false
+                        }
+                    }
                 }
             },
-            modifier = Modifier.fillMaxSize(),
-            update = { container ->
-                // Initialize pathView
-                pathViewRef?.let { pathView ->
-                    pathView.config = config
-                    pathView.onlyFavorites = onlyFavorites
-                    
-                    // Set up event listener
-                    pathView.setEventListener(object : RainbowPathView.EventListener {
-                        override fun onAppClicked(appIndex: Int) {
-                            val apps = getDisplayedApps()
-                            if (appIndex < 0 || appIndex >= apps.size) return
-                            
-                            val thing = apps[appIndex]
-                            if (thing.folderName == null) {
-                                launchApp(appIndex)
-                            } else {
-                                openFolder(appIndex)
-                            }
-                        }
-                        
-                        override fun onAppLongPressed(appIndex: Int) {
-                            showShortcuts(appIndex)
-                        }
-                        
-                        override fun onShortcutClicked(shortcutIndex: Int) {
-                            openShortcut(shortcutIndex)
-                        }
-                        
-                        override fun onFavoritesToggled() {
-                            toggleFavorites()
-                        }
-                        
-                        override fun onBackButtonPressed() {
-                            if (searchOverlayRef?.visibility == View.VISIBLE) {
-                                searchOverlayRef?.hide()
-                            } else if (inFolder) {
-                                goToHome()
-                            }
-                        }
-                        
-                        override fun onFlingStarted() {
-                            flingJob?.cancel()
-                            flingJob = scope.launch(Dispatchers.Main) {
-                                while (isActive) {
-                                    delay(16) // ~60fps
-                                    pathView.flingUpdate()
-                                }
-                            }
-                        }
-                        
-                        override fun onFlingEnded() {
-                            flingJob?.cancel()
-                        }
-                        
-                        override fun onLongPressStart(appIndex: Int) {
-                            countdownJob?.cancel()
-                            countdownJob = scope.launch {
-                                delay(250)
-                                pathView.triggerLongPress()
-                            }
-                        }
-                        
-                        override fun onSearchButtonClicked() {
-                            showSearchOverlay()
-                        }
-                    })
-                    
-                    icons?.let {
-                        pathView.icons = it
-                        pathView.invalidate()
-                    }
-                    
-                    updateApps()
-                }
-                
-                // Set up top touch area for settings
-                var touchStartX = 0f
-                var touchStartY = 0f
-                topTouchAreaRef?.setOnTouchListener { v, event ->
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            touchStartX = event.x
-                            touchStartY = event.y
-                            settingsCountdownJob?.cancel()
-                            settingsCountdownJob = scope.launch(Dispatchers.IO) {
-                                delay(250)
-                                withContext(Dispatchers.Main) {
-                                    showSettingsDialog()
-                                    v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                }
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            val moveDistance = kotlin.math.abs(event.x - touchStartX) + kotlin.math.abs(event.y - touchStartY)
-                            if (moveDistance > 50) {
-                                settingsCountdownJob?.cancel()
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            settingsCountdownJob?.cancel()
-                            true
-                        }
-                        else -> false
-                    }
-                }
-            }
+            modifier = Modifier.fillMaxSize()
+            // Remove update block entirely - all updates handled by LaunchedEffect
         )
     }
     
@@ -901,7 +993,7 @@ private fun updateApps(
 }
 
 private fun getTranslatedString(id: Int, context: Context): String {
-    return MainActivity.resources2.getString(id)
+    return context.resources.getString(id)
 }
 
 private fun getDrawable(resourceId: Int, context: Context): Drawable? {

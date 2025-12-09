@@ -50,6 +50,8 @@ class RainbowPathView @JvmOverloads constructor(
     // App data
     private var appList: List<EncapsulatedAppInfoWithFolder> = emptyList()
     var icons: MutableMap<String, Drawable?> = mutableMapOf()
+    // Cached bitmaps for icons to avoid repeated toBitmap() calls
+    private val iconBitmapCache = mutableMapOf<String, Bitmap?>()
     var inFolder: Boolean = false
     var onlyFavorites: Boolean = false
         set(value) {
@@ -195,6 +197,10 @@ class RainbowPathView @JvmOverloads constructor(
     }
     private val bigLetterBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#CC000000")
+        style = Paint.Style.FILL
+    }
+    // Reusable paint for fallback colored circles (when icons aren't loaded)
+    private val fallbackIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
     private val letterIndexBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -481,7 +487,7 @@ class RainbowPathView @JvmOverloads constructor(
         }
     }
 
-    private fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
+    fun getDisplayedApps(): List<EncapsulatedAppInfoWithFolder> {
         // When in folder, always show all apps (ignore onlyFavorites filter)
         val filtered = if (inFolder) {
             appList
@@ -673,17 +679,20 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
+        val drawStartTime = System.currentTimeMillis()
         super.onDraw(canvas)
 
         drawnApps.clear()
         shortcutRects.clear()
-        
+
         // Track visible apps and missing icons for automatic rerender when icons load
         visiblePackageNames.clear()
         visibleAppsMissingIcons.clear()
 
         val w = width.toFloat()
         val h = height.toFloat()
+
+        Log.d("RainbowPathView", "onDraw started: ${appList.size} apps, scrollOffset=$scrollOffset")
 
         // Update text sizes and styles based on config
         textPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
@@ -751,13 +760,20 @@ class RainbowPathView @JvmOverloads constructor(
 
         // Draw edge effects for overscroll (LAST, with isolated canvas state)
         drawEdgeEffects(canvas, w.toInt(), h.toInt())
-        
+
         // Check if any visible apps' icons have been loaded after draw completes
         // Post this check to run after the draw cycle completes
         if (visibleAppsMissingIcons.isNotEmpty()) {
             post {
                 checkAndInvalidateIfIconsLoaded()
             }
+        }
+
+        val drawElapsed = System.currentTimeMillis() - drawStartTime
+        if (drawElapsed > 16) { // Log if draw took longer than one frame (16ms at 60fps)
+            Log.w("RainbowPathView", "onDraw took ${drawElapsed}ms (>16ms) - scrollOffset=$scrollOffset, drawnApps=${drawnApps.size}")
+        } else {
+            Log.d("RainbowPathView", "onDraw completed in ${drawElapsed}ms - drawnApps=${drawnApps.size}")
         }
     }
     
@@ -896,7 +912,10 @@ class RainbowPathView @JvmOverloads constructor(
                         if (i * 2 + j >= thing.apps.size) break
                         val app = thing.apps[i * 2 + j]
                         visiblePackageNames.add(app.packageName)
-                        val icon = icons[app.packageName]?.toBitmap()
+                        // Use cached bitmap or convert and cache
+                        val icon = iconBitmapCache.getOrPut(app.packageName) {
+                            icons[app.packageName]?.toBitmap() ?: return@getOrPut null
+                        }
                         if (icon != null) {
                             val iconRect = RectF(
                                 screenX - iconSizePx / 2 + iconSizePx * j / 2,
@@ -908,14 +927,11 @@ class RainbowPathView @JvmOverloads constructor(
                         } else {
                             // Track that this visible app is missing its icon
                             visibleAppsMissingIcons.add(app.packageName)
-                            // Fallback: draw colored circle
-                            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                color = try {
-                                    if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
-                                } catch (e: Exception) {
-                                    Color.GRAY
-                                }
-                                style = Paint.Style.FILL
+                            // Fallback: draw colored circle using reusable paint
+                            fallbackIconPaint.color = try {
+                                if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
+                            } catch (e: Exception) {
+                                Color.GRAY
                             }
                             val iconRect = RectF(
                                 screenX - iconSizePx / 2 + iconSizePx * j / 2,
@@ -923,7 +939,7 @@ class RainbowPathView @JvmOverloads constructor(
                                 screenX + iconSizePx * j / 2,
                                 screenY + iconSizePx * i / 2
                             )
-                            canvas.drawCircle(iconRect.centerX(), iconRect.centerY(), iconSizePx / 4, paint)
+                            canvas.drawCircle(iconRect.centerX(), iconRect.centerY(), iconSizePx / 4, fallbackIconPaint)
                         }
                     }
                 }
@@ -941,22 +957,22 @@ class RainbowPathView @JvmOverloads constructor(
                 // Draw single app icon
                 val app = thing.apps.first()
                 visiblePackageNames.add(app.packageName)
-                val icon = icons[app.packageName]?.toBitmap()
+                // Use cached bitmap or convert and cache
+                val icon = iconBitmapCache.getOrPut(app.packageName) {
+                    icons[app.packageName]?.toBitmap() ?: return@getOrPut null
+                }
                 if (icon != null) {
                     canvas.drawBitmap(icon, null, rect, iconPaint)
                 } else {
                     // Track that this visible app is missing its icon
                     visibleAppsMissingIcons.add(app.packageName)
-                    // Fallback: draw colored circle
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = try {
-                            if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
-                        } catch (e: Exception) {
-                            Color.GRAY
-                        }
-                        style = Paint.Style.FILL
+                    // Fallback: draw colored circle using reusable paint
+                    fallbackIconPaint.color = try {
+                        if (app.color.isNotEmpty()) app.color.toInt() else Color.GRAY
+                    } catch (e: Exception) {
+                        Color.GRAY
                     }
-                    canvas.drawCircle(screenX, screenY, iconSizePx / 2, paint)
+                    canvas.drawCircle(screenX, screenY, iconSizePx / 2, fallbackIconPaint)
                 }
 
                 // Draw indicators
