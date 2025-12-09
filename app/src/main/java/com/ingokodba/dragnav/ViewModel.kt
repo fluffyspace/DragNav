@@ -130,4 +130,8 @@ class ViewModel : ViewModel() {
     fun removeApp(app: AppInfo){
         _popis_aplikacija.value!!.remove(app)
     }
+
+    fun setIcons(icons: MutableMap<String, Drawable?>){
+        _icons.value = icons
+    }
 }

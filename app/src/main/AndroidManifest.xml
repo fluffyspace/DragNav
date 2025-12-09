@@ -29,6 +29,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Shrine">
         <activity
+            android:name="com.ingokodba.dragnav.MainActivityCompose"
+            android:alwaysRetainTaskState="true"
+            android:excludeFromRecents="false"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name="com.ingokodba.dragnav.MainActivity3"
             android:exported="true" >
         </activity>
@@ -41,7 +56,7 @@
         <activity
             android:name="com.ingokodba.dragnav.SettingsActivity"
             android:exported="false"
-            android:parentActivityName="com.ingokodba.dragnav.MainActivity"
+            android:parentActivityName="com.ingokodba.dragnav.MainActivityCompose"
             android:label="Settings"/>
 
         <receiver
@@ -71,15 +86,7 @@
             android:launchMode="singleInstance"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
-
-            <!--  -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
+            <!-- MainActivity is no longer the launcher - using MainActivityCompose instead -->
         </activity>
         <activity
             android:name="com.ingokodba.dragnav.AddShortcutActivity"

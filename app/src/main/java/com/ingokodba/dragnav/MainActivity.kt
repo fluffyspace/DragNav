@@ -84,7 +84,7 @@ import java.util.Collections.max
 import java.util.Collections.min
 
 
-class MainActivity : AppCompatActivity(), OnShortcutClick{
+open class MainActivity : AppCompatActivity(), OnShortcutClick{
     val viewModel: ViewModel by viewModels()
     var uiDesignMode: UiDesignEnum = UiDesignEnum.RAINBOW_RIGHT
     enum class WindowSizeClass { COMPACT, MEDIUM, EXPANDED }
