@@ -1,6 +1,7 @@
 package com.ingokodba.dragnav.rainbow
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.SearchFragment
+import com.ingokodba.dragnav.SettingsActivity
 import kotlinx.coroutines.delay
 
 /**
@@ -59,6 +62,7 @@ fun SearchOverlayMaterial(
     onAppClicked: (EncapsulatedAppInfoWithFolder) -> Unit,
     onAppLongPressed: (EncapsulatedAppInfoWithFolder) -> Unit,
     onDismiss: () -> Unit,
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -169,21 +173,49 @@ fun SearchOverlayMaterial(
                     .windowInsetsPadding(WindowInsets.systemBars)
                     .windowInsetsPadding(WindowInsets.ime)
             ) {
-                // Search bar
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onSearch = {
-                        if (filteredApps.isNotEmpty()) {
-                            onAppClicked(filteredApps[0])
-                        }
-                    },
-                    onDismiss = onDismiss,
-                    focusRequester = focusRequester,
+                // Search bar with settings button
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp)
-                )
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onSearch = {
+                            if (filteredApps.isNotEmpty()) {
+                                onAppClicked(filteredApps[0])
+                            }
+                        },
+                        onDismiss = onDismiss,
+                        focusRequester = focusRequester,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Settings button
+                    Surface(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .clickable { onSettingsClick() },
+                        color = Color.White,
+                        tonalElevation = 4.dp
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = Color.Black.copy(alpha = 0.7f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
                 
                 // App list
                 LazyColumn(
@@ -492,7 +524,11 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
                     icons = iconsState.value,
                     onAppClicked = { listener?.onAppClicked(it) },
                     onAppLongPressed = { listener?.onAppLongPressed(it) },
-                    onDismiss = { listener?.onDismiss() }
+                    onDismiss = { listener?.onDismiss() },
+                    onSettingsClick = {
+                        val intent = Intent(context, SettingsActivity::class.java)
+                        context.startActivity(intent)
+                    }
                 )
             }
         }
