@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.CheckBoxPreference
@@ -78,6 +79,12 @@ class MyGeneralSettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }
 
+        val notificationAccess: Preference? = findPreference("notification_access")
+        notificationAccess?.setOnPreferenceClickListener {
+            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            startActivity(intent)
+            return@setOnPreferenceClickListener true
+        }
 
         val defaultApps: Preference? = findPreference(DEFAULT_APPS)
         defaultApps?.setOnPreferenceClickListener  {

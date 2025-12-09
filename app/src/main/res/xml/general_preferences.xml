@@ -19,6 +19,11 @@
         app:title="@string/dark_mode"
         android:icon="@drawable/baseline_dark_mode_24"/>
 
+    <Preference
+        app:key="notification_access"
+        app:title="Notification Access"
+        android:summary="Allow this app to read notifications"/>
+
     <!--<SwitchPreference
         app:key="ui_oneline_buttons_toggle"
         app:title="@string/one_line_bottom_menu_buttons"

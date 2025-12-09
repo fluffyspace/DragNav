@@ -14,16 +14,28 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +48,92 @@ import com.ingokodba.dragnav.rainbow.PathSettingsDialog
 import com.ingokodba.dragnav.rainbow.RainbowPathView
 import com.ingokodba.dragnav.rainbow.SearchOverlayMaterialView
 import kotlinx.coroutines.*
+
+/**
+ * Data class representing a notification
+ */
+data class AppNotification(
+    val packageName: String,
+    val appIcon: Drawable?,
+    val title: String,
+    val content: String
+)
+
+/**
+ * Composable function to display app notifications in a list
+ */
+@Composable
+fun NotificationsList(
+    notifications: List<AppNotification>,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(notifications) { notification ->
+            NotificationItem(notification = notification)
+        }
+    }
+}
+
+/**
+ * Individual notification item
+ */
+@Composable
+fun NotificationItem(
+    notification: AppNotification,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f))
+            .border(
+                width = 1.dp,
+                color = androidx.compose.ui.graphics.Color.White,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // App icon
+        notification.appIcon?.let { drawable ->
+            Image(
+                bitmap = drawable.toBitmap(64, 64).asImageBitmap(),
+                contentDescription = "App icon",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Notification title and content
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = notification.title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = androidx.compose.ui.graphics.Color.White
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = notification.content,
+                fontSize = 14.sp,
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
+            )
+        }
+    }
+}
 
 /**
  * Jetpack Compose screen version of MainFragmentRainbowPath
