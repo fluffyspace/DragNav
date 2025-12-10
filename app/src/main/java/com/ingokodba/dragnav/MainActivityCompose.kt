@@ -32,7 +32,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.example.dragnav.R
-import com.ingokodba.dragnav.MySettingsFragment.Companion.DARK_MODE
+import com.ingokodba.dragnav.PreferenceKeys.DARK_MODE
 import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -49,6 +49,7 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStreamReader
@@ -138,7 +139,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Read UI design mode preference
         val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
         uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this)
-            .getString(MySettingsFragment.UI_DESIGN, uiDesignValues[0])) {
+            .getString(PreferenceKeys.UI_DESIGN, uiDesignValues[0])) {
             uiDesignValues[0] -> UiDesignEnum.RAINBOW_RIGHT
             uiDesignValues[1] -> UiDesignEnum.RAINBOW_LEFT
             uiDesignValues[2] -> UiDesignEnum.CIRCLE
@@ -162,7 +163,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                     modifier = Modifier
                         .fillMaxSize()
                         .windowInsetsPadding(WindowInsets.systemBars)
-                        .windowInsetsPadding(WindowInsets.ime)
                 ) {
                     // Main navigation content
                     AppNavigation(
@@ -244,7 +244,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
 
         circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this)
-            .getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
+            .getBoolean(PreferenceKeys.UI_ICONS_TOGGLE, true)
 
         lifecycleScope.launch(Dispatchers.IO) {
             // Initialize database flows for reactive updates
@@ -353,7 +353,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     fun changeLocale(c: Context) {
         val config = c.resources.configuration
         val lang: Boolean = PreferenceManager.getDefaultSharedPreferences(c)
-            .getBoolean(MySettingsFragment.UI_LANGUAGE_TOGGLE, false)
+            .getBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, false)
         val langstr = if (lang) "hr" else "en"
         val locale = Locale(langstr)
         Locale.setDefault(locale)
@@ -864,8 +864,108 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
      * Navigate to settings
      */
     fun navigateToSettings() {
-        val intent = Intent(this, SettingsActivity::class.java)
+        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Settings.route)
+    }
+
+    /**
+     * Open default apps settings
+     */
+    fun openDefaultApps() {
+        val intent = Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
+    }
+
+    /**
+     * Drop/reset database
+     */
+    fun dropDatabase() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getInstance(this@MainActivityCompose)
+                db.close()
+                db.clearAllTables()
+                db.setInstanceToNull()
+                Log.d("MainActivityCompose", "Database dropped successfully")
+            } catch (e: Exception) {
+                Log.e("MainActivityCompose", "Failed to drop database", e)
+            }
+        }
+    }
+
+    /**
+     * Backup database to file
+     */
+    fun to_backup() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            putExtra(Intent.EXTRA_TITLE, "backup.sqlite")
+            type = "application/x-sqlite3"
+        }
+        backupLauncher.launch(intent)
+    }
+
+    /**
+     * Restore database from file
+     */
+    fun from_backup() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        restoreLauncher.launch(intent)
+    }
+
+    // Activity result launchers for backup/restore
+    private val backupLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                val db = AppDatabase.getInstance(this)
+                try {
+                    db.close()
+                    val currentDBPath = getDatabasePath(AppDatabase.DATABASE_NAME).path
+                    val currentDB = File(currentDBPath)
+
+                    contentResolver.openFileDescriptor(uri, "w")?.use {
+                        FileOutputStream(it.fileDescriptor).use { fos ->
+                            FileInputStream(currentDB).use { fis ->
+                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
+                            }
+                        }
+                    }
+                    Log.d("MainActivityCompose", "Backup successful")
+                } catch (e: Exception) {
+                    Log.e("MainActivityCompose", "Backup failed", e)
+                }
+                db.setInstanceToNull()
+            }
+        }
+    }
+
+    private val restoreLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                val db = AppDatabase.getInstance(this)
+                try {
+                    db.close()
+                    val currentDBPath = getDatabasePath(AppDatabase.DATABASE_NAME).path
+                    val currentDB = File(currentDBPath)
+
+                    contentResolver.openFileDescriptor(uri, "r")?.use {
+                        FileInputStream(it.fileDescriptor).use { fis ->
+                            FileOutputStream(currentDB).use { fos ->
+                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
+                            }
+                        }
+                    }
+                    Log.d("MainActivityCompose", "Restore successful")
+                    db.setInstanceToNull()
+                    recreate() // Restart app after restore
+                } catch (e: Exception) {
+                    Log.e("MainActivityCompose", "Restore failed", e)
+                }
+            }
+        }
     }
 
     // ========== CIRCLE SCREEN CALLBACKS ==========

@@ -67,6 +67,27 @@ fun AppNavigation(
         composable(NavRoute.Actions.route) {
             ActionsScreen(mainActivity, viewModel)
         }
+
+        // Settings screens
+        composable(NavRoute.Settings.route) {
+            SettingsScreen(mainActivity, navController)
+        }
+
+        composable(NavRoute.SettingsCircle.route) {
+            CircleSettingsScreen(mainActivity, navController)
+        }
+
+        composable(NavRoute.SettingsRainbow.route) {
+            RainbowSettingsScreen(mainActivity, navController)
+        }
+
+        composable(NavRoute.SettingsGeneral.route) {
+            GeneralSettingsScreen(mainActivity, navController)
+        }
+
+        composable(NavRoute.SettingsHelp.route) {
+            HelpSettingsScreen(mainActivity, navController)
+        }
     }
 }
 

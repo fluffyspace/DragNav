@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.SearchUtils
-import com.ingokodba.dragnav.SettingsActivity
 import kotlinx.coroutines.delay
 import android.graphics.Rect
 
@@ -65,7 +64,9 @@ fun SearchOverlayMaterial(
     onAppLongPressed: (EncapsulatedAppInfoWithFolder) -> Unit,
     onDismiss: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    pathConfig: PathConfig? = null,
+    onPathConfigChanged: ((PathConfig) -> Unit)? = null
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -76,6 +77,7 @@ fun SearchOverlayMaterial(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var isKeyboardVisible by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     
     // Control status bar appearance based on overlay visibility
     var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
@@ -168,7 +170,11 @@ fun SearchOverlayMaterial(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.8f))
-                .clickable { onDismiss() }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { onDismiss() }
+                    )
+                }
                 .onKeyEvent { event ->
                     if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
                         onDismiss()
@@ -182,7 +188,6 @@ fun SearchOverlayMaterial(
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.systemBars)
-                    .windowInsetsPadding(WindowInsets.ime)
             ) {
                 // Search bar with settings button
                 Row(
@@ -206,14 +211,13 @@ fun SearchOverlayMaterial(
                     )
 
                     // Settings button
-                    onSettingsClick?.let { settingsClick ->
+                    if (pathConfig != null && onPathConfigChanged != null) {
                         Surface(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    settingsClick()
-                                    onDismiss()
+                                    showSettings = true
                                 },
                             color = Color.White,
                             tonalElevation = 4.dp
@@ -230,6 +234,32 @@ fun SearchOverlayMaterial(
                                 )
                             }
                         }
+                    } else {
+                        onSettingsClick?.let { settingsClick ->
+                            Surface(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        settingsClick()
+                                        onDismiss()
+                                    },
+                                color = Color.White,
+                                tonalElevation = 4.dp
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = Color.Black.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -238,8 +268,7 @@ fun SearchOverlayMaterial(
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .clickable(enabled = false) { /* Prevent background click through */ },
+                        .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
@@ -261,6 +290,16 @@ fun SearchOverlayMaterial(
                         )
                     }
                 }
+            }
+
+            // Settings dialog overlay (shows on top of everything)
+            if (showSettings && pathConfig != null && onPathConfigChanged != null) {
+                PathSettingsDialogCompose(
+                    config = pathConfig,
+                    onConfigChanged = onPathConfigChanged,
+                    onDismiss = { showSettings = false },
+                    showAsFullScreenOverlay = true
+                )
             }
         }
     }
@@ -508,22 +547,31 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
     attrs: android.util.AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
-    
+
     private val composeView: ComposeView
     private val allAppsState = mutableStateOf<List<EncapsulatedAppInfoWithFolder>>(emptyList())
     private val iconsState = mutableStateOf<Map<String, Drawable?>>(emptyMap())
     private val isVisibleState = mutableStateOf(false)
+    private val pathConfigState = mutableStateOf<PathConfig?>(null)
 
     interface SearchOverlayListener {
         fun onAppClicked(app: EncapsulatedAppInfoWithFolder)
         fun onAppLongPressed(app: EncapsulatedAppInfoWithFolder)
         fun onDismiss()
         fun onSettingsClick() {}
+        fun onPathConfigChanged(config: PathConfig) {}
     }
 
     private var listener: SearchOverlayListener? = null
     
     init {
+        // Apply window insets padding to handle keyboard
+        setOnApplyWindowInsetsListener { v, insets ->
+            val imeInsets = insets.getInsets(android.view.WindowInsets.Type.ime())
+            setPadding(0, 0, 0, imeInsets.bottom)
+            insets
+        }
+
         // Create ComposeView as a child
         composeView = ComposeView(context).apply {
             layoutParams = LayoutParams(
@@ -542,22 +590,28 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
                     onAppClicked = { listener?.onAppClicked(it) },
                     onAppLongPressed = { listener?.onAppLongPressed(it) },
                     onDismiss = { listener?.onDismiss() },
-                    onSettingsClick = { listener?.onSettingsClick() }
+                    onSettingsClick = { listener?.onSettingsClick() },
+                    pathConfig = pathConfigState.value,
+                    onPathConfigChanged = { listener?.onPathConfigChanged(it) }
                 )
             }
         }
     }
-    
+
     fun setListener(listener: SearchOverlayListener) {
         this.listener = listener
     }
-    
+
     fun setApps(apps: List<EncapsulatedAppInfoWithFolder>) {
         allAppsState.value = apps
     }
-    
+
     fun setIcons(icons: Map<String, Drawable?>) {
         iconsState.value = icons
+    }
+
+    fun setPathConfig(config: PathConfig) {
+        pathConfigState.value = config
     }
     
     fun show() {

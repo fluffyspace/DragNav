@@ -710,6 +710,7 @@ fun RainbowPathScreen(
         // Use the precomputed rainbowAll which includes both apps and folders
         searchOverlayRef.value?.setApps(rainbowAllFlow)
         searchOverlayRef.value?.setIcons(icons)
+        searchOverlayRef.value?.setPathConfig(config)
 
         searchOverlayRef.value?.setListener(object : SearchOverlayMaterialView.SearchOverlayListener {
             override fun onAppClicked(app: EncapsulatedAppInfoWithFolder) {
@@ -785,6 +786,12 @@ fun RainbowPathScreen(
 
             override fun onSettingsClick() {
                 showSettingsDialog()
+            }
+
+            override fun onPathConfigChanged(newConfig: PathConfig) {
+                config = newConfig
+                pathViewRef.value?.config = config
+                saveConfig(context, config)
             }
         })
 
@@ -1120,7 +1127,9 @@ fun RainbowPathScreen(
                     visibility = View.GONE
                 }.also { searchOverlayRef.value = it }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.ime)
         )
     }
 

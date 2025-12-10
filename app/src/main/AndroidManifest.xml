@@ -64,12 +64,6 @@
             </intent-filter>
         </service>
 
-        <activity
-            android:name="com.ingokodba.dragnav.SettingsActivity"
-            android:exported="false"
-            android:parentActivityName="com.ingokodba.dragnav.MainActivityCompose"
-            android:label="Settings"/>
-
         <receiver
             android:name="com.ingokodba.dragnav.AppListener"
             android:enabled="true"

@@ -9,5 +9,9 @@ sealed class NavRoute(val route: String) {
     object Activities : NavRoute("activities")
     object Actions : NavRoute("actions")
     object Settings : NavRoute("settings")
+    object SettingsCircle : NavRoute("settings/circle")
+    object SettingsRainbow : NavRoute("settings/rainbow")
+    object SettingsGeneral : NavRoute("settings/general")
+    object SettingsHelp : NavRoute("settings/help")
 }
 
