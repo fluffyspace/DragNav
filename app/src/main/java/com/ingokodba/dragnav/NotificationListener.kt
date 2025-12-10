@@ -109,7 +109,8 @@ class NotificationListener : NotificationListenerService() {
                     packageName = packageName,
                     appIcon = appIcon,
                     title = title,
-                    content = text
+                    content = text,
+                    contentIntent = notification.contentIntent
                 )
                 notificationMap[packageName] = appNotification
                 Log.d("NotificationListener", "Added: $packageName - $title")

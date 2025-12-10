@@ -17,6 +17,7 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -58,7 +59,8 @@ data class AppNotification(
     val packageName: String,
     val appIcon: Drawable?,
     val title: String,
-    val content: String
+    val content: String,
+    val contentIntent: android.app.PendingIntent? = null
 )
 
 /**
@@ -67,7 +69,8 @@ data class AppNotification(
 @Composable
 fun NotificationsList(
     notifications: List<AppNotification>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNotificationClick: (AppNotification) -> Unit = {}
 ) {
     LazyColumn(
         modifier = modifier
@@ -76,7 +79,10 @@ fun NotificationsList(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(notifications) { notification ->
-            NotificationItem(notification = notification)
+            NotificationItem(
+                notification = notification,
+                onClick = { onNotificationClick(notification) }
+            )
         }
     }
 }
@@ -87,12 +93,14 @@ fun NotificationsList(
 @Composable
 fun NotificationItem(
     notification: AppNotification,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
             .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f))
             .border(
                 width = 1.dp,
@@ -955,7 +963,27 @@ fun RainbowPathScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 200.dp)
-                    .align(Alignment.TopCenter)
+                    .align(Alignment.TopCenter),
+                onNotificationClick = { notification ->
+                    // Launch the notification's content intent
+                    notification.contentIntent?.let { pendingIntent ->
+                        try {
+                            pendingIntent.send()
+                            Log.d(TAG, "Launched notification for ${notification.packageName}")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to launch notification", e)
+                        }
+                    } ?: run {
+                        // Fallback: launch the app if no content intent
+                        val launchIntent = context.packageManager.getLaunchIntentForPackage(notification.packageName)
+                        if (launchIntent != null) {
+                            context.startActivity(launchIntent)
+                            Log.d(TAG, "Launched app ${notification.packageName}")
+                        } else {
+                            Log.e(TAG, "No launch intent for ${notification.packageName}")
+                        }
+                    }
+                }
             )
         } else {
             Log.d(TAG, "Not showing NotificationsList - empty list")
