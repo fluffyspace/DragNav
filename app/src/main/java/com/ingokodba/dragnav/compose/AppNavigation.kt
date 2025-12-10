@@ -30,29 +30,22 @@ fun AppNavigation(
         composable(NavRoute.Main.route) {
             when (mainActivity.uiDesignMode) {
                 UiDesignEnum.CIRCLE -> {
-                    // TODO: CircleScreen(mainActivity, viewModel)
-                    // Placeholder until CircleScreen is implemented
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    CircleScreen(mainActivity, viewModel = viewModel)
                 }
                 UiDesignEnum.CIRCLE_RIGHT_HAND -> {
-                    // TODO: CircleScreen(mainActivity, viewModel, rightHanded = true)
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    CircleScreen(mainActivity, viewModel = viewModel, rightHanded = true)
                 }
                 UiDesignEnum.CIRCLE_LEFT_HAND -> {
-                    // TODO: CircleScreen(mainActivity, viewModel, leftHanded = true)
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    CircleScreen(mainActivity, viewModel = viewModel, leftHanded = true)
                 }
                 UiDesignEnum.RAINBOW_RIGHT -> {
-                    // TODO: RainbowScreen(mainActivity, viewModel, rightSide = true)
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    RainbowScreen(mainActivity, viewModel = viewModel, rightSide = true)
                 }
                 UiDesignEnum.RAINBOW_LEFT -> {
-                    // TODO: RainbowScreen(mainActivity, viewModel, rightSide = false)
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    RainbowScreen(mainActivity, viewModel = viewModel, rightSide = false)
                 }
                 UiDesignEnum.KEYPAD -> {
-                    // TODO: KeypadScreen(mainActivity, viewModel)
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
+                    KeypadScreen(mainActivity, viewModel = viewModel)
                 }
                 UiDesignEnum.RAINBOW_PATH -> {
                     RainbowPathScreen(mainActivity, viewModel = viewModel)
@@ -62,21 +55,17 @@ fun AppNavigation(
 
         // Search screen
         composable(NavRoute.Search.route) {
-            // TODO: SearchScreen(mainActivity, viewModel, navController)
-            // Placeholder until SearchScreen is implemented
-            RainbowPathScreen(mainActivity, viewModel = viewModel)
+            SearchScreen(mainActivity, viewModel)
         }
 
         // Activities (app list) screen
         composable(NavRoute.Activities.route) {
-            // TODO: ActivitiesScreen(mainActivity, viewModel, navController)
-            RainbowPathScreen(mainActivity, viewModel = viewModel)
+            ActivitiesScreen(mainActivity, viewModel)
         }
 
         // Actions screen
         composable(NavRoute.Actions.route) {
-            // TODO: ActionsScreen(mainActivity, viewModel, navController)
-            RainbowPathScreen(mainActivity, viewModel = viewModel)
+            ActionsScreen(mainActivity, viewModel)
         }
     }
 }

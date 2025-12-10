@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
-import com.ingokodba.dragnav.SearchFragment
+import com.ingokodba.dragnav.SearchUtils
 import com.ingokodba.dragnav.SettingsActivity
 import kotlinx.coroutines.delay
 import android.graphics.Rect
@@ -490,7 +490,7 @@ private fun searchApps(
         } else if (item.apps.isNotEmpty()) {
             // Search app name using existing algorithm
             val app = item.apps.first()
-            val scoredApps = SearchFragment.getAppsByQuery(listOf(app), query)
+            val scoredApps = SearchUtils.getAppsByQuery(listOf(app), query)
             if (scoredApps.isNotEmpty()) {
                 results.add(Pair(scoredApps.first().first, item))
             }

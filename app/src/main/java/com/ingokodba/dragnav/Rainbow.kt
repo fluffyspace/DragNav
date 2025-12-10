@@ -23,7 +23,10 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 
-class Rainbow(context: Context, attrs: AttributeSet) : View(context, attrs){
+class Rainbow @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs){
 
     private var middleButtonState:MiddleButtonStates = MIDDLE_BUTTON_HIDE
 

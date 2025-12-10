@@ -19,7 +19,10 @@ import com.ingokodba.dragnav.modeli.MiddleButtonStates.*
 import kotlin.math.floor
 
 
-class PhoneKeypadView(context: Context, attrs: AttributeSet) : View(context, attrs){
+class PhoneKeypadView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs){
 
     private val text_paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val border_paint = Paint(Paint.ANTI_ALIAS_FLAG)

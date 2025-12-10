@@ -16,7 +16,11 @@ import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 
-class BottomMenuView(context: Context, attrs: AttributeSet) : View(context, attrs){
+class BottomMenuView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
 
     companion object{
         val BUTTONS_HIDDEN = 0
