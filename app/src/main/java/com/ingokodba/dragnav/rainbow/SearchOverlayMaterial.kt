@@ -77,7 +77,6 @@ fun SearchOverlayMaterial(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var isKeyboardVisible by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
     
     // Control status bar appearance based on overlay visibility
     var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
@@ -211,13 +210,13 @@ fun SearchOverlayMaterial(
                     )
 
                     // Settings button
-                    if (pathConfig != null && onPathConfigChanged != null) {
+                    onSettingsClick?.let { settingsClick ->
                         Surface(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    showSettings = true
+                                    settingsClick()
                                 },
                             color = Color.White,
                             tonalElevation = 4.dp
@@ -232,32 +231,6 @@ fun SearchOverlayMaterial(
                                     tint = Color.Black.copy(alpha = 0.7f),
                                     modifier = Modifier.size(28.dp)
                                 )
-                            }
-                        }
-                    } else {
-                        onSettingsClick?.let { settingsClick ->
-                            Surface(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        settingsClick()
-                                        onDismiss()
-                                    },
-                                color = Color.White,
-                                tonalElevation = 4.dp
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Settings,
-                                        contentDescription = "Settings",
-                                        tint = Color.Black.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
                             }
                         }
                     }
@@ -290,16 +263,6 @@ fun SearchOverlayMaterial(
                         )
                     }
                 }
-            }
-
-            // Settings dialog overlay (shows on top of everything)
-            if (showSettings && pathConfig != null && onPathConfigChanged != null) {
-                PathSettingsDialogCompose(
-                    config = pathConfig,
-                    onConfigChanged = onPathConfigChanged,
-                    onDismiss = { showSettings = false },
-                    showAsFullScreenOverlay = true
-                )
             }
         }
     }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,20 +62,19 @@ fun PathSettingsDialogCompose(
                         Modifier.fillMaxSize()
                     } else {
                         Modifier
-                            .fillMaxWidth(0.9f)
+                            .fillMaxWidth()
                             .wrapContentHeight()
                     }
-                ),
-            shape = if (showAsFullScreenOverlay) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
-            color = if (isTransparent) {
-                Color(0x1A000000) // 10% opacity when transparent
-            } else {
-                Color(0xE6222222) // 90% opacity dark background
-            },
+                )
+                .graphicsLayer {
+                    alpha = if (isTransparent) 0.1f else 1f
+                },
+            shape = RoundedCornerShape(0.dp),
+            color = Color(0xE6222222), // 90% opacity dark background
             tonalElevation = 8.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.padding(0.dp)
             ) {
                 // Top button row: Visibility button and Close button
                 Row(
@@ -85,9 +85,9 @@ fun PathSettingsDialogCompose(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Visibility toggle button
-                    IconButton(
-                        onClick = { },
+                    Box(
                         modifier = Modifier
+                            .size(48.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures(
                                     onPress = {
@@ -96,7 +96,8 @@ fun PathSettingsDialogCompose(
                                         isTransparent = false
                                     }
                                 )
-                            }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.visibility),
@@ -220,8 +221,7 @@ fun PathSettingsDialogCompose(
     if (showAsFullScreenOverlay) {
         // Full screen overlay version
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize()
         ) {
             dialogContent()
         }
@@ -623,22 +623,22 @@ private fun NotificationsSettings(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Offset X
-        SettingsLabel("Horizontal Offset (dp)")
-        SettingsSubtext("Offset from center (negative = left, positive = right)")
+        SettingsLabel("Horizontal Position")
+        SettingsSubtext("Screen position where anchor point is placed (0.0 = left, 0.5 = center, 1.0 = right)")
         SettingsSlider(
             value = config.notificationOffsetX,
-            valueRange = -200f..200f,
+            valueRange = 0f..1f,
             onValueChange = { onConfigChanged(config.copy(notificationOffsetX = it)) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Offset Y
-        SettingsLabel("Vertical Offset (dp)")
-        SettingsSubtext("Offset from anchor (negative = toward center, positive = toward edge)")
+        SettingsLabel("Vertical Position")
+        SettingsSubtext("Screen position where anchor point is placed (0.0 = top, 0.5 = center, 1.0 = bottom)")
         SettingsSlider(
             value = config.notificationOffsetY,
-            valueRange = -200f..200f,
+            valueRange = 0f..1f,
             onValueChange = { onConfigChanged(config.copy(notificationOffsetY = it)) }
         )
     }
@@ -980,12 +980,20 @@ private fun NotificationAnchorSpinner(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // Helper to format anchor name for display (e.g., "TOP_LEFT" -> "Top Left")
+    fun formatAnchorName(anchor: NotificationAnchor): String {
+        return anchor.name.replace("_", " ")
+            .lowercase()
+            .split(" ")
+            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+    }
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = selected.name.replace("_", " "),
+            value = formatAnchorName(selected),
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -1005,7 +1013,7 @@ private fun NotificationAnchorSpinner(
         ) {
             NotificationAnchor.values().forEach { anchor ->
                 DropdownMenuItem(
-                    text = { Text(anchor.name.replace("_", " ")) },
+                    text = { Text(formatAnchorName(anchor)) },
                     onClick = {
                         onSelected(anchor)
                         expanded = false

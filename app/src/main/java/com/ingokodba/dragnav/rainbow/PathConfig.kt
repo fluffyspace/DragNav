@@ -103,8 +103,15 @@ enum class AppNameFont {
 }
 
 enum class NotificationAnchor {
+    TOP_LEFT,
     TOP_CENTER,
-    BOTTOM_CENTER
+    TOP_RIGHT,
+    CENTER_LEFT,
+    CENTER,
+    CENTER_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_CENTER,
+    BOTTOM_RIGHT
 }
 
 /**

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,7 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import com.ingokodba.dragnav.rainbow.PathConfig
 import com.ingokodba.dragnav.rainbow.PathSettingsDialog
+import com.ingokodba.dragnav.rainbow.PathSettingsDialogCompose
 import com.ingokodba.dragnav.rainbow.RainbowPathView
 import com.ingokodba.dragnav.rainbow.SearchOverlayMaterialView
 import kotlinx.coroutines.*
@@ -83,23 +85,53 @@ fun NotificationIconsList(
 
     if (uniqueAppNotifications.isEmpty()) return
 
-    // Calculate alignment based on anchor position
-    val alignment = when (config.notificationAnchor) {
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_CENTER -> Alignment.TopCenter
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_CENTER -> Alignment.BottomCenter
+    // Map anchor to bias values (0.0 = left/top, 0.5 = center, 1.0 = right/bottom)
+    val (anchorBiasX, anchorBiasY) = when (config.notificationAnchor) {
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_LEFT -> Pair(0f, 0f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_CENTER -> Pair(0.5f, 0f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_RIGHT -> Pair(1f, 0f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER_LEFT -> Pair(0f, 0.5f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER -> Pair(0.5f, 0.5f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER_RIGHT -> Pair(1f, 0.5f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_LEFT -> Pair(0f, 1f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_CENTER -> Pair(0.5f, 1f)
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_RIGHT -> Pair(1f, 1f)
     }
 
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = alignment
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val screenWidthPx = constraints.maxWidth.toFloat()
+        val screenHeightPx = constraints.maxHeight.toFloat()
+
+        // Where to position the anchor point (absolute screen coordinates in pixels)
+        val targetXPx = config.notificationOffsetX * screenWidthPx
+        val targetYPx = config.notificationOffsetY * screenHeightPx
+
         Column(
             modifier = Modifier
-                .offset(
-                    x = config.notificationOffsetX.dp,
-                    y = config.notificationOffsetY.dp
-                )
-                .wrapContentSize(),
+                .wrapContentSize()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+
+                    // Calculate position: target position minus anchor offset
+                    val x = (targetXPx - placeable.width * anchorBiasX).toInt()
+                    val y = (targetYPx - placeable.height * anchorBiasY).toInt()
+
+                    // Logging for debugging
+                    Log.d("NotificationIconsList", "=== NOTIFICATION POSITIONING DEBUG ===")
+                    Log.d("NotificationIconsList", "Anchor: ${config.notificationAnchor.name}")
+                    Log.d("NotificationIconsList", "Anchor bias: ($anchorBiasX, $anchorBiasY)")
+                    Log.d("NotificationIconsList", "Screen dimensions: ${screenWidthPx}px x ${screenHeightPx}px")
+                    Log.d("NotificationIconsList", "Offset percentages: X=${config.notificationOffsetX}, Y=${config.notificationOffsetY}")
+                    Log.d("NotificationIconsList", "Target position (anchor point): X=${targetXPx}px, Y=${targetYPx}px")
+                    Log.d("NotificationIconsList", "Column dimensions: ${placeable.width}px x ${placeable.height}px")
+                    Log.d("NotificationIconsList", "Calculated Column position: X=${x}px, Y=${y}px")
+                    Log.d("NotificationIconsList", "Number of notifications: ${uniqueAppNotifications.size}")
+                    Log.d("NotificationIconsList", "=====================================")
+
+                    layout(placeable.width, placeable.height) {
+                        placeable.place(x, y)
+                    }
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(config.notificationIconSpacing.dp)
         ) {
@@ -273,6 +305,7 @@ fun RainbowPathScreen(
     var shortcuts by remember { mutableStateOf<List<ShortcutInfo>>(emptyList()) }
     var globalThing by remember { mutableStateOf<EncapsulatedAppInfoWithFolder?>(null) }
     var dialogState by remember { mutableStateOf<DialogStates?>(null) }
+    var showPathSettings by remember { mutableStateOf(false) }
 
     // Coroutine jobs - use plain variables, not state
     var flingJob by remember { mutableStateOf<Job?>(null) }
@@ -785,7 +818,8 @@ fun RainbowPathScreen(
             }
 
             override fun onSettingsClick() {
-                showSettingsDialog()
+                searchOverlayRef.value?.hide()
+                showPathSettings = true
             }
 
             override fun onPathConfigChanged(newConfig: PathConfig) {
@@ -1131,6 +1165,23 @@ fun RainbowPathScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.ime)
         )
+
+        // Independent PathSettingsDialog - shown at root level
+        if (showPathSettings) {
+            PathSettingsDialogCompose(
+                config = config,
+                onConfigChanged = { newConfig ->
+                    config = newConfig
+                    pathViewRef.value?.config = config
+                    saveConfig(context, config)
+                },
+                onDismiss = { showPathSettings = false },
+                onCategoryChanged = { category ->
+                    pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
+                    pathViewRef.value?.invalidate()
+                }
+            )
+        }
     }
 
     // Handle shortcut click callbacks
