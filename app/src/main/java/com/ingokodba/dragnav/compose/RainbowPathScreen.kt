@@ -714,6 +714,7 @@ fun RainbowPathScreen(
             }
 
             override fun onDismiss() {
+                Log.d(TAG, "SearchOverlay onDismiss called")
                 searchOverlayRef.value?.hide()
             }
         })
@@ -738,7 +739,7 @@ fun RainbowPathScreen(
     }
     
     Box(modifier = modifier.fillMaxSize()) {
-        // Main RainbowPathView and SearchOverlay (full size, underneath)
+        // Main RainbowPathView (full size, underneath)
         AndroidView(
             factory = { ctx ->
                 FrameLayout(ctx).apply {
@@ -908,18 +909,6 @@ fun RainbowPathScreen(
                     addView(pathView)
                     pathViewRef.value = pathView
 
-                    // SearchOverlayMaterialView
-                    val searchOverlay = SearchOverlayMaterialView(ctx).apply {
-                        id = View.generateViewId()
-                        layoutParams = FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT
-                        )
-                        visibility = View.GONE
-                    }
-                    addView(searchOverlay)
-                    searchOverlayRef.value = searchOverlay
-
                     // Set up top touch area for settings ONCE in factory
                     var touchStartX = 0f
                     var touchStartY = 0f
@@ -1042,8 +1031,23 @@ fun RainbowPathScreen(
         } else {
             Log.d(TAG, "Not showing NotificationsList - empty list")
         }
+
+        // SearchOverlayMaterialView - shown above everything else
+        AndroidView(
+            factory = { ctx ->
+                SearchOverlayMaterialView(ctx).apply {
+                    id = View.generateViewId()
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    visibility = View.GONE
+                }.also { searchOverlayRef.value = it }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     }
-    
+
     // Handle shortcut click callbacks
     LaunchedEffect(dialogState) {
         // Dialog state changes are handled by the OnShortcutClick callbacks

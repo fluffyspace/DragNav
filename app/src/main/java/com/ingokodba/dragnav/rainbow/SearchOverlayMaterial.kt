@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.view.KeyEvent
+import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -50,6 +51,7 @@ import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.SearchFragment
 import com.ingokodba.dragnav.SettingsActivity
 import kotlinx.coroutines.delay
+import android.graphics.Rect
 
 /**
  * Material 3 Compose version of SearchOverlay with glassy search bar and app list
@@ -73,11 +75,7 @@ fun SearchOverlayMaterial(
     var filteredApps by remember { mutableStateOf(apps) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    var wasKeyboardVisible by remember { mutableStateOf(false) }
-    var previousImeBottom by remember { mutableStateOf(0) }
-    
-    // Read IME bottom inset in composable context
-    val currentImeBottom = with(density) { WindowInsets.ime.getBottom(this) }
+    var isKeyboardVisible by remember { mutableStateOf(false) }
     
     // Control status bar appearance based on overlay visibility
     var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
@@ -120,32 +118,45 @@ fun SearchOverlayMaterial(
             delay(100)
             focusRequester.requestFocus()
             keyboardController?.show()
-            wasKeyboardVisible = true
+            isKeyboardVisible = true
         } else {
             keyboardController?.hide()
             searchQuery = ""
-            wasKeyboardVisible = false
-            previousImeBottom = 0
+            isKeyboardVisible = false
         }
     }
-    
-    // Track IME bottom changes and detect when keyboard closes
-    LaunchedEffect(currentImeBottom, visible, wasKeyboardVisible) {
-        if (visible) {
-            if (currentImeBottom > 0) {
-                // Keyboard is visible - update tracking
-                if (previousImeBottom == 0) {
-                    // Keyboard just appeared
-                    previousImeBottom = currentImeBottom
-                } else if (currentImeBottom != previousImeBottom) {
-                    // Keyboard height changed
-                    previousImeBottom = currentImeBottom
-                }
-            } else if (wasKeyboardVisible && previousImeBottom > 0) {
-                // Keyboard was visible but now closed - dismiss overlay
-                delay(100) // Small delay to ensure keyboard is fully closed
+
+    // Monitor keyboard visibility using global layout listener
+    DisposableEffect(view, visible) {
+        if (!visible) {
+            return@DisposableEffect onDispose { }
+        }
+
+        val rootView = view.rootView
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            val rect = Rect()
+            rootView.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = rootView.height
+            val keypadHeight = screenHeight - rect.bottom
+
+            val wasVisible = isKeyboardVisible
+            val isVisible = keypadHeight > screenHeight * 0.15 // Keyboard is visible if it takes more than 15% of screen
+
+            android.util.Log.d("SearchOverlayMaterial", "Layout change: keypadHeight=$keypadHeight, screenHeight=$screenHeight, wasVisible=$wasVisible, isVisible=$isVisible")
+
+            if (wasVisible && !isVisible && visible) {
+                // Keyboard was visible and now it's hidden - dismiss overlay
+                android.util.Log.d("SearchOverlayMaterial", "Keyboard closed, dismissing overlay")
                 onDismiss()
             }
+
+            isKeyboardVisible = isVisible
+        }
+
+        rootView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+
+        onDispose {
+            rootView.viewTreeObserver.removeOnGlobalLayoutListener(listener)
         }
     }
     
