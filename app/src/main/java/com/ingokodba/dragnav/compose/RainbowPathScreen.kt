@@ -213,7 +213,7 @@ fun NotificationItem(
  */
 @Composable
 fun RainbowPathScreen(
-    mainActivity: AppCompatActivity, // Accept MainActivity or MainActivityCompose
+    mainActivity: MainActivityCompose,
     modifier: Modifier = Modifier,
     viewModel: ViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -229,70 +229,41 @@ fun RainbowPathScreen(
         Log.d(TAG, ">>> RECOMPOSITION TRIGGERED <<<")
     }
 
-    // Helper functions to call methods on either activity type
+    // Helper functions to call methods directly on MainActivityCompose
     fun callSaveAppInfo(app: AppInfo) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.saveAppInfo(app)
-            is MainActivityCompose -> mainActivity.saveAppInfo(app)
-        }
+        mainActivity.saveAppInfo(app)
     }
 
     fun callIsAppAlreadyInMap(app: AppInfo): Boolean {
-        return when (mainActivity) {
-            is MainActivity -> mainActivity.isAppAlreadyInMap(app)
-            is MainActivityCompose -> mainActivity.isAppAlreadyInMap(app)
-            else -> false
-        }
+        return mainActivity.isAppAlreadyInMap(app)
     }
 
     fun callShowDialogWithActions(actions: List<ShortcutAction>, handler: OnShortcutClick, view: View) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.showDialogWithActions(actions, handler, view)
-            is MainActivityCompose -> mainActivity.showDialogWithActions(actions, handler, view)
-        }
+        mainActivity.showDialogWithActions(actions, handler, view)
     }
 
     fun callRainbowMapaUpdateItem(mapa: RainbowMapa) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.rainbowMapaUpdateItem(mapa)
-            is MainActivityCompose -> mainActivity.rainbowMapaUpdateItem(mapa)
-        }
+        mainActivity.rainbowMapaUpdateItem(mapa)
     }
 
     fun callRainbowMapaDeleteItem(mapa: RainbowMapa) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.rainbowMapaDeleteItem(mapa)
-            is MainActivityCompose -> mainActivity.rainbowMapaDeleteItem(mapa)
-        }
+        mainActivity.rainbowMapaDeleteItem(mapa)
     }
 
     fun callOpenFolderNameMenu(view: View, editing: Boolean, name: String, showColor: Boolean, callback: (String) -> Unit) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.openFolderNameMenu(view, editing, name, showColor, callback)
-            is MainActivityCompose -> mainActivity.openFolderNameMenu(view, editing, name, showColor, callback)
-        }
+        mainActivity.openFolderNameMenu(view, editing, name, showColor, callback)
     }
 
     fun callRainbowMapaInsertItem(mapa: RainbowMapa) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.rainbowMapaInsertItem(mapa)
-            is MainActivityCompose -> mainActivity.rainbowMapaInsertItem(mapa)
-        }
+        mainActivity.rainbowMapaInsertItem(mapa)
     }
 
     fun callGetShortcutFromPackage(packageName: String): List<ShortcutInfo> {
-        return when (mainActivity) {
-            is MainActivity -> mainActivity.getShortcutFromPackage(packageName)
-            is MainActivityCompose -> mainActivity.getShortcutFromPackage(packageName)
-            else -> emptyList()
-        }
+        return mainActivity.getShortcutFromPackage(packageName)
     }
 
     fun dismissShortcutPopup() {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.shortcutPopup?.dismiss()
-            is MainActivityCompose -> mainActivity.shortcutPopup?.dismiss()
-        }
+        mainActivity.shortcutPopup?.dismiss()
     }
 
     // State management
@@ -718,7 +689,23 @@ fun RainbowPathScreen(
             }
         }
     }
-    
+
+    fun showSettingsDialog() {
+        PathSettingsDialog(
+            context,
+            config,
+            onConfigChanged = { newConfig ->
+                config = newConfig
+                pathViewRef.value?.config = config
+                saveConfig(context, config)
+            },
+            onCategoryChanged = { category ->
+                pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
+                pathViewRef.value?.invalidate()
+            }
+        ).show()
+    }
+
     fun showSearchOverlay() {
         // Use the precomputed rainbowAll which includes both apps and folders
         searchOverlayRef.value?.setApps(rainbowAllFlow)
@@ -795,27 +782,15 @@ fun RainbowPathScreen(
                 Log.d(TAG, "SearchOverlay onDismiss called")
                 searchOverlayRef.value?.hide()
             }
+
+            override fun onSettingsClick() {
+                showSettingsDialog()
+            }
         })
 
         searchOverlayRef.value?.show()
     }
-    
-    fun showSettingsDialog() {
-        PathSettingsDialog(
-            context,
-            config,
-            onConfigChanged = { newConfig ->
-                config = newConfig
-                pathViewRef.value?.config = config
-                saveConfig(context, config)
-            },
-            onCategoryChanged = { category ->
-                pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
-                pathViewRef.value?.invalidate()
-            }
-        ).show()
-    }
-    
+
     Box(modifier = modifier.fillMaxSize()) {
         // Main RainbowPathView (full size, underneath)
         AndroidView(
@@ -1259,7 +1234,7 @@ private fun getDrawable(resourceId: Int, context: Context): Drawable? {
 
 private fun openShortcutsMenu(
     thing: EncapsulatedAppInfoWithFolder,
-    mainActivity: AppCompatActivity,
+    mainActivity: MainActivityCompose,
     viewModel: ViewModel,
     icons: Map<String, Drawable?>?,
     context: Context,
@@ -1270,20 +1245,12 @@ private fun openShortcutsMenu(
 ) {
     val launcherApps: LauncherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     val newShortcuts = if (launcherApps.hasShortcutHostPermission()) {
-        when (mainActivity) {
-            is MainActivity -> mainActivity.getShortcutFromPackage(thing.apps.first().packageName)
-            is MainActivityCompose -> mainActivity.getShortcutFromPackage(thing.apps.first().packageName)
-            else -> emptyList()
-        }
+        mainActivity.getShortcutFromPackage(thing.apps.first().packageName)
     } else {
         emptyList()
     }
     val appDrawable = icons?.get(thing.apps.first().packageName)
-    val isInMap = when (mainActivity) {
-        is MainActivity -> mainActivity.isAppAlreadyInMap(thing.apps.first())
-        is MainActivityCompose -> mainActivity.isAppAlreadyInMap(thing.apps.first())
-        else -> false
-    }
+    val isInMap = mainActivity.isAppAlreadyInMap(thing.apps.first())
     val actions = newShortcuts.map { ShortcutAction(it.shortLabel.toString(), appDrawable) }.toMutableList().apply {
         add(ShortcutAction(getTranslatedString(R.string.app_info, context), getDrawable(R.drawable.ic_outline_info_75, context)))
         add(if (thing.apps.first().favorite)
@@ -1296,26 +1263,20 @@ private fun openShortcutsMenu(
             ShortcutAction(getTranslatedString(R.string.add_to_folder, context), getDrawable(R.drawable.ic_baseline_create_new_folder_50, context)))
     }
     onStateChanged(DialogStates.APP_SHORTCUTS, newShortcuts)
-    when (mainActivity) {
-        is MainActivity -> mainActivity.showDialogWithActions(actions, shortcutClickHandler, pathView ?: return)
-        is MainActivityCompose -> mainActivity.showDialogWithActions(actions, shortcutClickHandler, pathView ?: return)
-    }
+    mainActivity.showDialogWithActions(actions, shortcutClickHandler, pathView ?: return)
 }
 
 private fun addAppToMap(
     mapIndex: Int,
     globalThing: EncapsulatedAppInfoWithFolder?,
     viewModel: ViewModel,
-    mainActivity: AppCompatActivity,
+    mainActivity: MainActivityCompose,
     pathView: View?,
     onUpdate: () -> Unit
 ) {
     if (globalThing == null || pathView == null) return
 
-    when (mainActivity) {
-        is MainActivity -> mainActivity.shortcutPopup?.dismiss()
-        is MainActivityCompose -> mainActivity.shortcutPopup?.dismiss()
-    }
+    mainActivity.shortcutPopup?.dismiss()
 
     val rainbowMape = viewModel.rainbowMape.value
     if (mapIndex >= (rainbowMape?.size ?: 0)) {
@@ -1324,30 +1285,21 @@ private fun addAppToMap(
         val mapa = rainbowMape!![mapIndex]
         val nova_mapa = mapa.copy(apps = mapa.apps.plus(globalThing.apps.first()).toMutableList())
         viewModel.updateRainbowMapa(nova_mapa)
-        when (mainActivity) {
-            is MainActivity -> mainActivity.rainbowMapaUpdateItem(nova_mapa)
-            is MainActivityCompose -> mainActivity.rainbowMapaUpdateItem(nova_mapa)
-        }
+        mainActivity.rainbowMapaUpdateItem(nova_mapa)
         onUpdate()
     }
 }
 
 private fun openCreateFolderDialog(
     globalThing: EncapsulatedAppInfoWithFolder?,
-    mainActivity: AppCompatActivity,
+    mainActivity: MainActivityCompose,
     pathView: View?
 ) {
     if (globalThing == null || pathView == null) return
 
-    when (mainActivity) {
-        is MainActivity -> mainActivity.openFolderNameMenu(pathView, false, "", false) {
-            val novaMapa = RainbowMapa(0, it, mutableListOf(globalThing.apps.first()), true)
-            mainActivity.rainbowMapaInsertItem(novaMapa)
-        }
-        is MainActivityCompose -> mainActivity.openFolderNameMenu(pathView, false, "", false) {
-            val novaMapa = RainbowMapa(0, it, mutableListOf(globalThing.apps.first()), true)
-            mainActivity.rainbowMapaInsertItem(novaMapa)
-        }
+    mainActivity.openFolderNameMenu(pathView, false, "", false) {
+        val novaMapa = RainbowMapa(0, it, mutableListOf(globalThing.apps.first()), true)
+        mainActivity.rainbowMapaInsertItem(novaMapa)
     }
 }
 
@@ -1355,47 +1307,31 @@ private fun folderOptions(
     index: Int,
     globalThing: EncapsulatedAppInfoWithFolder?,
     viewModel: ViewModel,
-    mainActivity: AppCompatActivity,
+    mainActivity: MainActivityCompose,
     pathView: View?,
     onUpdate: () -> Unit
 ) {
     if (globalThing == null || pathView == null) return
 
-    when (mainActivity) {
-        is MainActivity -> mainActivity.shortcutPopup?.dismiss()
-        is MainActivityCompose -> mainActivity.shortcutPopup?.dismiss()
-    }
+    mainActivity.shortcutPopup?.dismiss()
 
     when (index) {
         0 -> {
             val mapa = viewModel.rainbowMape.value?.find { it.folderName == globalThing.folderName }
-            when (mainActivity) {
-                is MainActivity -> mainActivity.openFolderNameMenu(pathView, true, mapa!!.folderName, false) { ime ->
-                    val nova_mapa = mapa?.copy(folderName = ime)
-                    if (nova_mapa != null) {
-                        viewModel.updateRainbowMapa(nova_mapa)
-                        mainActivity.rainbowMapaUpdateItem(nova_mapa)
-                    }
-                    onUpdate()
+            mainActivity.openFolderNameMenu(pathView, true, mapa!!.folderName, false) { ime ->
+                val nova_mapa = mapa?.copy(folderName = ime)
+                if (nova_mapa != null) {
+                    viewModel.updateRainbowMapa(nova_mapa)
+                    mainActivity.rainbowMapaUpdateItem(nova_mapa)
                 }
-                is MainActivityCompose -> mainActivity.openFolderNameMenu(pathView, true, mapa!!.folderName, false) { ime ->
-                    val nova_mapa = mapa?.copy(folderName = ime)
-                    if (nova_mapa != null) {
-                        viewModel.updateRainbowMapa(nova_mapa)
-                        mainActivity.rainbowMapaUpdateItem(nova_mapa)
-                    }
-                    onUpdate()
-                }
+                onUpdate()
             }
         }
         1 -> {
             val mapa = viewModel.rainbowMape.value?.find { it.folderName == globalThing.folderName }
             if (mapa != null) {
                 viewModel.deleteRainbowMapa(mapa)
-                when (mainActivity) {
-                    is MainActivity -> mainActivity.rainbowMapaDeleteItem(mapa)
-                    is MainActivityCompose -> mainActivity.rainbowMapaDeleteItem(mapa)
-                }
+                mainActivity.rainbowMapaDeleteItem(mapa)
             }
             onUpdate()
         }
@@ -1404,10 +1340,7 @@ private fun folderOptions(
             val nova_mapa = mapa?.copy(favorite = !mapa.favorite)
             if (nova_mapa != null) {
                 viewModel.updateRainbowMapa(nova_mapa)
-                when (mainActivity) {
-                    is MainActivity -> mainActivity.rainbowMapaUpdateItem(nova_mapa)
-                    is MainActivityCompose -> mainActivity.rainbowMapaUpdateItem(nova_mapa)
-                }
+                mainActivity.rainbowMapaUpdateItem(nova_mapa)
             }
             onUpdate()
         }

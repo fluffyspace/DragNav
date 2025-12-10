@@ -64,7 +64,7 @@ fun SearchOverlayMaterial(
     onAppClicked: (EncapsulatedAppInfoWithFolder) -> Unit,
     onAppLongPressed: (EncapsulatedAppInfoWithFolder) -> Unit,
     onDismiss: () -> Unit,
-    onSettingsClick: () -> Unit = {},
+    onSettingsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -206,24 +206,29 @@ fun SearchOverlayMaterial(
                     )
 
                     // Settings button
-                    Surface(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .clickable { onSettingsClick() },
-                        color = Color.White,
-                        tonalElevation = 4.dp
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                    onSettingsClick?.let { settingsClick ->
+                        Surface(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    settingsClick()
+                                    onDismiss()
+                                },
+                            color = Color.White,
+                            tonalElevation = 4.dp
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                tint = Color.Black.copy(alpha = 0.7f),
-                                modifier = Modifier.size(28.dp)
-                            )
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = Color.Black.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -508,13 +513,14 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
     private val allAppsState = mutableStateOf<List<EncapsulatedAppInfoWithFolder>>(emptyList())
     private val iconsState = mutableStateOf<Map<String, Drawable?>>(emptyMap())
     private val isVisibleState = mutableStateOf(false)
-    
+
     interface SearchOverlayListener {
         fun onAppClicked(app: EncapsulatedAppInfoWithFolder)
         fun onAppLongPressed(app: EncapsulatedAppInfoWithFolder)
         fun onDismiss()
+        fun onSettingsClick() {}
     }
-    
+
     private var listener: SearchOverlayListener? = null
     
     init {
@@ -536,10 +542,7 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
                     onAppClicked = { listener?.onAppClicked(it) },
                     onAppLongPressed = { listener?.onAppLongPressed(it) },
                     onDismiss = { listener?.onDismiss() },
-                    onSettingsClick = {
-                        val intent = Intent(context, SettingsActivity::class.java)
-                        context.startActivity(intent)
-                    }
+                    onSettingsClick = { listener?.onSettingsClick() }
                 )
             }
         }

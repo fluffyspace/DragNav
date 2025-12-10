@@ -29,14 +29,13 @@ class RemoveAppService : Service() {
                     Log.v("ingo", "app removed")
                 }
             }
-            val mainActivity = MainActivity.getInstance()
+            val mainActivity = MainActivityCompose.getInstance()
             if(mainActivity != null) {
                 val app =
                     mainActivity.viewModel.appsList.value!!.find { it.packageName == packageName }
                 if (app != null) {
                     withContext(Dispatchers.Main) {
                         mainActivity.viewModel.removeApp(app)
-                        mainActivity.activitiesFragment?.radapter?.notifyDataSetChanged()
                         Log.v("ingo", "app removed for sure!")
                     }
                 }

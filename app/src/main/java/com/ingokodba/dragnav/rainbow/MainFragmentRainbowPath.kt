@@ -543,6 +543,10 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
             override fun onDismiss() {
                 searchOverlay.hide()
             }
+
+            override fun onSettingsClick() {
+                showSettingsDialog()
+            }
         })
         
         searchOverlay.show()

@@ -24,7 +24,7 @@ class AppListener : BroadcastReceiver() {
                     return
                 }
                 Log.d("ingokodba", "Loading/updating app: $packageName")
-                MainActivity.getInstance()?.loadApp(packageName)
+                MainActivityCompose.getInstance()?.loadApp(packageName)
             }
             Intent.ACTION_PACKAGE_REMOVED -> {
                 // Don't remove if it's being replaced (will be re-added)
@@ -33,7 +33,7 @@ class AppListener : BroadcastReceiver() {
                     return
                 }
                 Log.d("ingokodba", "Removing app: $packageName")
-                MainActivity.getInstance()?.appDeleted(packageName)
+                MainActivityCompose.getInstance()?.appDeleted(packageName)
             }
         }
     }

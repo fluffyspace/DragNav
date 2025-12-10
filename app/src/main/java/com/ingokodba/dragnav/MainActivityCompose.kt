@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -35,10 +37,12 @@ import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
 import com.ingokodba.dragnav.baza.RainbowMapaDao
+import com.ingokodba.dragnav.compose.AppNavigation
 import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.compose.RainbowPathScreen
 import com.ingokodba.dragnav.modeli.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -69,6 +73,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
         lateinit var resources2: Resources
     }
+
+    // UI design mode selected by user
+    lateinit var uiDesignMode: UiDesignEnum
+
+    // Navigation controller for Compose navigation
+    var navController: NavHostController? = null
 
     var iconDrawable: Drawable? = null
     var iconBitmap: Bitmap? = null
@@ -121,23 +131,44 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         viewModel.initialize()
         changeLocale(this)
 
+        // Read UI design mode preference
+        val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
+        uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this)
+            .getString(MySettingsFragment.UI_DESIGN, uiDesignValues[0])) {
+            uiDesignValues[0] -> UiDesignEnum.RAINBOW_RIGHT
+            uiDesignValues[1] -> UiDesignEnum.RAINBOW_LEFT
+            uiDesignValues[2] -> UiDesignEnum.CIRCLE
+            uiDesignValues[3] -> UiDesignEnum.CIRCLE_RIGHT_HAND
+            uiDesignValues[4] -> UiDesignEnum.CIRCLE_LEFT_HAND
+            uiDesignValues[5] -> UiDesignEnum.KEYPAD
+            uiDesignValues[6] -> UiDesignEnum.RAINBOW_PATH
+            else -> UiDesignEnum.RAINBOW_PATH
+        }
+
         // Enable edge-to-edge for Android 15+ compatibility
         enableEdgeToEdge()
 
-        // Set up Compose UI
+        // Set up Compose UI with navigation
         setContent {
             MaterialTheme {
+                val navControllerState = rememberNavController()
+                navController = navControllerState
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .windowInsetsPadding(WindowInsets.systemBars)
                         .windowInsetsPadding(WindowInsets.ime)
                 ) {
-                    RainbowPathScreen(
+                    // Main navigation content
+                    AppNavigation(
+                        navController = navControllerState,
                         mainActivity = this@MainActivityCompose,
-                        modifier = Modifier.fillMaxSize(),
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
                     )
+
+                    // Global dialog overlays (shown above all screens)
 
                     // Shortcut dialog overlay
                     if (shortcutDialogActions != null) {
@@ -285,6 +316,8 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
         c.createConfigurationContext(config)
         resources2 = Resources(c.assets, c.resources.displayMetrics, config)
+        // Also set MainActivity.resources2 for backward compatibility with old fragments
+        MainActivity.resources2 = resources2
         c.resources.updateConfiguration(config, c.resources.displayMetrics)
     }
 
@@ -502,6 +535,173 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // is done by the listener passed to showDialogWithActions
     }
 
+    // ========== APP LIFECYCLE OPERATIONS ==========
+
+    fun isPackageNameOnDevice(packageName: String): Boolean {
+        return try {
+            packageManager.getApplicationInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
+    fun loadApp(packageName: String) {
+        if (viewModel.appsList.value!!.find { it.packageName == packageName } != null ||
+            viewModel.currentlyLoadingApps.contains(packageName)) {
+            Log.d("ingokodba", "App already installed or loading: $packageName")
+            return
+        }
+
+        viewModel.currentlyLoadingApps.add(packageName)
+        val ctx = this
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val appLoader = AppLoader(ctx)
+                val newApp = appLoader.loadApp(packageName, quality_icons)
+
+                if (newApp == null) {
+                    Log.w("ingokodba", "Failed to load app: $packageName (not a launcher app?)")
+                    viewModel.currentlyLoadingApps.remove(packageName)
+                    return@launch
+                }
+
+                Log.d("ingokodba", "Loading newly installed app: ${newApp.label} ($packageName)")
+
+                // Load icon
+                val iconCache = IconCache(ctx)
+                val (iconDrawable, color) = iconCache.getIcon(packageName, quality_icons)
+                if (iconDrawable != null) {
+                    newApp.color = color
+                    withContext(Dispatchers.Main) {
+                        viewModel.icons.value!![packageName] = iconDrawable
+                    }
+                }
+
+                // Save to database
+                val db = AppDatabase.getInstance(ctx)
+                val appDao: AppInfoDao = db.appInfoDao()
+                try {
+                    appDao.insertAll(newApp)
+                } catch (exception: android.database.sqlite.SQLiteConstraintException) {
+                    Log.d("ingo", "App already in database: ${exception.message}")
+                }
+
+                // Add to ViewModel
+                withContext(Dispatchers.Main) {
+                    viewModel.addApps(mutableListOf(newApp))
+                }
+
+                delay(200)
+            } catch (e: Exception) {
+                Log.e("ingokodba", "Error loading app $packageName", e)
+            } finally {
+                viewModel.currentlyLoadingApps.remove(packageName)
+            }
+        }
+    }
+
+    fun appDeleted(packageName: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Verify app is really deleted (quick check)
+            if (isPackageNameOnDevice(packageName)) {
+                Log.d("ingo", "Package not deleted, it's still on the device")
+                return@launch
+            }
+
+            val db = AppDatabase.getInstance(this@MainActivityCompose)
+            val appDao: AppInfoDao = db.appInfoDao()
+
+            // Remove from database
+            val lista = appDao.getAll()
+            lista.find { it.packageName == packageName }?.let { app ->
+                appDao.delete(app)
+                Log.v("ingokodba", "App removed from database: $packageName")
+            }
+
+            // Remove from ViewModel
+            val app = viewModel.appsList.value?.find { it.packageName == packageName }
+            if (app != null) {
+                withContext(Dispatchers.Main) {
+                    viewModel.removeApp(app)
+                    Log.v("ingokodba", "App removed from UI: $packageName")
+                }
+            }
+
+            // Remove from rainbow maps if present
+            val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
+            val rainbowMaps = rainbowMapaDao.getAll()
+            for (mapa in rainbowMaps) {
+                if (mapa.apps.any { it.packageName == packageName }) {
+                    val updatedMapa = mapa.copy(apps = mapa.apps.filter { it.packageName != packageName }.toMutableList())
+                    rainbowMapaDao.update(updatedMapa)
+                    viewModel.updateRainbowMapa(updatedMapa)
+                    Log.v("ingokodba", "Removed app from folder: ${mapa.folderName}")
+                }
+            }
+        }
+    }
+
+    fun updateApp(packageName: String) {
+        Log.d("ingo", "Updating app: $packageName")
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Reload the app info and icon
+            val appLoader = AppLoader(this@MainActivityCompose)
+            val updatedApp = appLoader.loadApp(packageName, quality_icons)
+
+            if (updatedApp != null) {
+                // Update existing app in ViewModel
+                val existingApp = viewModel.appsList.value?.find { it.packageName == packageName }
+                if (existingApp != null) {
+                    // Update mutable fields
+                    existingApp.color = updatedApp.color
+                    existingApp.installed = true
+
+                    // Reload icon (force refresh)
+                    viewModel.icons.value?.remove(packageName)
+                    val iconCache = IconCache(this@MainActivityCompose)
+                    val (iconDrawable, color) = iconCache.getIcon(packageName, quality_icons)
+                    if (iconDrawable != null) {
+                        withContext(Dispatchers.Main) {
+                            viewModel.icons.value!![packageName] = iconDrawable
+                        }
+                    }
+
+                    // Update database
+                    val db = AppDatabase.getInstance(this@MainActivityCompose)
+                    val appDao: AppInfoDao = db.appInfoDao()
+                    appDao.update(existingApp)
+                }
+            }
+        }
+    }
+
+    fun onAppSuspended(packageName: String, suspended: Boolean) {
+        Log.d("ingo", "App ${if (suspended) "suspended" else "unsuspended"}: $packageName")
+        // For now, just log. Could add visual indication in the future
+        // (e.g., gray out suspended apps)
+    }
+
+    fun onShortcutsChanged(packageName: String, shortcuts: MutableList<android.content.pm.ShortcutInfo>) {
+        Log.d("ingo", "Shortcuts changed for $packageName: ${shortcuts.size} shortcuts")
+        // Update hasShortcuts flag
+        val app = viewModel.appsList.value?.find { it.packageName == packageName }
+        if (app != null) {
+            app.hasShortcuts = shortcuts.isNotEmpty()
+            lifecycleScope.launch(Dispatchers.IO) {
+                val db = AppDatabase.getInstance(this@MainActivityCompose)
+                val appDao: AppInfoDao = db.appInfoDao()
+                appDao.update(app)
+            }
+        }
+    }
+
+    fun onInstallProgress(packageName: String, progress: Float) {
+        Log.v("ingo", "Install progress for $packageName: ${(progress * 100).toInt()}%")
+        // Could show progress bar in the future
+    }
+
     // ========== FOLDER OPERATIONS ==========
 
     fun openFolderNameMenu(view: View, addingOrEditing: Boolean, name: String, showPickColor: Boolean, callback: (String) -> Unit) {
@@ -564,6 +764,43 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             rainbowMapaDao.delete(polje)
             Log.d("MainActivityCompose", "deleted ${polje.folderName}(${polje.id})")
         }
+    }
+
+    // ========== NAVIGATION ==========
+
+    /**
+     * Navigate to the search screen
+     */
+    fun navigateToSearch() {
+        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Search.route)
+    }
+
+    /**
+     * Navigate to the activities (app list) screen
+     */
+    fun navigateToActivities() {
+        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Activities.route)
+    }
+
+    /**
+     * Navigate to the actions screen
+     */
+    fun navigateToActions() {
+        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Actions.route)
+    }
+
+    /**
+     * Navigate back to the main screen
+     */
+    fun navigateToMain() {
+        navController?.popBackStack(com.ingokodba.dragnav.navigation.NavRoute.Main.route, false)
+    }
+
+    /**
+     * Navigate back (pop back stack)
+     */
+    fun navigateBack(): Boolean {
+        return navController?.popBackStack() ?: false
     }
 
     // ========== LIFECYCLE ==========
