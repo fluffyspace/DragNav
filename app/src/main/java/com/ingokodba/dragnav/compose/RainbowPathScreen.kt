@@ -100,7 +100,10 @@ fun NotificationItem(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable {
+                Log.d("NotificationItem", "Notification item clicked: ${notification.packageName} - ${notification.title}")
+                onClick()
+            }
             .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f))
             .border(
                 width = 1.dp,
@@ -965,24 +968,75 @@ fun RainbowPathScreen(
                     .heightIn(max = 200.dp)
                     .align(Alignment.TopCenter),
                 onNotificationClick = { notification ->
+                    Log.d(TAG, "=== NOTIFICATION CLICKED ===")
+                    Log.d(TAG, "Package: ${notification.packageName}")
+                    Log.d(TAG, "Title: ${notification.title}")
+                    Log.d(TAG, "Content: ${notification.content}")
+                    Log.d(TAG, "Has contentIntent: ${notification.contentIntent != null}")
+
                     // Launch the notification's content intent
                     notification.contentIntent?.let { pendingIntent ->
                         try {
-                            pendingIntent.send()
-                            Log.d(TAG, "Launched notification for ${notification.packageName}")
+                            Log.d(TAG, "Attempting to send PendingIntent with ActivityOptions...")
+                            Log.d(TAG, "PendingIntent details: $pendingIntent")
+
+                            // Create ActivityOptions to ensure foreground launch (fixes BAL restrictions)
+                            val options = android.app.ActivityOptions.makeBasic().apply {
+                                // Mark this as allowed to start background activities
+                                // This is needed because Android blocks "Background Activity Launch" (BAL)
+                                pendingIntentBackgroundActivityStartMode =
+                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                            }.toBundle()
+
+                            // Send with context and options to bypass BAL restrictions
+                            pendingIntent.send(
+                                context,
+                                0, // requestCode
+                                null, // intent
+                                null, // onFinished callback
+                                null, // handler
+                                null, // requiredPermission
+                                options // ActivityOptions bundle
+                            )
+                            Log.d(TAG, "Successfully sent PendingIntent for ${notification.packageName}")
                         } catch (e: Exception) {
-                            Log.e(TAG, "Failed to launch notification", e)
+                            Log.e(TAG, "Failed to send PendingIntent", e)
+                            Log.e(TAG, "Exception type: ${e.javaClass.name}")
+                            Log.e(TAG, "Exception message: ${e.message}")
+                            e.printStackTrace()
+
+                            // Fallback to launching app on error
+                            Log.d(TAG, "Trying fallback: launching app directly")
+                            val launchIntent = context.packageManager.getLaunchIntentForPackage(notification.packageName)
+                            if (launchIntent != null) {
+                                try {
+                                    launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(launchIntent)
+                                    Log.d(TAG, "Fallback: Launched app ${notification.packageName}")
+                                } catch (e2: Exception) {
+                                    Log.e(TAG, "Fallback failed", e2)
+                                }
+                            } else {
+                                Log.e(TAG, "Fallback failed: No launch intent for ${notification.packageName}")
+                            }
                         }
                     } ?: run {
                         // Fallback: launch the app if no content intent
+                        Log.d(TAG, "No contentIntent available, trying to launch app directly")
                         val launchIntent = context.packageManager.getLaunchIntentForPackage(notification.packageName)
                         if (launchIntent != null) {
-                            context.startActivity(launchIntent)
-                            Log.d(TAG, "Launched app ${notification.packageName}")
+                            try {
+                                launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(launchIntent)
+                                Log.d(TAG, "Successfully launched app ${notification.packageName}")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to launch app ${notification.packageName}", e)
+                            }
                         } else {
-                            Log.e(TAG, "No launch intent for ${notification.packageName}")
+                            Log.e(TAG, "No launch intent available for ${notification.packageName}")
                         }
                     }
+                    Log.d(TAG, "=========================")
                 }
             )
         } else {
