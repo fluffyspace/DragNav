@@ -17,7 +17,17 @@ data class NotificationData(
 
     constructor(appNotification: AppNotification) : this(
         packageName = appNotification.packageName,
-        iconBitmap = appNotification.appIcon?.toBitmap(),
+        iconBitmap = appNotification.appIcon?.let { drawable ->
+            val bitmap = drawable.toBitmap()
+            // Scale down to max 64x64 to avoid parcel size limits
+            if (bitmap.width > 64 || bitmap.height > 64) {
+                Bitmap.createScaledBitmap(bitmap, 64, 64, true).also {
+                    if (it != bitmap) bitmap.recycle()
+                }
+            } else {
+                bitmap
+            }
+        },
         title = appNotification.title,
         content = appNotification.content,
         contentIntent = appNotification.contentIntent

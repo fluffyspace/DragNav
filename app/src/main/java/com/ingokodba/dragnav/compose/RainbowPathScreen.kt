@@ -489,7 +489,26 @@ fun RainbowPathScreen(
                 } else if (index == shortcuts.size + 1) {
                     // Toggle favorite
                     val app = thing.apps.first()
-                    app.favorite = !app.favorite
+                    val newFavoriteValue = !app.favorite
+
+                    Log.d("RainbowPathScreen", "=== TOGGLING FAVORITE ===")
+                    Log.d("RainbowPathScreen", "App: ${app.label} (${app.packageName})")
+                    Log.d("RainbowPathScreen", "Old favorite value: ${app.favorite}")
+                    Log.d("RainbowPathScreen", "New favorite value: $newFavoriteValue")
+
+                    // Find the app in ViewModel's appsList and update it
+                    val appInList = appsList?.find { it.packageName == app.packageName }
+                    if (appInList != null) {
+                        Log.d("RainbowPathScreen", "Found app in appsList, updating favorite to $newFavoriteValue")
+                        appInList.favorite = newFavoriteValue
+                        // Also update the local copy
+                        app.favorite = newFavoriteValue
+                    } else {
+                        Log.e("RainbowPathScreen", "App NOT FOUND in appsList! This is a bug.")
+                        // Still update local copy and database
+                        app.favorite = newFavoriteValue
+                    }
+
                     callSaveAppInfo(app)
                     updateAppsCallback()
                     dismissShortcutPopup()
@@ -1084,6 +1103,16 @@ private fun updateApps(
     onlyFavorites: Boolean,
     icons: Map<String, Drawable?>?
 ) {
+    // Update rainbowAll to get the full combined list (apps + folders)
+    if (!inFolder) {
+        viewModel.updateRainbowAll()
+    }
+
+    // Always provide the folder structure from rainbowAll so badges can be shown correctly
+    val folders = viewModel.rainbowAll.filter { it.folderName != null && it.apps.size > 1 }
+    Log.d("RainbowPathScreen", "updateApps: Found ${folders.size} folders from rainbowAll (size=${viewModel.rainbowAll.size})")
+    pathView.setFolders(folders)
+
     if (inFolder) {
         val folderApps = viewModel.rainbowFiltered.map {
             EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
@@ -1096,7 +1125,7 @@ private fun updateApps(
         }
         pathView.setApps(combinedApps)
     }
-    
+
     icons?.let {
         pathView.icons = it.toMutableMap()
     }

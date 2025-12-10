@@ -11,6 +11,11 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
 
+enum class DisplayMode {
+    ALL_APPS,        // Show all apps (no folders), including apps that are in folders
+    FAVORITES_ONLY   // Show only favorite apps and favorite folders
+}
+
 class ViewModel : ViewModel() {
 
     // The internal MutableLiveData that stores the status of the most recent request
@@ -76,20 +81,66 @@ class ViewModel : ViewModel() {
         rainbowAll = filtered
     }
 
-    fun updateRainbowFiltered(onlyfavorites: Boolean){
-        val filtered = if (onlyfavorites) {
-            // When onlyFavorites is true, show only folders (all folders, no favorite filter)
-            rainbowMape.value!!.map{EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)}.toMutableList().apply {
-                sortBy { it.folderName?.lowercase() ?: "" }
+    fun updateRainbowFiltered(displayMode: DisplayMode){
+        Log.d("ViewModel", "updateRainbowFiltered called with displayMode=$displayMode")
+        Log.d("ViewModel", "appsList.value has ${appsList.value?.size ?: 0} apps")
+        Log.d("ViewModel", "rainbowMape.value has ${rainbowMape.value?.size ?: 0} folders")
+
+        // Count favorite apps for debugging
+        val favCount = appsList.value?.count { it.favorite } ?: 0
+        Log.d("ViewModel", "Found $favCount favorite apps in appsList")
+        appsList.value?.filter { it.favorite }?.forEach { app ->
+            Log.d("ViewModel", "  Favorite app: ${app.label} (${app.packageName}), favorite=${app.favorite}")
+        }
+
+        val filtered = when (displayMode) {
+            DisplayMode.FAVORITES_ONLY -> {
+                // Show only favorite apps AND favorite folders
+                val favoriteApps = appsList.value!!
+                    .filter { it.favorite }
+                    .map { EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) }
+
+                val favoriteFolders = rainbowMape.value!!
+                    .filter { it.favorite }
+                    .map { EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) }
+
+                Log.d("ViewModel", "FAVORITES_ONLY: ${favoriteApps.size} favorite apps, ${favoriteFolders.size} favorite folders")
+
+                (favoriteApps + favoriteFolders).toMutableList().apply {
+                    sortBy {
+                        if (it.folderName != null) {
+                            it.folderName?.lowercase() ?: ""
+                        } else {
+                            it.apps.firstOrNull()?.label?.lowercase() ?: ""
+                        }
+                    }
+                }
             }
-        } else {
-            // When onlyFavorites is false, show ALL apps (including apps in folders), but don't show folders
-            appsList.value!!.map{EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)}.toMutableList().apply {
-                sortBy { if(it.apps.isNotEmpty()) it.apps.first().label.lowercase() else "" }
+            DisplayMode.ALL_APPS -> {
+                // Show ALL apps (including apps that are in folders), but don't show folders
+                val allApps = appsList.value!!.map {
+                    EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
+                }.toMutableList()
+
+                Log.d("ViewModel", "ALL_APPS: ${allApps.size} total apps")
+                val favInAll = allApps.count { it.favorite == true }
+                Log.d("ViewModel", "ALL_APPS: $favInAll apps have favorite=true")
+
+                allApps.apply {
+                    sortBy { if(it.apps.isNotEmpty()) it.apps.first().label.lowercase() else "" }
+                }
             }
         }
+
         rainbowFiltered = filtered
+        Log.d("ViewModel", "rainbowFiltered set to ${filtered.size} items")
         Log.d("ingo22", Gson().toJson(filtered.map{sveit -> sveit.apps.map{appit -> appit.label}}))
+    }
+
+    // Deprecated: Use updateRainbowFiltered(DisplayMode) instead
+    @Deprecated("Use updateRainbowFiltered(DisplayMode) instead", ReplaceWith("updateRainbowFiltered(if (onlyfavorites) DisplayMode.FAVORITES_ONLY else DisplayMode.ALL_APPS)"))
+    fun updateRainbowFiltered(onlyfavorites: Boolean){
+        updateRainbowFiltered(if (onlyfavorites) DisplayMode.FAVORITES_ONLY else DisplayMode.ALL_APPS)
     }
 
     fun curateAppsInFolders(apps: List<AppInfo>): List<AppInfo>{

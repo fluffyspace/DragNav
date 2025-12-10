@@ -151,6 +151,12 @@ class RainbowPathView @JvmOverloads constructor(
 
     // Letter index for fast scrolling
     private val letterPositions = mutableMapOf<Char, Int>()
+
+    // Set of package names that belong to any folder (for showing folder badge)
+    private val appsInFolders = mutableSetOf<String>()
+
+    // Master list of folders (used to build appsInFolders when viewing all apps)
+    private var foldersList: List<EncapsulatedAppInfoWithFolder> = emptyList()
     private var letterIndexRect: RectF? = null
     private var isInLetterIndex = false
     private var touchStartedInLetterIndex = false  // Track if touch started in letter index
@@ -407,6 +413,7 @@ class RainbowPathView @JvmOverloads constructor(
         }
         
         updateLetterPositions()
+        updateAppsInFolders()
 
         // Try to load saved scroll state from SharedPreferences first (for process death recovery)
         if (allAppsScrollOffset == 0f && favoritesScrollOffset == 0f && folderScrollOffset == 0f) {
@@ -579,6 +586,44 @@ class RainbowPathView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Set the master folders list. This should be called with the folder structure
+     * so we can build the appsInFolders set correctly even when viewing all apps.
+     */
+    fun setFolders(folders: List<EncapsulatedAppInfoWithFolder>) {
+        foldersList = folders
+        updateAppsInFolders()
+    }
+
+    /**
+     * Build a set of package names that belong to any folder.
+     * This is used to show folder badges on apps in the all apps view.
+     * Uses the foldersList if available, otherwise falls back to appList.
+     */
+    private fun updateAppsInFolders() {
+        appsInFolders.clear()
+
+        // Use foldersList if available (when viewing all apps), otherwise use appList (when in folder)
+        val sourceList = if (foldersList.isNotEmpty()) foldersList else appList
+
+        Log.d("RainbowPathBadge", "updateAppsInFolders: Using sourceList.size=${sourceList.size} (foldersList.size=${foldersList.size}, appList.size=${appList.size})")
+
+        // Iterate over all items in source list
+        sourceList.forEachIndexed { index, encapsulated ->
+            val folderName = encapsulated.folderName
+            val appsSize = encapsulated.apps.size
+
+            // If this item is a folder (has folderName and multiple apps)
+            if (encapsulated.folderName != null && encapsulated.apps.size > 1) {
+                // Add all app package names from this folder to the set
+                encapsulated.apps.forEach { app ->
+                    appsInFolders.add(app.packageName)
+                }
+            }
+        }
+        Log.d("RainbowPathBadge", "updateAppsInFolders: Found ${appsInFolders.size} apps in folders: ${appsInFolders.take(5).joinToString()}...")
+    }
+
     fun showShortcuts(appIndex: Int, shortcutLabels: List<String>) {
         shortcutsAppIndex = appIndex
         shortcuts = shortcutLabels
@@ -692,7 +737,7 @@ class RainbowPathView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
 
-        Log.d("RainbowPathView", "onDraw started: ${appList.size} apps, scrollOffset=$scrollOffset")
+        //Log.d("RainbowPathView", "onDraw started: ${appList.size} apps, scrollOffset=$scrollOffset")
 
         // Update text sizes and styles based on config
         textPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
@@ -769,12 +814,12 @@ class RainbowPathView @JvmOverloads constructor(
             }
         }
 
-        val drawElapsed = System.currentTimeMillis() - drawStartTime
+        /*val drawElapsed = System.currentTimeMillis() - drawStartTime
         if (drawElapsed > 16) { // Log if draw took longer than one frame (16ms at 60fps)
             Log.w("RainbowPathView", "onDraw took ${drawElapsed}ms (>16ms) - scrollOffset=$scrollOffset, drawnApps=${drawnApps.size}")
         } else {
             Log.d("RainbowPathView", "onDraw completed in ${drawElapsed}ms - drawnApps=${drawnApps.size}")
-        }
+        }*/
     }
     
     /**
@@ -944,14 +989,20 @@ class RainbowPathView @JvmOverloads constructor(
                     }
                 }
                 
-                // Draw folder favorite indicator
-                if (thing.favorite == true) {
-                    canvas.drawCircle(
-                        rect.left + iconSizePx / 8,
-                        rect.bottom - iconSizePx / 8,
-                        iconSizePx / 10,
-                        favoriteIndicatorPaint
-                    )
+                // Draw folder favorite indicator (only when NOT in favorites-only mode)
+                if (!onlyFavorites && thing.favorite == true) {
+                    val favoriteIconDrawable = AppCompatResources.getDrawable(context, R.drawable.favorite_filled)
+                    favoriteIconDrawable?.let { drawable ->
+                        drawable.setTint(Color.RED)
+                        val badgeSize = iconSizePx / 3
+                        drawable.setBounds(
+                            (rect.left).toInt(),
+                            (rect.bottom - badgeSize).toInt(),
+                            (rect.left + badgeSize).toInt(),
+                            rect.bottom.toInt()
+                        )
+                        drawable.draw(canvas)
+                    }
                 }
             } else {
                 // Draw single app icon
@@ -985,13 +1036,41 @@ class RainbowPathView @JvmOverloads constructor(
                     )
                 }
 
-                if (app.favorite) {
-                    canvas.drawCircle(
-                        rect.left + iconSizePx / 8,
-                        rect.bottom - iconSizePx / 8,
-                        iconSizePx / 10,
-                        favoriteIndicatorPaint
-                    )
+                // Draw bottom left badge (folder or favorite indicator)
+                // Only show badges when NOT in favorites-only mode and NOT already in a folder view
+                if (!onlyFavorites && !inFolder) {
+                    // Check if app is in the pre-built set of apps that belong to folders
+                    val isInAnyFolder = appsInFolders.contains(app.packageName)
+
+                    if (isInAnyFolder) {
+                        // Show folder icon badge with white tint
+                        val folderIconDrawable = AppCompatResources.getDrawable(context, R.drawable.baseline_folder_24)
+                        folderIconDrawable?.let { drawable ->
+                            drawable.setTint(Color.WHITE)
+                            val badgeSize = iconSizePx / 3
+                            drawable.setBounds(
+                                (rect.left).toInt(),
+                                (rect.bottom - badgeSize).toInt(),
+                                (rect.left + badgeSize).toInt(),
+                                rect.bottom.toInt()
+                            )
+                            drawable.draw(canvas)
+                        }
+                    } else if (app.favorite) {
+                        // Show favorite icon badge (only if not in folder)
+                        val favoriteIconDrawable = AppCompatResources.getDrawable(context, R.drawable.favorite_filled)
+                        favoriteIconDrawable?.let { drawable ->
+                            drawable.setTint(Color.RED)
+                            val badgeSize = iconSizePx / 3
+                            drawable.setBounds(
+                                (rect.left).toInt(),
+                                (rect.bottom - badgeSize).toInt(),
+                                (rect.left + badgeSize).toInt(),
+                                rect.bottom.toInt()
+                            )
+                            drawable.draw(canvas)
+                        }
+                    }
                 }
             }
 

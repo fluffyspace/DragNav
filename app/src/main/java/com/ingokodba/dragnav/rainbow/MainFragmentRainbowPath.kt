@@ -261,10 +261,14 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
     }
 
     fun updateApps() {
+        // Always provide the folder structure from rainbowAll so badges can be shown correctly
+        val folders = viewModel.rainbowAll.filter { it.folderName != null && it.apps.size > 1 }
+        pathView.setFolders(folders)
+
         if (inFolder) {
             // When in folder, show folder contents
-            val folderApps = viewModel.rainbowFiltered.map { 
-                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) 
+            val folderApps = viewModel.rainbowFiltered.map {
+                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
             }
             Log.d("RainbowPath", "updateApps (inFolder=true): Setting ${folderApps.size} apps")
             folderApps.forEachIndexed { idx, app ->
@@ -276,8 +280,8 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
         } else {
             // Normal view - combine apps and folders
             viewModel.updateRainbowFiltered(pathView.onlyFavorites)
-            val combinedApps = viewModel.rainbowFiltered.map { 
-                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) 
+            val combinedApps = viewModel.rainbowFiltered.map {
+                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
             }
             pathView.setApps(combinedApps)
         }
@@ -637,7 +641,26 @@ class MainFragmentRainbowPath : Fragment(), MainFragmentInterface, OnShortcutCli
                 } else if (index == shortcuts.size + 1) {
                     // Toggle favorite
                     val app = thing.apps.first()
-                    app.favorite = !app.favorite
+                    val newFavoriteValue = !app.favorite
+
+                    Log.d("MainFragmentRainbowPath", "=== TOGGLING FAVORITE ===")
+                    Log.d("MainFragmentRainbowPath", "App: ${app.label} (${app.packageName})")
+                    Log.d("MainFragmentRainbowPath", "Old favorite value: ${app.favorite}")
+                    Log.d("MainFragmentRainbowPath", "New favorite value: $newFavoriteValue")
+
+                    // Find the app in ViewModel's appsList and update it
+                    val appInList = viewModel.appsList.value?.find { it.packageName == app.packageName }
+                    if (appInList != null) {
+                        Log.d("MainFragmentRainbowPath", "Found app in appsList, updating favorite to $newFavoriteValue")
+                        appInList.favorite = newFavoriteValue
+                        // Also update the local copy
+                        app.favorite = newFavoriteValue
+                    } else {
+                        Log.e("MainFragmentRainbowPath", "App NOT FOUND in appsList! This is a bug.")
+                        // Still update local copy and database
+                        app.favorite = newFavoriteValue
+                    }
+
                     mActivity.saveAppInfo(app)
                     updateApps()
                     mActivity.shortcutPopup?.dismiss()

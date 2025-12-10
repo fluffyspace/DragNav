@@ -309,10 +309,19 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         if (cache_apps) {
             val allAppsCached = appDao.getAll().toMutableList()
 
-            val appsNotInCache = installedApps.filter { installedApp ->
-                allAppsCached.find { cachedApp -> cachedApp.packageName == installedApp.packageName } == null
-            }
-            newApps.addAll(appsNotInCache)
+            // Merge installed apps with cached data (preserve favorite, frequency, etc.)
+            val mergedApps = installedApps.map { installedApp ->
+                // Find matching cached app
+                val cachedApp = allAppsCached.find { it.packageName == installedApp.packageName }
+                if (cachedApp != null) {
+                    // Use cached app data (preserves favorite, frequency, color, etc.)
+                    cachedApp
+                } else {
+                    // New app, not in cache
+                    newApps.add(installedApp)
+                    installedApp
+                }
+            }.toMutableList()
 
             val cachedAppsNoLongerInstalled = allAppsCached.filter { cachedApp ->
                 installedApps.find { installedApp -> installedApp.packageName == cachedApp.packageName } == null
@@ -323,7 +332,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             }
 
             withContext(Dispatchers.Main) {
-                viewModel.addApps(installedApps)
+                viewModel.addApps(mergedApps)
             }
         } else {
             withContext(Dispatchers.Main) {
