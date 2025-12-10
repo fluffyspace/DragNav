@@ -53,7 +53,7 @@ All main fragments implement `MainFragmentInterface` for consistent behavior.
 - `MainActivity`: Central coordinator, handles fragment transactions, app loading, database operations
 - `CircleView` / `Rainbow` / `PhoneKeypadView`: Custom views for each UI mode
 - `AppListener`: BroadcastReceiver for app install/uninstall events
-- `EventBus`: Used for communication between components (MessageEvent for app launches, drag-drop)
+- `Hilt`: Dependency injection framework for managing component dependencies
 
 ### Navigation Flow
 `MainActivity` manages layout states via `Layouts` enum:
@@ -65,6 +65,7 @@ All main fragments implement `MainFragmentInterface` for consistent behavior.
 
 ## Key Patterns
 
+- Hilt for dependency injection with `@AndroidEntryPoint` annotations on Activities
 - Coroutines with `lifecycleScope` for async database and icon loading operations
 - Data binding enabled for views
 - Navigation component with SafeArgs for settings navigation

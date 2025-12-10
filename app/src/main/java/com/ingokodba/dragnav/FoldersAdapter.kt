@@ -11,10 +11,16 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
-import org.greenrobot.eventbus.EventBus
 
+interface FolderSelectionListener {
+    fun onFolderSelected(folderIndex: Int)
+}
 
-class FoldersAdapter(c: Context, meniPolja: List<KrugSAplikacijama>) : RecyclerView.Adapter<FoldersAdapter.ViewHolder>() {
+class FoldersAdapter(
+    c: Context,
+    meniPolja: List<KrugSAplikacijama>,
+    private val folderSelectionListener: FolderSelectionListener
+) : RecyclerView.Adapter<FoldersAdapter.ViewHolder>() {
     var folders: List<KrugSAplikacijama>
     var context:Context
     init {
@@ -29,8 +35,7 @@ class FoldersAdapter(c: Context, meniPolja: List<KrugSAplikacijama>) : RecyclerV
         override fun onClick(v: View) {
             val pos = adapterPosition
             Log.d("ingo", "selected " + pos + " " + folders[pos].text)
-            val context = v.context
-            EventBus.getDefault().post(AddShortcutActivity.Veve(pos))
+            folderSelectionListener.onFolderSelected(pos)
             v.setBackgroundColor(Color.YELLOW)
         }
 

@@ -41,6 +41,7 @@ import com.ingokodba.dragnav.compose.AppNavigation
 import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.compose.RainbowPathScreen
 import com.ingokodba.dragnav.modeli.*
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -60,6 +61,7 @@ import java.util.*
  * This is a completely independent implementation that doesn't rely on the original MainActivity
  * All necessary code is duplicated here for independence
  */
+@AndroidEntryPoint
 class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     val viewModel: ViewModel by viewModels()

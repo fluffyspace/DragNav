@@ -15,15 +15,13 @@ import com.example.dragnav.R
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 
-
-class AddShortcutActivity : AppCompatActivity() {
+@AndroidEntryPoint
+class AddShortcutActivity : AppCompatActivity(), FolderSelectionListener {
     // ova aktivnost se pokreće kada netko iz druge aplikacije koristi mogućnost dodavanja prečaca na launcher
     var pocetnaId = 0
     var meniPolja:List<KrugSAplikacijama> = listOf()
@@ -56,7 +54,7 @@ class AddShortcutActivity : AppCompatActivity() {
                 if (initializeRoom()) {
                     withContext(Dispatchers.Main) {
                         //goToPocetna()
-                        val foldersAdapter = FoldersAdapter(context, meniPolja)
+                        val foldersAdapter = FoldersAdapter(context, meniPolja, this@AddShortcutActivity)
                         findViewById<RecyclerView>(R.id.recycler_view4).adapter = foldersAdapter
                         foldersAdapter.notifyDataSetChanged()
                     }
@@ -76,32 +74,18 @@ class AddShortcutActivity : AppCompatActivity() {
         //this.finish();
     }
 
-    data class Veve (val iid:Int
-    )
-
     override fun onBackPressed() {
         super.onBackPressed()
         finish()
     }
 
-    override fun onStart() {
-        super.onStart()
-        EventBus.getDefault().register(this)
-    }
-
-    override fun onStop() {
-        super.onStop()
-        EventBus.getDefault().unregister(this)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onMessageEvent(id: Veve) {
+    override fun onFolderSelected(folderIndex: Int) {
         lifecycleScope.launch(Dispatchers.IO) {
             val novo_polje = databaseAddNewPolje(shortcut_as_meni)
-            meniPolja[id.iid].polja = meniPolja[id.iid].polja.plus(novo_polje.id)
-            Log.d("ingo", "onMessageEvent dodaj u polje " + meniPolja[id.iid].text)
-            databaseUpdateItem(meniPolja[id.iid])
-            Log.d("ingo", "onMessageEvent ended")
+            meniPolja[folderIndex].polja = meniPolja[folderIndex].polja.plus(novo_polje.id)
+            Log.d("ingo", "onFolderSelected dodaj u polje " + meniPolja[folderIndex].text)
+            databaseUpdateItem(meniPolja[folderIndex])
+            Log.d("ingo", "onFolderSelected ended")
             withContext(Dispatchers.Main){
                 pinItemRequest?.accept()
                 finish()

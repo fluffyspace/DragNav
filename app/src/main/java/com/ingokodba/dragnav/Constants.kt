@@ -121,7 +121,7 @@ class MainActivity {
 
     @Deprecated("Legacy method - not used in MainActivityCompose")
     fun onMessageEvent(event: com.ingokodba.dragnav.modeli.MessageEvent) {
-        // No-op: EventBus messaging is replaced with Compose state in MainActivityCompose
+        // No-op: Direct callbacks are used instead of event bus in MainActivityCompose
     }
 
     @Deprecated("Legacy method - not used in MainActivityCompose")
