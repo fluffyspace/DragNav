@@ -5,11 +5,14 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 enum class DisplayMode {
     ALL_APPS,        // Show all apps (no folders), including apps that are in folders
@@ -18,20 +21,48 @@ enum class DisplayMode {
 
 class ViewModel : ViewModel() {
 
-    // The internal MutableLiveData that stores the status of the most recent request
+    // The internal MutableLiveData that stores the status of the most recent request (kept for backward compatibility)
     private val _popis_aplikacija = MutableLiveData<MutableList<AppInfo>>()
     private val _rainbow_mape = MutableLiveData<MutableList<RainbowMapa>>()
-    //private val _rainbow_filtered = MutableLiveData<MutableList<EncapsulatedAppInfoWithFolder>>()
     private var _icons = MutableLiveData<MutableMap<String, Drawable?>>()
     private val _notifications = MutableLiveData<List<AppNotification>>()
 
-    // The external immutable LiveData for the request status
+    // New Flow-based state
+    private val _appsListFlow = MutableStateFlow<List<AppInfo>>(emptyList())
+    private val _rainbowMapeFlow = MutableStateFlow<List<RainbowMapa>>(emptyList())
+    private val _iconsFlow = MutableStateFlow<Map<String, Drawable?>>(emptyMap())
+    private val _notificationsFlow = MutableStateFlow<List<AppNotification>>(emptyList())
+    private val _displayModeFlow = MutableStateFlow(DisplayMode.ALL_APPS)
+
+    // The external immutable LiveData for the request status (kept for backward compatibility)
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
     val rainbowMape: LiveData<MutableList<RainbowMapa>> = _rainbow_mape
-    var rainbowFiltered: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()//_rainbow_filtered
+    var rainbowFiltered: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()
     var rainbowAll: MutableList<EncapsulatedAppInfoWithFolder> = mutableListOf()
     var icons: LiveData<MutableMap<String, Drawable?>> = _icons
     val notifications: LiveData<List<AppNotification>> = _notifications
+
+    // New Flow-based public APIs
+    val appsListFlow: StateFlow<List<AppInfo>> = _appsListFlow.asStateFlow()
+    val rainbowMapeFlow: StateFlow<List<RainbowMapa>> = _rainbowMapeFlow.asStateFlow()
+    val iconsFlow: StateFlow<Map<String, Drawable?>> = _iconsFlow.asStateFlow()
+    val notificationsFlow: StateFlow<List<AppNotification>> = _notificationsFlow.asStateFlow()
+
+    // Computed flows
+    val rainbowFilteredFlow: StateFlow<List<EncapsulatedAppInfoWithFolder>> = combine(
+        _appsListFlow,
+        _rainbowMapeFlow,
+        _displayModeFlow
+    ) { apps, folders, mode ->
+        computeRainbowFiltered(apps, folders, mode)
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val rainbowAllFlow: StateFlow<List<EncapsulatedAppInfoWithFolder>> = combine(
+        _appsListFlow,
+        _rainbowMapeFlow
+    ) { apps, folders ->
+        computeRainbowAll(apps, folders)
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     lateinit var currentMenu: KrugSAplikacijama
     var currentMenuId: Int = -1
@@ -57,6 +88,119 @@ class ViewModel : ViewModel() {
         trenutnoPrikazanaPolja = listOf()
         sviKrugovi = mutableListOf()
         currentMenuId = -1
+
+        // Initialize flows
+        _appsListFlow.value = emptyList()
+        _rainbowMapeFlow.value = emptyList()
+        _iconsFlow.value = emptyMap()
+        _notificationsFlow.value = emptyList()
+        _displayModeFlow.value = DisplayMode.ALL_APPS
+    }
+
+    /**
+     * Initialize database flows to automatically sync with database changes
+     */
+    fun initializeDatabaseFlows(
+        appsFlow: Flow<List<AppInfo>>,
+        foldersFlow: Flow<List<RainbowMapa>>
+    ) {
+        viewModelScope.launch {
+            appsFlow.collect { apps ->
+                _appsListFlow.value = apps
+                // Keep LiveData in sync for backward compatibility
+                _popis_aplikacija.postValue(apps.toMutableList())
+            }
+        }
+
+        viewModelScope.launch {
+            foldersFlow.collect { folders ->
+                _rainbowMapeFlow.value = folders
+                // Keep LiveData in sync for backward compatibility
+                _rainbow_mape.postValue(folders.toMutableList())
+            }
+        }
+    }
+
+    /**
+     * Compute filtered apps based on display mode
+     */
+    private fun computeRainbowFiltered(
+        apps: List<AppInfo>,
+        folders: List<RainbowMapa>,
+        mode: DisplayMode
+    ): List<EncapsulatedAppInfoWithFolder> {
+        Log.d("ViewModel", "computeRainbowFiltered called with mode=$mode")
+        Log.d("ViewModel", "apps has ${apps.size} apps")
+        Log.d("ViewModel", "folders has ${folders.size} folders")
+
+        val favCount = apps.count { it.favorite }
+        Log.d("ViewModel", "Found $favCount favorite apps in appsList")
+
+        val filtered = when (mode) {
+            DisplayMode.FAVORITES_ONLY -> {
+                val favoriteApps = apps
+                    .filter { it.favorite }
+                    .map { EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) }
+
+                val favoriteFolders = folders
+                    .filter { it.favorite }
+                    .map { EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) }
+
+                Log.d("ViewModel", "FAVORITES_ONLY: ${favoriteApps.size} favorite apps, ${favoriteFolders.size} favorite folders")
+
+                (favoriteApps + favoriteFolders).sortedBy {
+                    if (it.folderName != null) {
+                        it.folderName?.lowercase() ?: ""
+                    } else {
+                        it.apps.firstOrNull()?.label?.lowercase() ?: ""
+                    }
+                }
+            }
+            DisplayMode.ALL_APPS -> {
+                val allApps = apps.map {
+                    EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
+                }
+
+                Log.d("ViewModel", "ALL_APPS: ${allApps.size} total apps")
+
+                allApps.sortedBy {
+                    if (it.apps.isNotEmpty()) it.apps.first().label.lowercase() else ""
+                }
+            }
+        }
+
+        Log.d("ViewModel", "computeRainbowFiltered returning ${filtered.size} items")
+        return filtered
+    }
+
+    /**
+     * Compute all apps including folders
+     */
+    private fun computeRainbowAll(
+        apps: List<AppInfo>,
+        folders: List<RainbowMapa>
+    ): List<EncapsulatedAppInfoWithFolder> {
+        val allApps = apps.map {
+            EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
+        }
+        val allFolders = folders.map {
+            EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
+        }
+
+        return (allApps + allFolders).sortedBy {
+            if (it.folderName == null && it.apps.isNotEmpty()) {
+                it.apps.first().label.lowercase()
+            } else {
+                it.folderName?.lowercase() ?: ""
+            }
+        }
+    }
+
+    /**
+     * Set display mode (all apps or favorites only)
+     */
+    fun setDisplayMode(mode: DisplayMode) {
+        _displayModeFlow.value = mode
     }
 
     var modeDistanceAccumulated: Int = 0
@@ -188,9 +332,11 @@ class ViewModel : ViewModel() {
 
     fun setIcons(icons: MutableMap<String, Drawable?>){
         _icons.value = icons
+        _iconsFlow.value = icons
     }
 
     fun updateNotifications(notifications: List<AppNotification>) {
         _notifications.postValue(notifications)
+        _notificationsFlow.value = notifications
     }
 }

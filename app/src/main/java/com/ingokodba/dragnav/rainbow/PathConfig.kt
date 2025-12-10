@@ -69,7 +69,14 @@ data class PathConfig(
 
     // Scroll sensitivity (multiplier for touch movement to scroll distance)
     // 1.0 = normal, >1.0 = faster scrolling (e.g., 10.0 means 1cm touch scrolls 10cm)
-    val scrollSensitivity: Float = 1.0f
+    val scrollSensitivity: Float = 1.0f,
+
+    // Notification icons settings
+    val notificationIconSize: Float = 48f,           // Icon size in dp
+    val notificationIconSpacing: Float = 8f,         // Spacing between icons in dp
+    val notificationOffsetX: Float = 0f,             // Horizontal offset from anchor in dp
+    val notificationOffsetY: Float = 16f,            // Vertical offset from anchor in dp
+    val notificationAnchor: NotificationAnchor = NotificationAnchor.TOP_CENTER  // Anchor position
 )
 
 enum class LetterIndexPosition {
@@ -93,6 +100,11 @@ enum class AppNameFont {
     SANS_SERIF,  // Sans-serif font
     SERIF,       // Serif font
     MONOSPACE    // Monospace font
+}
+
+enum class NotificationAnchor {
+    TOP_CENTER,
+    BOTTOM_CENTER
 }
 
 /**

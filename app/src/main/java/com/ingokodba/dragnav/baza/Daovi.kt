@@ -4,11 +4,15 @@ import androidx.room.*
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface KrugSAplikacijamaDao {
     @Query("SELECT * FROM KrugSAplikacijama")
     fun getAll(): List<KrugSAplikacijama>
+
+    @Query("SELECT * FROM KrugSAplikacijama")
+    fun getAllFlow(): Flow<List<KrugSAplikacijama>>
 
     @Query("SELECT * FROM KrugSAplikacijama WHERE id = :id")
     fun findById(id: Int): List<KrugSAplikacijama>
@@ -30,6 +34,9 @@ interface KrugSAplikacijamaDao {
 interface RainbowMapaDao {
     @Query("SELECT * FROM RainbowMapa")
     fun getAll(): List<RainbowMapa>
+
+    @Query("SELECT * FROM RainbowMapa")
+    fun getAllFlow(): Flow<List<RainbowMapa>>
 
     @Query("SELECT * FROM RainbowMapa WHERE id = :id")
     fun findById(id: Int): List<RainbowMapa>
@@ -54,6 +61,9 @@ interface RainbowMapaDao {
 interface AppInfoDao {
     @Query("SELECT * FROM AppInfo")
     fun getAll(): List<AppInfo>
+
+    @Query("SELECT * FROM AppInfo")
+    fun getAllFlow(): Flow<List<AppInfo>>
 
     @Query("SELECT * FROM AppInfo WHERE id = :id")
     fun findById(id: Int): List<AppInfo>

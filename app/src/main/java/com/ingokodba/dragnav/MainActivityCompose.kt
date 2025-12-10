@@ -171,6 +171,13 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             .getBoolean(MySettingsFragment.UI_ICONS_TOGGLE, true)
 
         lifecycleScope.launch(Dispatchers.IO) {
+            // Initialize database flows for reactive updates
+            val db = AppDatabase.getInstance(this@MainActivityCompose)
+            viewModel.initializeDatabaseFlows(
+                appsFlow = db.appInfoDao().getAllFlow(),
+                foldersFlow = db.rainbowMapaDao().getAllFlow()
+            )
+
             initializeRoom()
             if (circleViewLoadIcons) loadIcons()
             Log.d("MainActivityCompose", "initializeRoom after loadicons")

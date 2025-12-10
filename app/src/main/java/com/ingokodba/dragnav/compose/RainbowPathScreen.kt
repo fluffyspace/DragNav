@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +45,7 @@ import com.example.dragnav.R
 import com.google.gson.Gson
 import androidx.appcompat.app.AppCompatActivity
 import com.ingokodba.dragnav.*
+import com.ingokodba.dragnav.DisplayMode
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import com.ingokodba.dragnav.rainbow.PathConfig
@@ -62,6 +64,63 @@ data class AppNotification(
     val content: String,
     val contentIntent: android.app.PendingIntent? = null
 )
+
+/**
+ * Composable function to display app icons for apps with unread notifications
+ * Shows a vertical list of icons only, positioned according to PathConfig
+ */
+@Composable
+fun NotificationIconsList(
+    notifications: List<AppNotification>,
+    config: PathConfig,
+    modifier: Modifier = Modifier,
+    onIconClick: (AppNotification) -> Unit = {}
+) {
+    // Group notifications by package name to show unique app icons
+    val uniqueAppNotifications = notifications
+        .distinctBy { it.packageName }
+        .filter { it.appIcon != null }
+
+    if (uniqueAppNotifications.isEmpty()) return
+
+    // Calculate alignment based on anchor position
+    val alignment = when (config.notificationAnchor) {
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_CENTER -> Alignment.TopCenter
+        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_CENTER -> Alignment.BottomCenter
+    }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = alignment
+    ) {
+        Column(
+            modifier = Modifier
+                .offset(
+                    x = config.notificationOffsetX.dp,
+                    y = config.notificationOffsetY.dp
+                )
+                .wrapContentSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(config.notificationIconSpacing.dp)
+        ) {
+            uniqueAppNotifications.forEach { notification ->
+                notification.appIcon?.let { drawable ->
+                    Image(
+                        bitmap = drawable.toBitmap(
+                            width = (config.notificationIconSize.toInt() * 2),
+                            height = (config.notificationIconSize.toInt() * 2)
+                        ).asImageBitmap(),
+                        contentDescription = "App icon for ${notification.packageName}",
+                        modifier = Modifier
+                            .size(config.notificationIconSize.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onIconClick(notification) }
+                    )
+                }
+            }
+        }
+    }
+}
 
 /**
  * Composable function to display app notifications in a list
@@ -262,11 +321,13 @@ fun RainbowPathScreen(
         mutableStateOf(prefs.getBoolean("only_favorites", false))
     }
 
-    // Observe ViewModel - these are already LiveData, no need for extra state
-    val appsList by viewModel.appsList.observeAsState()
-    val rainbowMape by viewModel.rainbowMape.observeAsState()
-    val icons by viewModel.icons.observeAsState()
-    val notifications by viewModel.notifications.observeAsState(emptyList())
+    // Observe ViewModel using Flow-based state
+    val appsList by viewModel.appsListFlow.collectAsStateWithLifecycle()
+    val rainbowMape by viewModel.rainbowMapeFlow.collectAsStateWithLifecycle()
+    val icons by viewModel.iconsFlow.collectAsStateWithLifecycle()
+    val notifications by viewModel.notificationsFlow.collectAsStateWithLifecycle()
+    val rainbowFilteredFlow by viewModel.rainbowFilteredFlow.collectAsStateWithLifecycle()
+    val rainbowAllFlow by viewModel.rainbowAllFlow.collectAsStateWithLifecycle()
 
     // Log notifications for debugging
     LaunchedEffect(notifications) {
@@ -295,29 +356,34 @@ fun RainbowPathScreen(
         Log.d(TAG, "onlyFavorites changed: $onlyFavorites")
     }
 
-    // Initialize rainbow filtered if needed
-    LaunchedEffect(appsList) {
-        if (viewModel.rainbowFiltered.isEmpty() && appsList != null) {
-            Log.d(TAG, "Initializing rainbowFiltered")
-            viewModel.updateRainbowFiltered(onlyFavorites)
-        }
+    // Update display mode when onlyFavorites changes
+    LaunchedEffect(onlyFavorites) {
+        Log.d(TAG, "Setting display mode to ${if (onlyFavorites) "FAVORITES_ONLY" else "ALL_APPS"}")
+        viewModel.setDisplayMode(
+            if (onlyFavorites) DisplayMode.FAVORITES_ONLY else DisplayMode.ALL_APPS
+        )
     }
 
-    // Update apps when data changes - include icons in key
-    LaunchedEffect(appsList, rainbowMape, inFolder, onlyFavorites, icons) {
-        Log.d(TAG, "LaunchedEffect(update apps) triggered")
-        pathViewRef.value?.let { pathView ->
-            val startTime = System.currentTimeMillis()
-            updateApps(
-                pathView = pathView,
-                viewModel = viewModel,
-                inFolder = inFolder,
-                onlyFavorites = onlyFavorites,
-                icons = icons
-            )
-            pathView.invalidate()
-            val elapsed = System.currentTimeMillis() - startTime
-            Log.d(TAG, "updateApps + invalidate took ${elapsed}ms")
+    // Update apps when data changes - use flow-based data
+    // Only update when NOT in folder - folder apps are set manually
+    LaunchedEffect(rainbowFilteredFlow, rainbowAllFlow, inFolder, icons) {
+        if (!inFolder) {
+            Log.d(TAG, "LaunchedEffect(update apps) triggered - using flow data")
+            pathViewRef.value?.let { pathView ->
+                val startTime = System.currentTimeMillis()
+                updateAppsFromFlows(
+                    pathView = pathView,
+                    rainbowFiltered = rainbowFilteredFlow,
+                    rainbowAll = rainbowAllFlow,
+                    inFolder = inFolder,
+                    icons = icons
+                )
+                pathView.invalidate()
+                val elapsed = System.currentTimeMillis() - startTime
+                Log.d(TAG, "updateApps + invalidate took ${elapsed}ms")
+            }
+        } else {
+            Log.d(TAG, "Skipping flow-based update while in folder")
         }
     }
 
@@ -355,22 +421,20 @@ fun RainbowPathScreen(
     }
     
     // Helper functions - use remember to avoid recreating on every recomposition
-    val getDisplayedApps = remember {
+    val getDisplayedApps = remember(rainbowFilteredFlow) {
         {
-            viewModel.rainbowFiltered.map {
-                EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite)
-            }
+            rainbowFilteredFlow
         }
     }
 
-    val updateAppsCallback = remember {
+    val updateAppsCallback = remember(rainbowFilteredFlow, rainbowAllFlow, inFolder, icons) {
         {
             pathViewRef.value?.let { pathView ->
-                updateApps(
+                updateAppsFromFlows(
                     pathView = pathView,
-                    viewModel = viewModel,
+                    rainbowFiltered = rainbowFilteredFlow,
+                    rainbowAll = rainbowAllFlow,
                     inFolder = inFolder,
-                    onlyFavorites = onlyFavorites,
                     icons = icons
                 )
             }
@@ -412,12 +476,13 @@ fun RainbowPathScreen(
 
         val folderEncapsulated = folderApps.map {
             EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
-        }.toMutableList()
-        Log.d("RainbowPathScreen", "Setting rainbowFiltered with ${folderEncapsulated.size} items")
-        viewModel.setRainbowFilteredValues(folderEncapsulated)
+        }
+        Log.d("RainbowPathScreen", "Setting folder apps with ${folderEncapsulated.size} items")
 
+        // When in folder, directly set the apps instead of using flow
+        pathViewRef.value?.setApps(folderEncapsulated)
         pathViewRef.value?.resetFolderScroll()
-        updateAppsCallback()
+        pathViewRef.value?.invalidate()
     }
     
     // Create OnShortcutClick handler - must be defined before showShortcuts uses it
@@ -510,7 +575,7 @@ fun RainbowPathScreen(
                     }
 
                     callSaveAppInfo(app)
-                    updateAppsCallback()
+                    // Flow will automatically update UI when database changes
                     dismissShortcutPopup()
                 } else if (index == shortcuts.size + 2) {
                     // Add/remove from folder
@@ -522,7 +587,7 @@ fun RainbowPathScreen(
                             val azurirana_mapa = mapa.copy(apps = mapa.apps.minus(thing.apps.first()).toMutableList())
                             viewModel.updateRainbowMapa(azurirana_mapa)
                             callRainbowMapaUpdateItem(azurirana_mapa)
-                            updateAppsCallback()
+                            // Flow will automatically update UI when database changes
                         }
                         dismissShortcutPopup()
                     } else {
@@ -562,14 +627,14 @@ fun RainbowPathScreen(
     
     fun addAppToMap(mapIndex: Int) {
         dismissShortcutPopup()
-        if (mapIndex >= (rainbowMape?.size ?: 0)) {
+        if (mapIndex >= (rainbowMape.size)) {
             openCreateFolderDialog(globalThing, mainActivity, pathViewRef.value)
         } else {
-            val mapa = rainbowMape!![mapIndex]
+            val mapa = rainbowMape[mapIndex]
             val nova_mapa = mapa.copy(apps = mapa.apps.plus(globalThing!!.apps.first()).toMutableList())
             viewModel.updateRainbowMapa(nova_mapa)
             callRainbowMapaUpdateItem(nova_mapa)
-            updateAppsCallback()
+            // Flow will automatically update UI when database changes
         }
     }
 
@@ -578,34 +643,32 @@ fun RainbowPathScreen(
         when (index) {
             0 -> {
                 // Rename folder
-                val mapa = rainbowMape?.find { it.folderName == globalThing!!.folderName }
+                val mapa = rainbowMape.find { it.folderName == globalThing!!.folderName }
                 callOpenFolderNameMenu(pathViewRef.value ?: return, true, mapa!!.folderName, false) { ime ->
-                    val nova_mapa = mapa?.copy(folderName = ime)
-                    if (nova_mapa != null) {
-                        viewModel.updateRainbowMapa(nova_mapa)
-                        callRainbowMapaUpdateItem(nova_mapa)
-                    }
-                    updateAppsCallback()
+                    val nova_mapa = mapa.copy(folderName = ime)
+                    viewModel.updateRainbowMapa(nova_mapa)
+                    callRainbowMapaUpdateItem(nova_mapa)
+                    // Flow will automatically update UI when database changes
                 }
             }
             1 -> {
                 // Delete folder
-                val mapa = rainbowMape?.find { it.folderName == globalThing!!.folderName }
+                val mapa = rainbowMape.find { it.folderName == globalThing!!.folderName }
                 if (mapa != null) {
                     viewModel.deleteRainbowMapa(mapa)
                     callRainbowMapaDeleteItem(mapa)
+                    // Flow will automatically update UI when database changes
                 }
-                updateAppsCallback()
             }
             2 -> {
                 // Toggle favorite
-                val mapa = rainbowMape?.find { it.folderName == globalThing!!.folderName }
+                val mapa = rainbowMape.find { it.folderName == globalThing!!.folderName }
                 val nova_mapa = mapa?.copy(favorite = !mapa.favorite)
                 if (nova_mapa != null) {
                     viewModel.updateRainbowMapa(nova_mapa)
                     callRainbowMapaUpdateItem(nova_mapa)
+                    // Flow will automatically update UI when database changes
                 }
-                updateAppsCallback()
             }
         }
     }
@@ -616,7 +679,7 @@ fun RainbowPathScreen(
         onlyFavorites = !onlyFavorites
         prefs.edit().putBoolean("only_favorites", onlyFavorites).apply()
         pathViewRef.value?.onlyFavorites = onlyFavorites
-        updateAppsCallback()
+        // Flow will automatically update UI when display mode changes (via LaunchedEffect)
     }
 
     fun goToHome() {
@@ -626,7 +689,18 @@ fun RainbowPathScreen(
 
         inFolder = false
         pathViewRef.value?.inFolder = false
-        updateAppsCallback()
+
+        // When exiting folder, update with flow data
+        pathViewRef.value?.let { pathView ->
+            updateAppsFromFlows(
+                pathView = pathView,
+                rainbowFiltered = rainbowFilteredFlow,
+                rainbowAll = rainbowAllFlow,
+                inFolder = false,
+                icons = icons
+            )
+            pathView.invalidate()
+        }
     }
     
     // Create OnShortcutClick handler that delegates to screen functions
@@ -646,24 +720,9 @@ fun RainbowPathScreen(
     }
     
     fun showSearchOverlay() {
-        val allAppsForSearch = mutableListOf<EncapsulatedAppInfoWithFolder>()
-        
-        appsList?.let { apps ->
-            allAppsForSearch.addAll(
-                apps.map { EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) }
-            )
-        }
-        
-        rainbowMape?.let { folders ->
-            allAppsForSearch.addAll(
-                folders.map { EncapsulatedAppInfoWithFolder(it.apps, it.folderName, it.favorite) }
-            )
-        }
-
-        searchOverlayRef.value?.setApps(allAppsForSearch)
-        icons?.let {
-            searchOverlayRef.value?.setIcons(it)
-        }
+        // Use the precomputed rainbowAll which includes both apps and folders
+        searchOverlayRef.value?.setApps(rainbowAllFlow)
+        searchOverlayRef.value?.setIcons(icons)
 
         searchOverlayRef.value?.setListener(object : SearchOverlayMaterialView.SearchOverlayListener {
             override fun onAppClicked(app: EncapsulatedAppInfoWithFolder) {
@@ -681,7 +740,7 @@ fun RainbowPathScreen(
                     val wasOnlyFavorites = onlyFavorites
                     onlyFavorites = true
                     pathViewRef.value?.onlyFavorites = true
-                    updateAppsCallback()
+                    // Flow will automatically update when onlyFavorites changes
 
                     val apps = getDisplayedApps()
                     val folderIndex = apps.indexOfFirst {
@@ -692,7 +751,7 @@ fun RainbowPathScreen(
                     } else {
                         onlyFavorites = wasOnlyFavorites
                         pathViewRef.value?.onlyFavorites = wasOnlyFavorites
-                        updateAppsCallback()
+                        // Flow will automatically update when onlyFavorites changes
                         Log.d("RainbowPathScreen", "Folder not found in displayed apps: ${app.folderName}")
                     }
                 }
@@ -826,12 +885,13 @@ fun RainbowPathScreen(
 
                                     val folderEncapsulated = folderApps.map {
                                         EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
-                                    }.toMutableList()
-                                    Log.d("RainbowPathScreen", "Setting rainbowFiltered with ${folderEncapsulated.size} items")
-                                    viewModel.setRainbowFilteredValues(folderEncapsulated)
+                                    }
+                                    Log.d("RainbowPathScreen", "Setting folder apps with ${folderEncapsulated.size} items")
 
+                                    // When in folder, directly set the apps instead of using flow
+                                    this@apply.setApps(folderEncapsulated)
                                     this@apply.resetFolderScroll()
-                                    updateAppsCallback()
+                                    this@apply.invalidate()
                                 }
                             }
 
@@ -1051,6 +1111,28 @@ fun RainbowPathScreen(
             Log.d(TAG, "Not showing NotificationsList - empty list")
         }
 
+        // Notification icons list - shows app icons for apps with notifications
+        if (notifications.isNotEmpty()) {
+            NotificationIconsList(
+                notifications = notifications,
+                config = config,
+                modifier = Modifier.fillMaxSize(),
+                onIconClick = { notification ->
+                    Log.d(TAG, "Notification icon clicked: ${notification.packageName}")
+                    // Launch the app
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(notification.packageName)
+                    if (launchIntent != null) {
+                        try {
+                            launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(launchIntent)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to launch app ${notification.packageName}", e)
+                        }
+                    }
+                }
+            )
+        }
+
         // SearchOverlayMaterialView - shown above everything else
         AndroidView(
             factory = { ctx ->
@@ -1125,6 +1207,32 @@ private fun updateApps(
         }
         pathView.setApps(combinedApps)
     }
+
+    icons?.let {
+        pathView.icons = it.toMutableMap()
+    }
+    pathView.invalidate()
+}
+
+/**
+ * Flow-based version of updateApps that uses computed StateFlows
+ * This eliminates manual cache invalidation and provides automatic reactivity
+ */
+private fun updateAppsFromFlows(
+    pathView: RainbowPathView,
+    rainbowFiltered: List<EncapsulatedAppInfoWithFolder>,
+    rainbowAll: List<EncapsulatedAppInfoWithFolder>,
+    inFolder: Boolean,
+    icons: Map<String, Drawable?>?
+) {
+    // Always provide the folder structure from rainbowAll so badges can be shown correctly
+    val folders = rainbowAll.filter { it.folderName != null && it.apps.size > 1 }
+    Log.d("RainbowPathScreen", "updateAppsFromFlows: Found ${folders.size} folders from rainbowAll (size=${rainbowAll.size})")
+    pathView.setFolders(folders)
+
+    // Use the pre-computed rainbowFiltered from Flow
+    // No need to call viewModel.updateRainbowFiltered() - it's automatically computed
+    pathView.setApps(rainbowFiltered)
 
     icons?.let {
         pathView.icons = it.toMutableMap()

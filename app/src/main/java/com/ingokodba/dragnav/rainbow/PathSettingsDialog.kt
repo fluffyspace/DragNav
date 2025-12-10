@@ -37,7 +37,8 @@ class PathSettingsDialog(
         Category.APP_NAMES,
         Category.FAVORITES,
         Category.SEARCH,
-        Category.LETTERS
+        Category.LETTERS,
+        Category.NOTIFICATIONS
     )
 
     enum class Category(val title: String) {
@@ -46,7 +47,8 @@ class PathSettingsDialog(
         APP_NAMES("App Names"),
         FAVORITES("Favorites"),
         SEARCH("Search"),
-        LETTERS("Letters")
+        LETTERS("Letters"),
+        NOTIFICATIONS("Notifications")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -176,6 +178,7 @@ class PathSettingsDialog(
             Category.FAVORITES -> createFavoritesSettings()
             Category.SEARCH -> createSearchSettings()
             Category.LETTERS -> createLettersSettings()
+            Category.NOTIFICATIONS -> createNotificationsSettings()
         }
 
         scrollView.addView(content)
@@ -443,6 +446,55 @@ class PathSettingsDialog(
         }
     }
 
+    private fun createNotificationsSettings(): View {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16)
+
+            // Anchor position
+            addView(createLabel("Anchor Position"))
+            addView(createNotificationAnchorSpinner())
+
+            // Icon size
+            addView(createLabel("Icon Size (dp)"))
+            addView(createSlider(24f, 96f, config.notificationIconSize) {
+                config = config.copy(notificationIconSize = it)
+                notifyChange()
+            })
+
+            // Icon spacing
+            addView(createLabel("Icon Spacing (dp)"))
+            addView(createSlider(0f, 32f, config.notificationIconSpacing) {
+                config = config.copy(notificationIconSpacing = it)
+                notifyChange()
+            })
+
+            // Offset X
+            addView(createLabel("Horizontal Offset (dp)"))
+            addView(TextView(context).apply {
+                text = "Offset from center (negative = left, positive = right)"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(-200f, 200f, config.notificationOffsetX) {
+                config = config.copy(notificationOffsetX = it)
+                notifyChange()
+            })
+
+            // Offset Y
+            addView(createLabel("Vertical Offset (dp)"))
+            addView(TextView(context).apply {
+                text = "Offset from anchor (negative = toward center, positive = toward edge)"
+                setTextColor(Color.LTGRAY)
+                textSize = 12f
+            })
+            addView(createSlider(-200f, 200f, config.notificationOffsetY) {
+                config = config.copy(notificationOffsetY = it)
+                notifyChange()
+            })
+        }
+    }
+
     private fun createLabel(text: String): TextView {
         return TextView(context).apply {
             this.text = text
@@ -603,6 +655,26 @@ class PathSettingsDialog(
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     (view as? TextView)?.setTextColor(Color.WHITE)
                     config = config.copy(appNameFont = fonts[position])
+                    notifyChange()
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun createNotificationAnchorSpinner(): Spinner {
+        return Spinner(context).apply {
+            val anchors = NotificationAnchor.values()
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_dropdown_item,
+                anchors.map { it.name.replace("_", " ") }
+            )
+            setSelection(anchors.indexOf(config.notificationAnchor))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    (view as? TextView)?.setTextColor(Color.WHITE)
+                    config = config.copy(notificationAnchor = anchors[position])
                     notifyChange()
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
