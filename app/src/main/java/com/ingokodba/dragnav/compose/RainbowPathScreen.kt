@@ -99,8 +99,8 @@ fun NotificationIconsList(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val screenWidthPx = constraints.maxWidth.toFloat()
-        val screenHeightPx = constraints.maxHeight.toFloat()
+        val screenWidthPx = this.constraints.maxWidth.toFloat()
+        val screenHeightPx = this.constraints.maxHeight.toFloat()
 
         // Where to position the anchor point (absolute screen coordinates in pixels)
         val targetXPx = config.notificationOffsetX * screenWidthPx
