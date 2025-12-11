@@ -371,7 +371,7 @@ fun RainbowScreen(
                     overrideRadius = radius
                     overrideArcPosition = arcPosition
 
-                    setEventListener(object : MainFragmentRainbow.IMyEventListener {
+                    setEventListener(object : IMyEventListener {
                         override fun onEventOccurred(app: EventTypes, counter: Int) {
                             when (app) {
                                 EventTypes.OPEN_APP -> touched(counter)

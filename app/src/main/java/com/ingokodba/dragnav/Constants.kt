@@ -172,3 +172,15 @@ enum class DialogStates {
 interface OnShortcutClick {
     fun onShortcutClick(index: Int)
 }
+
+enum class EventTypes {
+    OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES, START_FLING, TOGGLE_SLIDERS
+}
+
+interface IMyEventListener {
+    fun onEventOccurred(app: EventTypes, counter: Int)
+}
+
+interface IKeypadEventListener {
+    fun onEventOccurred(number: Int)
+}

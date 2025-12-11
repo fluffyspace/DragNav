@@ -322,9 +322,9 @@ class Rainbow @JvmOverloads constructor(
         //drawCloseButton(canvas)
     }
 
-    private var mEventListener: MainFragmentRainbow.IMyEventListener? = null
+    private var mEventListener: IMyEventListener? = null
 
-    fun setEventListener(mEventListener: MainFragmentRainbow.IMyEventListener?) {
+    fun setEventListener(mEventListener: IMyEventListener?) {
         this.mEventListener = mEventListener
     }
 

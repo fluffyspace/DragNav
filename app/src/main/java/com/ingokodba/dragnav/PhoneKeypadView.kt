@@ -79,9 +79,9 @@ class PhoneKeypadView @JvmOverloads constructor(
         mEventListener?.onEventOccurred(broj)
     }
 
-    private var mEventListener: MainFragmentTipke.IMyEventListener? = null
+    private var mEventListener: IKeypadEventListener? = null
 
-    fun setEventListener(mEventListener: MainFragmentTipke.IMyEventListener?) {
+    fun setEventListener(mEventListener: IKeypadEventListener?) {
         this.mEventListener = mEventListener
     }
 

@@ -92,7 +92,7 @@ fun KeypadScreen(
         AndroidView(
             factory = { ctx ->
                 PhoneKeypadView(ctx).apply {
-                    setEventListener(object : MainFragmentTipke.IMyEventListener {
+                    setEventListener(object : IKeypadEventListener {
                         override fun onEventOccurred(number: Int) {
                             handleNumberInput(number)
                         }
