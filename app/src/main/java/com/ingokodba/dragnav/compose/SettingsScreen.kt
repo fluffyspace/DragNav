@@ -115,6 +115,15 @@ fun SettingsScreen(
                 }
             }
 
+            // Notifications Settings
+            item {
+                PreferenceItem(
+                    title = "Notifications",
+                    summary = "Notification permissions and filters",
+                    onClick = { navController.navigate("settings/notifications") }
+                )
+            }
+
             // General Settings
             item {
                 PreferenceItem(

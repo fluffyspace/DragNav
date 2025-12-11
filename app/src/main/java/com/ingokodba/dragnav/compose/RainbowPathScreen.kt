@@ -893,7 +893,7 @@ fun RainbowPathScreen(
                 notifications = filteredNotifications,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 200.dp)
+                    .heightIn(max = 300.dp)
                     .align(Alignment.TopCenter),
                 onNotificationClick = { notification ->
                     Log.d(TAG, "=== NOTIFICATION CLICKED ===")

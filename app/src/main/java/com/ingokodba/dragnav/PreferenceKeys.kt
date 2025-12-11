@@ -31,6 +31,7 @@ object PreferenceKeys {
     const val RENEW_INSTANCE = "renew_instance"
     const val DROP_DATABASE = "drop_database"
     const val DEFAULT_APPS = "default_apps"
+    const val NOTIFICATION_EXCLUDED_APPS = "notification_excluded_apps"
 }
 
 // Legacy alias for backward compatibility

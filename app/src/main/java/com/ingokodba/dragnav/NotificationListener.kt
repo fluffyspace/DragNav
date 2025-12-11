@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.preference.PreferenceManager
+import com.google.gson.Gson
 import com.ingokodba.dragnav.compose.AppNotification
 
 class NotificationListener : NotificationListenerService() {
@@ -69,6 +71,17 @@ class NotificationListener : NotificationListenerService() {
         }
     }
 
+    private fun getExcludedApps(): Set<String> {
+        return try {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+            val json = prefs.getString(PreferenceKeys.NOTIFICATION_EXCLUDED_APPS, "[]") ?: "[]"
+            Gson().fromJson(json, Array<String>::class.java)?.toSet() ?: emptySet()
+        } catch (e: Exception) {
+            Log.e("NotificationListener", "Error loading excluded apps", e)
+            emptySet()
+        }
+    }
+
     private fun updateNotifications() {
         try {
             val activeNotifications = activeNotifications ?: run {
@@ -76,7 +89,8 @@ class NotificationListener : NotificationListenerService() {
                 return
             }
 
-            Log.d("NotificationListener", "Processing ${activeNotifications.size} active notifications")
+            val excludedApps = getExcludedApps()
+            Log.d("NotificationListener", "Processing ${activeNotifications.size} active notifications, ${excludedApps.size} apps excluded")
             val notificationMap = mutableMapOf<String, AppNotification>()
 
             for (sbn in activeNotifications) {
@@ -88,6 +102,12 @@ class NotificationListener : NotificationListenerService() {
                     packageName == "com.android.systemui" ||
                     packageName == "com.ingokodba.dragnav") {
                     Log.d("NotificationListener", "Skipping system/self notification: $packageName")
+                    continue
+                }
+
+                // Skip excluded apps
+                if (excludedApps.contains(packageName)) {
+                    Log.d("NotificationListener", "Skipping excluded app notification: $packageName")
                     continue
                 }
 

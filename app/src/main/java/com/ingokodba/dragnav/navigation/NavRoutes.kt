@@ -13,5 +13,7 @@ sealed class NavRoute(val route: String) {
     object SettingsRainbow : NavRoute("settings/rainbow")
     object SettingsGeneral : NavRoute("settings/general")
     object SettingsHelp : NavRoute("settings/help")
+    object SettingsNotifications : NavRoute("settings/notifications")
+    object SettingsExcludedApps : NavRoute("settings/notifications/excluded")
 }
 

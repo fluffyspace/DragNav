@@ -88,6 +88,14 @@ fun AppNavigation(
         composable(NavRoute.SettingsHelp.route) {
             HelpSettingsScreen(mainActivity, navController)
         }
+
+        composable(NavRoute.SettingsNotifications.route) {
+            NotificationSettingsScreen(mainActivity, navController)
+        }
+
+        composable(NavRoute.SettingsExcludedApps.route) {
+            ExcludedAppsScreen(mainActivity, navController)
+        }
     }
 }
 
