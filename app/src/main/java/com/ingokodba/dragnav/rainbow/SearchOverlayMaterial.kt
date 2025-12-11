@@ -491,45 +491,14 @@ private fun searchApps(
     query: String
 ): List<EncapsulatedAppInfoWithFolder> {
     val results = mutableListOf<Pair<Int, EncapsulatedAppInfoWithFolder>>()
-    val queryLower = query.lowercase()
-    
+
     for (item in apps) {
-        if (item.folderName != null) {
-            // Search folder name using similar algorithm to app search
-            item.folderName?.let { folderName ->
-                var words = folderName.split(Regex("(?=[A-Z])"), 0)
-                words = words.filter { it != "" }
-                var count = 0
-                var score = 0
-                var pos = 0
-                for ((i, word) in words.withIndex()) {
-                    if (pos >= query.length) break
-                    for (letter in word) {
-                        if (letter.lowercaseChar() == queryLower[pos]) {
-                            count++
-                            score += 10 - i
-                            if (letter.isUpperCase()) score += 10
-                            pos++
-                            if (pos >= query.length) break
-                        } else {
-                            break
-                        }
-                    }
-                }
-                if (count == query.length) {
-                    results.add(Pair(score, item))
-                }
-            }
-        } else if (item.apps.isNotEmpty()) {
-            // Search app name using existing algorithm
-            val app = item.apps.first()
-            val scoredApps = SearchUtils.getAppsByQuery(listOf(app), query)
-            if (scoredApps.isNotEmpty()) {
-                results.add(Pair(scoredApps.first().first, item))
-            }
+        val label = item.folderName ?: item.apps.firstOrNull()?.label ?: continue
+        SearchUtils.scoreMatch(label, query)?.let { score ->
+            results.add(Pair(score, item))
         }
     }
-    
+
     return results.sortedByDescending { it.first }.map { it.second }
 }
 

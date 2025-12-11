@@ -11,38 +11,39 @@ import com.ingokodba.dragnav.modeli.AppInfo
 object SearchUtils {
 
     /**
-     * Fuzzy search algorithm that scores apps based on query matching
+     * Scores how well a label matches a query using fuzzy word-initial matching.
      *
      * Algorithm:
-     * - Splits app label into words (at uppercase letters)
-     * - Matches query letters in order
+     * - Splits label into words (at uppercase letters)
+     * - Tries matching query starting from each word
+     * - Matches query letters in order from the start of each word
      * - Scores based on word position and case matching
-     * - Returns list of apps that match all query letters
+     * - Returns the best score from all starting positions
      *
-     * @param apps List of apps to search
+     * @param label The text to match against
      * @param query Search query string
-     * @return List of (score, app) pairs sorted by score descending
+     * @return Score if all query letters matched, null otherwise
      */
-    fun getAppsByQuery(apps: List<AppInfo>, query: String): MutableList<Pair<Int, AppInfo>> {
-        val search_lista_aplikacija: MutableList<Pair<Int, AppInfo>> = mutableListOf()
-        val slova_search_lowercase = query.map { it.lowercaseChar() }
+    fun scoreMatch(label: String, query: String): Int? {
+        if (query.isEmpty()) return 0
 
-        for (app in apps) {
-            // Split app name into words (at uppercase letters)
-            var words = app.label.split(Regex("(?=[A-Z])"), 0)
-            words = words.filter { it != "" }
+        val queryLower = query.map { it.lowercaseChar() }
+        val words = label.split(Regex("(?=[A-Z])")).filter { it.isNotEmpty() }
 
+        var bestScore: Int? = null
+
+        // Try starting the match from each word
+        for (startWord in words.indices) {
             var count = 0
             var score = 0
             var pos = 0
 
-            // Try to match query letters in order
             for ((i, word) in words.withIndex()) {
+                if (i < startWord) continue
                 if (pos >= query.length) break
 
-                // Check each letter in the word
                 for (letter in word) {
-                    if (letter.lowercaseChar() == slova_search_lowercase[pos]) {
+                    if (letter.lowercaseChar() == queryLower[pos]) {
                         count++
                         score += 10 - i  // Earlier words score higher
                         if (letter.isUpperCase()) score += 10  // Uppercase matches score higher
@@ -54,13 +55,29 @@ object SearchUtils {
                 }
             }
 
-            // Add to results if all query letters matched
             if (count == query.length) {
-                search_lista_aplikacija.add(Pair(score, app))
-                Log.d("SearchUtils", "${app.label} $count $score $words")
+                if (bestScore == null || score > bestScore) {
+                    bestScore = score
+                }
             }
         }
 
-        return search_lista_aplikacija
+        return bestScore
+    }
+
+    /**
+     * Fuzzy search that scores apps based on query matching.
+     *
+     * @param apps List of apps to search
+     * @param query Search query string
+     * @return List of (score, app) pairs sorted by score descending
+     */
+    fun getAppsByQuery(apps: List<AppInfo>, query: String): MutableList<Pair<Int, AppInfo>> {
+        return apps.mapNotNull { app ->
+            scoreMatch(app.label, query)?.let { score ->
+                Log.d("SearchUtils", "${app.label} $score")
+                Pair(score, app)
+            }
+        }.toMutableList()
     }
 }
