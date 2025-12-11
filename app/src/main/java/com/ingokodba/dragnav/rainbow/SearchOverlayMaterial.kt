@@ -64,6 +64,7 @@ fun SearchOverlayMaterial(
     onAppLongPressed: (EncapsulatedAppInfoWithFolder) -> Unit,
     onDismiss: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
+    onRainbowSettingsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     pathConfig: PathConfig? = null,
     onPathConfigChanged: ((PathConfig) -> Unit)? = null
@@ -77,7 +78,8 @@ fun SearchOverlayMaterial(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var isKeyboardVisible by remember { mutableStateOf(false) }
-    
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
     // Control status bar appearance based on overlay visibility
     var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(visible) {
@@ -210,13 +212,13 @@ fun SearchOverlayMaterial(
                     )
 
                     // Settings button
-                    onSettingsClick?.let { settingsClick ->
+                    if (onSettingsClick != null || onRainbowSettingsClick != null) {
                         Surface(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    settingsClick()
+                                    showSettingsDialog = true
                                 },
                             color = Color.White,
                             tonalElevation = 4.dp
@@ -265,6 +267,35 @@ fun SearchOverlayMaterial(
                 }
             }
         }
+    }
+
+    // Settings choice dialog
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = { Text("Open Settings") },
+            text = { Text("Which settings would you like to open?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSettingsDialog = false
+                        onSettingsClick?.invoke()
+                    }
+                ) {
+                    Text("App Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSettingsDialog = false
+                        onRainbowSettingsClick?.invoke()
+                    }
+                ) {
+                    Text("Rainbow Settings")
+                }
+            }
+        )
     }
 }
 
@@ -522,6 +553,7 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
         fun onAppLongPressed(app: EncapsulatedAppInfoWithFolder)
         fun onDismiss()
         fun onSettingsClick() {}
+        fun onRainbowSettingsClick() {}
         fun onPathConfigChanged(config: PathConfig) {}
     }
 
@@ -554,6 +586,7 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
                     onAppLongPressed = { listener?.onAppLongPressed(it) },
                     onDismiss = { listener?.onDismiss() },
                     onSettingsClick = { listener?.onSettingsClick() },
+                    onRainbowSettingsClick = { listener?.onRainbowSettingsClick() },
                     pathConfig = pathConfigState.value,
                     onPathConfigChanged = { listener?.onPathConfigChanged(it) }
                 )

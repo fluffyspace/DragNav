@@ -658,6 +658,11 @@ fun RainbowPathScreen(
 
             override fun onSettingsClick() {
                 searchOverlayRef.value?.hide()
+                mainActivity.navigateToSettings()
+            }
+
+            override fun onRainbowSettingsClick() {
+                searchOverlayRef.value?.hide()
                 showPathSettings = true
             }
 
