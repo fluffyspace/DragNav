@@ -204,9 +204,9 @@ class CircleView @JvmOverloads constructor(
         //drawCloseButton(canvas)
     }
 
-    private var mEventListener: MainFragment.IMyEventListener? = null
+    private var mEventListener: ICircleViewEventListener? = null
 
-    fun setEventListener(mEventListener: MainFragment.IMyEventListener?) {
+    fun setEventListener(mEventListener: ICircleViewEventListener?) {
         this.mEventListener = mEventListener
     }
 

@@ -358,7 +358,7 @@ fun CircleScreen(
                     circleViewRef.value = this
 
                     // Attach event listener ONCE in factory
-                    setEventListener(object : MainFragment.IMyEventListener {
+                    setEventListener(object : ICircleViewEventListener {
                         override fun onEventOccurred(
                             event: MotionEvent,
                             counter: Int,
