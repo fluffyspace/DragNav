@@ -47,6 +47,8 @@ import com.google.gson.Gson
 import androidx.appcompat.app.AppCompatActivity
 import com.ingokodba.dragnav.*
 import com.ingokodba.dragnav.DisplayMode
+import com.ingokodba.dragnav.compose.notifications.NotificationIconsList
+import com.ingokodba.dragnav.compose.notifications.NotificationsList
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import com.ingokodba.dragnav.rainbow.PathConfig
@@ -67,177 +69,6 @@ data class AppNotification(
     val contentIntent: android.app.PendingIntent? = null
 )
 
-/**
- * Composable function to display app icons for apps with unread notifications
- * Shows a vertical list of icons only, positioned according to PathConfig
- */
-@Composable
-fun NotificationIconsList(
-    notifications: List<AppNotification>,
-    config: PathConfig,
-    modifier: Modifier = Modifier,
-    onIconClick: (AppNotification) -> Unit = {}
-) {
-    // Group notifications by package name to show unique app icons
-    val uniqueAppNotifications = notifications
-        .distinctBy { it.packageName }
-        .filter { it.appIcon != null }
-
-    if (uniqueAppNotifications.isEmpty()) return
-
-    // Map anchor to bias values (0.0 = left/top, 0.5 = center, 1.0 = right/bottom)
-    val (anchorBiasX, anchorBiasY) = when (config.notificationAnchor) {
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_LEFT -> Pair(0f, 0f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_CENTER -> Pair(0.5f, 0f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.TOP_RIGHT -> Pair(1f, 0f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER_LEFT -> Pair(0f, 0.5f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER -> Pair(0.5f, 0.5f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.CENTER_RIGHT -> Pair(1f, 0.5f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_LEFT -> Pair(0f, 1f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_CENTER -> Pair(0.5f, 1f)
-        com.ingokodba.dragnav.rainbow.NotificationAnchor.BOTTOM_RIGHT -> Pair(1f, 1f)
-    }
-
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val screenWidthPx = this.constraints.maxWidth.toFloat()
-        val screenHeightPx = this.constraints.maxHeight.toFloat()
-
-        // Where to position the anchor point (absolute screen coordinates in pixels)
-        val targetXPx = config.notificationOffsetX * screenWidthPx
-        val targetYPx = config.notificationOffsetY * screenHeightPx
-
-        Column(
-            modifier = Modifier
-                .wrapContentSize()
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(constraints)
-
-                    // Calculate position: target position minus anchor offset
-                    val x = (targetXPx - placeable.width * anchorBiasX).toInt()
-                    val y = (targetYPx - placeable.height * anchorBiasY).toInt()
-
-                    // Logging for debugging
-                    Log.d("NotificationIconsList", "=== NOTIFICATION POSITIONING DEBUG ===")
-                    Log.d("NotificationIconsList", "Anchor: ${config.notificationAnchor.name}")
-                    Log.d("NotificationIconsList", "Anchor bias: ($anchorBiasX, $anchorBiasY)")
-                    Log.d("NotificationIconsList", "Screen dimensions: ${screenWidthPx}px x ${screenHeightPx}px")
-                    Log.d("NotificationIconsList", "Offset percentages: X=${config.notificationOffsetX}, Y=${config.notificationOffsetY}")
-                    Log.d("NotificationIconsList", "Target position (anchor point): X=${targetXPx}px, Y=${targetYPx}px")
-                    Log.d("NotificationIconsList", "Column dimensions: ${placeable.width}px x ${placeable.height}px")
-                    Log.d("NotificationIconsList", "Calculated Column position: X=${x}px, Y=${y}px")
-                    Log.d("NotificationIconsList", "Number of notifications: ${uniqueAppNotifications.size}")
-                    Log.d("NotificationIconsList", "=====================================")
-
-                    layout(placeable.width, placeable.height) {
-                        placeable.place(x, y)
-                    }
-                },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(config.notificationIconSpacing.dp)
-        ) {
-            uniqueAppNotifications.forEach { notification ->
-                notification.appIcon?.let { drawable ->
-                    Image(
-                        bitmap = drawable.toBitmap(
-                            width = (config.notificationIconSize.toInt() * 2),
-                            height = (config.notificationIconSize.toInt() * 2)
-                        ).asImageBitmap(),
-                        contentDescription = "App icon for ${notification.packageName}",
-                        modifier = Modifier
-                            .size(config.notificationIconSize.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onIconClick(notification) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Composable function to display app notifications in a list
- */
-@Composable
-fun NotificationsList(
-    notifications: List<AppNotification>,
-    modifier: Modifier = Modifier,
-    onNotificationClick: (AppNotification) -> Unit = {}
-) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(notifications) { notification ->
-            NotificationItem(
-                notification = notification,
-                onClick = { onNotificationClick(notification) }
-            )
-        }
-    }
-}
-
-/**
- * Individual notification item
- */
-@Composable
-fun NotificationItem(
-    notification: AppNotification,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable {
-                Log.d("NotificationItem", "Notification item clicked: ${notification.packageName} - ${notification.title}")
-                onClick()
-            }
-            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f))
-            .border(
-                width = 1.dp,
-                color = androidx.compose.ui.graphics.Color.White,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // App icon
-        notification.appIcon?.let { drawable ->
-            Image(
-                bitmap = drawable.toBitmap(64, 64).asImageBitmap(),
-                contentDescription = "App icon",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Notification title and content
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = notification.title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = androidx.compose.ui.graphics.Color.White
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = notification.content,
-                fontSize = 14.sp,
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
-            )
-        }
-    }
-}
 
 /**
  * Jetpack Compose screen version of MainFragmentRainbowPath
@@ -306,6 +137,7 @@ fun RainbowPathScreen(
     var globalThing by remember { mutableStateOf<EncapsulatedAppInfoWithFolder?>(null) }
     var dialogState by remember { mutableStateOf<DialogStates?>(null) }
     var showPathSettings by remember { mutableStateOf(false) }
+    var selectedNotificationPackage by remember { mutableStateOf<String?>(null) }
 
     // Coroutine jobs - use plain variables, not state
     var flingJob by remember { mutableStateOf<Job?>(null) }
@@ -332,6 +164,13 @@ fun RainbowPathScreen(
     val notifications by viewModel.notificationsFlow.collectAsStateWithLifecycle()
     val rainbowFilteredFlow by viewModel.rainbowFilteredFlow.collectAsStateWithLifecycle()
     val rainbowAllFlow by viewModel.rainbowAllFlow.collectAsStateWithLifecycle()
+
+    // Filtered notifications based on selected package
+    val filteredNotifications = if (selectedNotificationPackage != null) {
+        notifications.filter { it.packageName == selectedNotificationPackage }
+    } else {
+        emptyList()
+    }
 
     // Log notifications for debugging
     LaunchedEffect(notifications) {
@@ -488,24 +327,24 @@ fun RainbowPathScreen(
         pathViewRef.value?.resetFolderScroll()
         pathViewRef.value?.invalidate()
     }
-    
+
     // Create OnShortcutClick handler - must be defined before showShortcuts uses it
     // But it references functions defined later, so we'll use a lazy approach
     var shortcutClickHandlerRef by remember { mutableStateOf<OnShortcutClick?>(null) }
-    
+
     fun showShortcuts(appIndex: Int) {
         countdownJob?.cancel()
         scope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 val apps = getDisplayedApps()
                 if (appIndex < 0 || appIndex >= apps.size) return@withContext
-                
+
                 currentAppIndex = appIndex
                 val thing = apps[appIndex]
                 globalThing = thing
-                
+
                 val handler = shortcutClickHandlerRef ?: return@withContext
-                
+
                 if (thing.folderName == null) {
                     openShortcutsMenu(thing, mainActivity, viewModel, icons, context, pathViewRef.value, shortcuts, handler) { newState, newShortcuts ->
                         dialogState = newState
@@ -540,10 +379,10 @@ fun RainbowPathScreen(
             }
         }
     }
-    
+
     fun openShortcut(index: Int) {
         val thing = globalThing ?: return
-        
+
         if (thing.folderName == null) {
             if (index >= shortcuts.size) {
                 if (index == shortcuts.size) {
@@ -628,7 +467,7 @@ fun RainbowPathScreen(
             }
         }
     }
-    
+
     fun addAppToMap(mapIndex: Int) {
         dismissShortcutPopup()
         if (mapIndex >= (rainbowMape.size)) {
@@ -1042,11 +881,11 @@ fun RainbowPathScreen(
             // Remove update block entirely - all updates handled by LaunchedEffect
         )
 
-        // Notifications overlay at the top (over everything else)
-        if (notifications.isNotEmpty()) {
-            Log.d(TAG, "Composing NotificationsList with ${notifications.size} notifications")
+        // Notifications overlay at the top (over everything else) - only show when a package is selected
+        if (filteredNotifications.isNotEmpty()) {
+            Log.d(TAG, "Composing NotificationsList with ${filteredNotifications.size} filtered notifications for package: $selectedNotificationPackage")
             NotificationsList(
-                notifications = notifications,
+                notifications = filteredNotifications,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 200.dp)
@@ -1124,7 +963,7 @@ fun RainbowPathScreen(
                 }
             )
         } else {
-            Log.d(TAG, "Not showing NotificationsList - empty list")
+            Log.d(TAG, "Not showing NotificationsList - no package selected or no notifications for selected package")
         }
 
         // Notification icons list - shows app icons for apps with notifications
@@ -1133,17 +972,14 @@ fun RainbowPathScreen(
                 notifications = notifications,
                 config = config,
                 modifier = Modifier.fillMaxSize(),
+                selectedPackage = selectedNotificationPackage,
                 onIconClick = { notification ->
                     Log.d(TAG, "Notification icon clicked: ${notification.packageName}")
-                    // Launch the app
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(notification.packageName)
-                    if (launchIntent != null) {
-                        try {
-                            launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(launchIntent)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to launch app ${notification.packageName}", e)
-                        }
+                    // Toggle filter: if same package clicked, deselect; otherwise select
+                    selectedNotificationPackage = if (selectedNotificationPackage == notification.packageName) {
+                        null
+                    } else {
+                        notification.packageName
                     }
                 }
             )
