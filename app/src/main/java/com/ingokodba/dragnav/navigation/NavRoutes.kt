@@ -15,5 +15,6 @@ sealed class NavRoute(val route: String) {
     object SettingsHelp : NavRoute("settings/help")
     object SettingsNotifications : NavRoute("settings/notifications")
     object SettingsExcludedApps : NavRoute("settings/notifications/excluded")
+    object SettingsRecordings : NavRoute("settings/recordings")
 }
 

@@ -96,6 +96,10 @@ fun AppNavigation(
         composable(NavRoute.SettingsExcludedApps.route) {
             ExcludedAppsScreen(mainActivity, navController)
         }
+
+        composable(NavRoute.SettingsRecordings.route) {
+            RecordingsListScreen(mainActivity, navController)
+        }
     }
 }
 

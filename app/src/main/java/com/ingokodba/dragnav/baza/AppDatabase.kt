@@ -10,13 +10,14 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.IconCacheEntry
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
+import com.ingokodba.dragnav.modeli.VoiceRecording
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class, IconCacheEntry::class), version = 9, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class, IconCacheEntry::class, VoiceRecording::class), version = 10, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -24,6 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rainbowMapaDao(): RainbowMapaDao
     abstract fun appInfoDao(): AppInfoDao
     abstract fun iconCacheDao(): IconCacheDao
+    abstract fun voiceRecordingDao(): VoiceRecordingDao
 
     fun setInstanceToNull(){
         instance = WeakReference(null)
@@ -62,7 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     //.fallbackToDestructiveMigration()
                     .build()
         }
@@ -156,6 +158,26 @@ abstract class AppDatabase : RoomDatabase() {
                         timestamp INTEGER NOT NULL,
                         versionCode INTEGER NOT NULL,
                         density INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create voice_recordings table for voice recording feature
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS voice_recordings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        filePath TEXT NOT NULL,
+                        fileName TEXT NOT NULL,
+                        startTime INTEGER NOT NULL,
+                        endTime INTEGER NOT NULL,
+                        durationMs INTEGER NOT NULL,
+                        title TEXT NOT NULL DEFAULT '',
+                        fileSize INTEGER NOT NULL DEFAULT 0,
+                        mimeType TEXT NOT NULL DEFAULT 'audio/mp4',
+                        isDeleted INTEGER NOT NULL DEFAULT 0
                     )
                 """.trimIndent())
             }

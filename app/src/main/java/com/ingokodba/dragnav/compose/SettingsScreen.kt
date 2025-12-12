@@ -115,6 +115,15 @@ fun SettingsScreen(
                 }
             }
 
+            // Voice Recordings
+            item {
+                PreferenceItem(
+                    title = "Voice Recordings",
+                    summary = "View and manage recorded audio",
+                    onClick = { navController.navigate("settings/recordings") }
+                )
+            }
+
             // Notifications Settings
             item {
                 PreferenceItem(
