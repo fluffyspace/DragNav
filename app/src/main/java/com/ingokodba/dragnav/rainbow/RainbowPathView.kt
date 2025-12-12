@@ -1122,7 +1122,13 @@ class RainbowPathView @JvmOverloads constructor(
             padding
         }
 
-        val letterHeight = h / letters.size.coerceAtLeast(1)
+        // Calculate height and position based on config
+        val bottomOffset = config.letterIndexBottomOffset * h
+        val letterIndexActualHeight = config.letterIndexHeight * h
+        val top = h - bottomOffset - letterIndexActualHeight
+        val bottom = h - bottomOffset
+
+        val letterHeight = letterIndexActualHeight / letters.size.coerceAtLeast(1)
 
         // Calculate touchable area - always extends to screen edge with configurable padding from letters
         val paddingFromLetters = config.letterIndexPanFromLetters * w
@@ -1143,7 +1149,7 @@ class RainbowPathView @JvmOverloads constructor(
             (left + indexWidth + paddingFromLetters).coerceAtMost(w)
         }
 
-        letterIndexRect = RectF(touchableLeft, 0f, touchableRight, h)
+        letterIndexRect = RectF(touchableLeft, top, touchableRight, bottom)
 
         // Draw background when user is actively touching the letter index OR when forced (e.g., in settings)
         if (isInLetterIndex || showLetterIndexBackground) {
@@ -1151,7 +1157,7 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
         letters.forEachIndexed { index, letter ->
-            val y = letterHeight * index + letterHeight / 2 + letterPaint.textSize / 3
+            val y = top + letterHeight * index + letterHeight / 2 + letterPaint.textSize / 3
             canvas.drawText(
                 letter.toString(),
                 left + indexWidth / 2,
@@ -1605,8 +1611,13 @@ class RainbowPathView @JvmOverloads constructor(
         }
         if (letters.isEmpty()) return
 
-        val letterHeight = height / letters.size
-        val index = (y / letterHeight).toInt().coerceIn(0, letters.size - 1)
+        // Calculate relative position within the letter index area
+        val letterIndexTop = letterIndexRect?.top ?: 0f
+        val letterIndexHeight = letterIndexRect?.height() ?: height.toFloat()
+        val relativeY = (y - letterIndexTop).coerceIn(0f, letterIndexHeight)
+
+        val letterHeight = letterIndexHeight / letters.size
+        val index = (relativeY / letterHeight).toInt().coerceIn(0, letters.size - 1)
         val letter = letters[index]
 
         letterPositions[letter]?.let { appIndex ->

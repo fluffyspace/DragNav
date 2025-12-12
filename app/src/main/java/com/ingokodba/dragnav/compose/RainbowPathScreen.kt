@@ -176,8 +176,10 @@ fun RainbowPathScreen(
     LaunchedEffect(notifications) {
         Log.d(TAG, "=== NOTIFICATIONS UPDATE ===")
         Log.d(TAG, "Notifications count: ${notifications.size}")
+        Log.d("NL_DEBUG", ">>> RainbowPathScreen: LaunchedEffect(notifications) triggered, count=${notifications.size} <<<")
         notifications.forEachIndexed { index, notification ->
             Log.d(TAG, "[$index] Package: ${notification.packageName}, Title: ${notification.title}, Content: ${notification.content}")
+            Log.d("NL_DEBUG", "  [$index] ${notification.packageName}: ${notification.title}")
         }
         Log.d(TAG, "=========================")
     }
@@ -972,7 +974,9 @@ fun RainbowPathScreen(
         }
 
         // Notification icons list - shows app icons for apps with notifications
+        Log.d("NL_DEBUG", ">>> RainbowPathScreen: Checking notifications.isNotEmpty() = ${notifications.isNotEmpty()}, size=${notifications.size} <<<")
         if (notifications.isNotEmpty()) {
+            Log.d("NL_DEBUG", ">>> RainbowPathScreen: SHOWING NotificationIconsList with ${notifications.size} notifications <<<")
             NotificationIconsList(
                 notifications = notifications,
                 config = config,

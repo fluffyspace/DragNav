@@ -44,11 +44,13 @@ class NotificationListener : NotificationListenerService() {
         super.onListenerConnected()
         instance = this
         Log.d("NotificationListener", "=== Listener connected ===")
+        Log.d("NL_DEBUG", "=== SERVICE CONNECTED === callback is ${if (onNotificationsChanged != null) "SET" else "NULL"}")
 
         // Register receiver for update requests
         updateRequestReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 Log.d("NotificationListener", "Received update request")
+                Log.d("NL_DEBUG", "Update request received, callback is ${if (onNotificationsChanged != null) "SET" else "NULL"}")
                 updateNotifications()
             }
         }
@@ -83,14 +85,17 @@ class NotificationListener : NotificationListenerService() {
     }
 
     private fun updateNotifications() {
+        Log.d("NL_DEBUG", "updateNotifications() called, callback is ${if (onNotificationsChanged != null) "SET" else "NULL"}")
         try {
             val activeNotifications = activeNotifications ?: run {
                 Log.d("NotificationListener", "No active notifications (null)")
+                Log.d("NL_DEBUG", "activeNotifications is NULL - service might not be properly connected")
                 return
             }
 
             val excludedApps = getExcludedApps()
             Log.d("NotificationListener", "Processing ${activeNotifications.size} active notifications, ${excludedApps.size} apps excluded")
+            Log.d("NL_DEBUG", "Active notifications count: ${activeNotifications.size}, excluded apps: $excludedApps")
             val notificationMap = mutableMapOf<String, AppNotification>()
 
             for (sbn in activeNotifications) {
@@ -141,7 +146,13 @@ class NotificationListener : NotificationListenerService() {
             val notificationsList = notificationMap.values.toList()
 
             // Call the callback directly
-            onNotificationsChanged?.invoke(notificationsList)
+            Log.d("NL_DEBUG", "About to call callback, callback is ${if (onNotificationsChanged != null) "SET" else "NULL"}, list size: ${notificationsList.size}")
+            if (onNotificationsChanged != null) {
+                onNotificationsChanged?.invoke(notificationsList)
+                Log.d("NL_DEBUG", ">>> CALLBACK INVOKED with ${notificationsList.size} notifications <<<")
+            } else {
+                Log.d("NL_DEBUG", ">>> CALLBACK IS NULL - notifications NOT delivered to UI! <<<")
+            }
             Log.d("NotificationListener", "Called callback with ${notificationsList.size} notifications")
 
             // Also broadcast for backwards compatibility

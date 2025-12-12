@@ -336,7 +336,12 @@ class ViewModel : ViewModel() {
     }
 
     fun updateNotifications(notifications: List<AppNotification>) {
+        Log.d("NL_DEBUG", ">>> ViewModel.updateNotifications() called with ${notifications.size} notifications <<<")
+        notifications.forEach { n ->
+            Log.d("NL_DEBUG", "  - ${n.packageName}: ${n.title}")
+        }
         _notifications.postValue(notifications)
         _notificationsFlow.value = notifications
+        Log.d("NL_DEBUG", ">>> ViewModel: _notificationsFlow.value now has ${_notificationsFlow.value.size} items <<<")
     }
 }

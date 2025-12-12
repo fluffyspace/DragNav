@@ -579,6 +579,28 @@ private fun LettersSettings(
             valueRange = 0f..0.3f,
             onValueChange = { onConfigChanged(config.copy(letterIndexPanFromLetters = it)) }
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Letter index height
+        SettingsLabel("Letters View Height")
+        SettingsSubtext("Height as fraction of screen (shrinks from top)")
+        SettingsSlider(
+            value = config.letterIndexHeight,
+            valueRange = 0.2f..1f,
+            onValueChange = { onConfigChanged(config.copy(letterIndexHeight = it)) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Letter index bottom offset
+        SettingsLabel("Bottom Offset")
+        SettingsSubtext("Offset from bottom of screen")
+        SettingsSlider(
+            value = config.letterIndexBottomOffset,
+            valueRange = 0f..0.5f,
+            onValueChange = { onConfigChanged(config.copy(letterIndexBottomOffset = it)) }
+        )
     }
 }
 

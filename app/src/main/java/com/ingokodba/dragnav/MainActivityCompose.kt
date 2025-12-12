@@ -307,19 +307,25 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         iconLoadExecutor = IconLoadExecutor(this, quality_icons)
 
         // Set up direct callback from NotificationListener
+        Log.d("NL_DEBUG", ">>> MainActivityCompose: Setting up onNotificationsChanged callback <<<")
         NotificationListener.onNotificationsChanged = { notifications ->
             Log.d("MainActivityCompose", "Received ${notifications.size} notifications via callback")
+            Log.d("NL_DEBUG", ">>> MainActivityCompose: CALLBACK RECEIVED with ${notifications.size} notifications <<<")
             viewModel.updateNotifications(notifications)
         }
+        Log.d("NL_DEBUG", ">>> MainActivityCompose: Callback is now SET <<<")
 
         // Request initial notification update from NotificationListener
         Log.d("MainActivityCompose", "Requesting notification update from NotificationListener")
+        Log.d("NL_DEBUG", ">>> MainActivityCompose: Checking NotificationListener.getInstance() <<<")
         NotificationListener.getInstance()?.let { service ->
             Log.d("MainActivityCompose", "NotificationListener service instance found, requesting update")
+            Log.d("NL_DEBUG", ">>> MainActivityCompose: Service instance EXISTS, sending broadcast <<<")
             val requestIntent = Intent("com.ingokodba.dragnav.REQUEST_NOTIFICATION_UPDATE")
             sendBroadcast(requestIntent)
         } ?: run {
             Log.d("MainActivityCompose", "NotificationListener service instance NOT found")
+            Log.d("NL_DEBUG", ">>> MainActivityCompose: Service instance is NULL - service not running? <<<")
         }
     }
 
@@ -1133,6 +1139,15 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     override fun onResume() {
         super.onResume()
         Log.d("MainActivityCompose", "onResume")
+        Log.d("NL_DEBUG", ">>> onResume: Callback is ${if (NotificationListener.onNotificationsChanged != null) "SET" else "NULL"} <<<")
+        Log.d("NL_DEBUG", ">>> onResume: Service instance is ${if (NotificationListener.getInstance() != null) "AVAILABLE" else "NULL"} <<<")
+
+        // Re-request notifications on resume in case they changed while paused
+        NotificationListener.getInstance()?.let { service ->
+            Log.d("NL_DEBUG", ">>> onResume: Re-requesting notification update <<<")
+            val requestIntent = Intent("com.ingokodba.dragnav.REQUEST_NOTIFICATION_UPDATE")
+            sendBroadcast(requestIntent)
+        }
     }
 
     override fun onPause() {
