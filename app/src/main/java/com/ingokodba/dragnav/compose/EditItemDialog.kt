@@ -154,6 +154,56 @@ fun EditItemDialog(
 }
 
 /**
+ * ErrorsDialog - Dialog shown when error log file is available
+ *
+ * Offers options to download or delete the error log file.
+ */
+@Composable
+fun ErrorsDialog(
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Errors file is available",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Text(
+                text = "An error log has been recorded. You can download it for debugging or delete it.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDownload) {
+                Text("DOWNLOAD")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("DELETE")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("DISMISS")
+                }
+            }
+        },
+        modifier = modifier
+    )
+}
+
+/**
  * ConfirmDeleteDialog - Simple confirmation dialog for item deletion
  */
 @Composable

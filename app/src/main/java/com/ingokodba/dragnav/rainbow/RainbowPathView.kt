@@ -50,6 +50,11 @@ class RainbowPathView @JvmOverloads constructor(
     // App data
     private var appList: List<EncapsulatedAppInfoWithFolder> = emptyList()
     var icons: MutableMap<String, Drawable?> = mutableMapOf()
+        set(value) {
+            // Clear bitmap cache when icons change to avoid using recycled bitmaps
+            iconBitmapCache.clear()
+            field = value
+        }
     // Cached bitmaps for icons to avoid repeated toBitmap() calls
     private val iconBitmapCache = mutableMapOf<String, Bitmap?>()
     var inFolder: Boolean = false
@@ -958,10 +963,18 @@ class RainbowPathView @JvmOverloads constructor(
                         val app = thing.apps[i * 2 + j]
                         visiblePackageNames.add(app.packageName)
                         // Use cached bitmap or convert and cache
-                        val icon = iconBitmapCache.getOrPut(app.packageName) {
+                        var icon = iconBitmapCache.getOrPut(app.packageName) {
                             icons[app.packageName]?.toBitmap() ?: return@getOrPut null
                         }
-                        if (icon != null) {
+                        // Check if bitmap was recycled and remove from cache if so
+                        if (icon?.isRecycled == true) {
+                            iconBitmapCache.remove(app.packageName)
+                            icon = icons[app.packageName]?.toBitmap()
+                            if (icon != null) {
+                                iconBitmapCache[app.packageName] = icon
+                            }
+                        }
+                        if (icon != null && !icon.isRecycled) {
                             val iconRect = RectF(
                                 screenX - iconSizePx / 2 + iconSizePx * j / 2,
                                 screenY - iconSizePx / 2 + iconSizePx * i / 2,
@@ -1009,10 +1022,18 @@ class RainbowPathView @JvmOverloads constructor(
                 val app = thing.apps.first()
                 visiblePackageNames.add(app.packageName)
                 // Use cached bitmap or convert and cache
-                val icon = iconBitmapCache.getOrPut(app.packageName) {
+                var icon = iconBitmapCache.getOrPut(app.packageName) {
                     icons[app.packageName]?.toBitmap() ?: return@getOrPut null
                 }
-                if (icon != null) {
+                // Check if bitmap was recycled and remove from cache if so
+                if (icon?.isRecycled == true) {
+                    iconBitmapCache.remove(app.packageName)
+                    icon = icons[app.packageName]?.toBitmap()
+                    if (icon != null) {
+                        iconBitmapCache[app.packageName] = icon
+                    }
+                }
+                if (icon != null && !icon.isRecycled) {
                     canvas.drawBitmap(icon, null, rect, iconPaint)
                 } else {
                     // Track that this visible app is missing its icon

@@ -114,6 +114,9 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     // Dialog state tracking
     var dialogState: DialogStates? = null
 
+    // Errors dialog state
+    var showErrorsDialog by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply dark mode preference
         val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
@@ -239,6 +242,23 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                             }
                         )
                     }
+
+                    // Errors dialog overlay
+                    if (showErrorsDialog) {
+                        com.ingokodba.dragnav.compose.ErrorsDialog(
+                            onDownload = {
+                                downloadErrorsFile()
+                                showErrorsDialog = false
+                            },
+                            onDelete = {
+                                deleteErrorsFile()
+                                showErrorsDialog = false
+                            },
+                            onDismiss = {
+                                showErrorsDialog = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -332,25 +352,10 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     // ========== ERROR CHECKING ==========
 
     private fun checkErrors() {
-        var trace = ""
-        var line: String? = null
-        try {
-            val appSpecificExternalDir: File = File(getExternalFilesDir(null), ERORI_FILE)
-            val reader = BufferedReader(
-                InputStreamReader(FileInputStream(appSpecificExternalDir)))
-
-            while (reader.readLine().also { line = it } != null) {
-                trace += line + "\n"
-            }
-            reader.close()
-        } catch (fnfe: FileNotFoundException) {
-            Log.e("MainActivityCompose", fnfe.toString())
-        } catch (ioe: IOException) {
-            Log.e("MainActivityCompose", ioe.toString())
-        }
-
-        if (trace != "") {
-            Log.d("MainActivityCompose", "trace je $trace")
+        val errorsFile = File(getExternalFilesDir(null), ERORI_FILE)
+        if (errorsFile.exists() && errorsFile.length() > 0) {
+            Log.d("MainActivityCompose", "Errors file found with content")
+            showErrorsDialog = true
         }
     }
 
@@ -785,6 +790,41 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     fun startColorpicker() {
         val intent = Intent(this@MainActivityCompose, ColorPickerActivity::class.java)
         colorResultLauncher.launch(intent)
+    }
+
+    // Activity result launcher for downloading errors file
+    private val errorsDownloadLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) {
+            try {
+                val errorsFile = File(getExternalFilesDir(null), ERORI_FILE)
+                if (errorsFile.exists()) {
+                    contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        FileInputStream(errorsFile).use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+                    Log.d("MainActivityCompose", "Errors file downloaded successfully")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivityCompose", "Failed to download errors file", e)
+            }
+        }
+    }
+
+    private fun downloadErrorsFile() {
+        errorsDownloadLauncher.launch(ERORI_FILE)
+    }
+
+    private fun deleteErrorsFile() {
+        try {
+            val errorsFile = File(getExternalFilesDir(null), ERORI_FILE)
+            if (errorsFile.exists()) {
+                errorsFile.delete()
+                Log.d("MainActivityCompose", "Errors file deleted")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivityCompose", "Failed to delete errors file", e)
+        }
     }
 
     fun rainbowMapaUpdateItem(polje: RainbowMapa) {

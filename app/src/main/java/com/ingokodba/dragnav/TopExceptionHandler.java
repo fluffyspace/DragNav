@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.Instant;
 
 public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
     public static final String ERORI_FILE = "erori.txt";
@@ -22,6 +23,7 @@ public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
     public void uncaughtException(Thread t, Throwable e) {
         StackTraceElement[] arr = e.getStackTrace();
         String report = e.toString()+"\n\n";
+        report += Instant.now().toString()+"\n\n";
         report += "--------- Stack trace ---------\n\n";
         for (int i=0; i<arr.length; i++) {
             report += "    "+arr[i].toString()+"\n";
