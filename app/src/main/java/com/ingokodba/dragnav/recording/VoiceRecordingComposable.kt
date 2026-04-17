@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -199,7 +200,8 @@ fun VoiceRecordingComposable(context: Context){
                 containerSize = coordinates.size
             }
     ) {
-        Column(
+        // Use Box instead of Column so duration text appears above FAB without moving it
+        Box(
             modifier = Modifier
                 .offset { androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt()) }
                 .pointerInput(Unit) {
@@ -209,7 +211,7 @@ fun VoiceRecordingComposable(context: Context){
                         var totalMovement = 0f
                         var fingerLeftButton = false
 
-                        // Start a coroutine to enable dragging after 2 seconds
+                        // Start a coroutine to enable dragging after 1 second
                         longPressJob?.cancel()
                         longPressJob = scope.launch {
                             delay(1000)
@@ -229,7 +231,7 @@ fun VoiceRecordingComposable(context: Context){
                                 // Check if finger left the button area (using button size as bounds)
                                 val currentPos = change.position
                                 if (currentPos.x < 0 || currentPos.y < 0 ||
-                                    currentPos.x > buttonSizePx || currentPos.y > buttonSizePx + with(density) { 40.dp.toPx() }) {
+                                    currentPos.x > buttonSizePx || currentPos.y > buttonSizePx) {
                                     fingerLeftButton = true
                                     // Cancel long press timer if finger left button
                                     if (!isDragEnabled) {
@@ -278,7 +280,7 @@ fun VoiceRecordingComposable(context: Context){
                                 val dragAmount = change.position - change.previousPosition
                                 totalMovement += kotlin.math.abs(dragAmount.x) + kotlin.math.abs(dragAmount.y)
 
-                                // Only move if drag is enabled (after 2 second hold)
+                                // Only move if drag is enabled (after 1 second hold)
                                 if (isDragEnabled) {
                                     change.consume()
                                     val newX = (offsetX + dragAmount.x).coerceIn(
@@ -299,10 +301,9 @@ fun VoiceRecordingComposable(context: Context){
                             isDragEnabled = false
                         }
                     }
-                },
-            horizontalAlignment = Alignment.CenterHorizontally
+                }
         ) {
-            // Duration display when recording
+            // Duration display when recording - positioned above the FAB
             if (isRecording) {
                 val minutes = (recordingDuration / 60000).toInt()
                 val seconds = ((recordingDuration % 60000) / 1000).toInt()
@@ -312,23 +313,28 @@ fun VoiceRecordingComposable(context: Context){
                     color = ComposeColor.Red,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-32).dp)
                         .background(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(4.dp)
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            shape = RoundedCornerShape(8.dp)
                         )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Recording button
+            // Recording button - Material FAB
             FloatingActionButton(
                 onClick = { /* Click handled by pointerInput above */ },
                 modifier = Modifier
                     .size(buttonSizeDp)
                     .scale(buttonScale),
                 shape = CircleShape,
-                containerColor = if (isDragEnabled) MaterialTheme.colorScheme.tertiary else buttonColor
+                containerColor = if (isDragEnabled) MaterialTheme.colorScheme.tertiary else buttonColor,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 12.dp
+                )
             ) {
                 Icon(
                     painter = painterResource(
@@ -339,7 +345,8 @@ fun VoiceRecordingComposable(context: Context){
                     contentDescription = if (isDragEnabled) "Drag to move"
                     else if (isRecording) "Stop Recording"
                     else "Start Recording",
-                    tint = ComposeColor.White
+                    tint = ComposeColor.White,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
