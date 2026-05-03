@@ -74,10 +74,11 @@ fun SettingsScreen(
                 )
 
                 if (showDialog) {
-                    UiDesignDialog(
-                        currentValue = currentUiDesign,
-                        entries = uiDesignEntries,
-                        values = uiDesignValues,
+                    RadioSelectionDialog(
+                        title = "Select UI Design",
+                        entries = uiDesignEntries.toList(),
+                        values = uiDesignValues.toList(),
+                        selectedValue = currentUiDesign,
                         onDismiss = { showDialog = false },
                         onSelected = { newValue ->
                             prefs.edit().putString(PreferenceKeys.UI_DESIGN, newValue).apply()
@@ -216,46 +217,3 @@ fun PreferenceItem(
     HorizontalDivider()
 }
 
-/**
- * UI Design selection dialog
- */
-@Composable
-fun UiDesignDialog(
-    currentValue: String,
-    entries: Array<String>,
-    values: Array<String>,
-    onDismiss: () -> Unit,
-    onSelected: (String) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select UI Design") },
-        text = {
-            LazyColumn {
-                items(entries.size) { index ->
-                    val value = values[index]
-                    val entry = entries[index]
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelected(value) }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = value == currentValue,
-                            onClick = { onSelected(value) }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(entry)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}

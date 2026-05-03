@@ -209,81 +209,39 @@ fun GeneralSettingsScreen(
 
     // Dark Mode Dialog
     if (showDarkModeDialog) {
-        AlertDialog(
-            onDismissRequest = { showDarkModeDialog = false },
-            title = { Text("Select Dark Mode") },
-            text = {
-                Column {
-                    darkModeEntries.forEachIndexed { index, entry ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            RadioButton(
-                                selected = darkModeValues[index] == currentDarkMode,
-                                onClick = {
-                                    val newValue = darkModeValues[index]
-                                    prefs.edit().putString(PreferenceKeys.DARK_MODE, newValue).apply()
-                                    when (newValue) {
-                                        darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-                                        darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                                        darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                                        darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
-                                    }
-                                    showDarkModeDialog = false
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(entry)
-                        }
-                    }
+        RadioSelectionDialog(
+            title = "Select Dark Mode",
+            entries = darkModeEntries.toList(),
+            values = darkModeValues.toList(),
+            selectedValue = currentDarkMode,
+            onDismiss = { showDarkModeDialog = false },
+            onSelected = { newValue ->
+                prefs.edit().putString(PreferenceKeys.DARK_MODE, newValue).apply()
+                when (newValue) {
+                    darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                    darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                    darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                    darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showDarkModeDialog = false }) {
-                    Text("Cancel")
-                }
+                showDarkModeDialog = false
             }
         )
     }
 
     // Language Dialog
     if (showLanguageDialog) {
-        val languageEntries = listOf("English", "Croatian")
-        val languageValues = listOf(false, true)
-        AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
-            title = { Text("Select Language") },
-            text = {
-                Column {
-                    languageEntries.forEachIndexed { index, entry ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            RadioButton(
-                                selected = languageValues[index] == languageToggle,
-                                onClick = {
-                                    val newValue = languageValues[index]
-                                    showLanguageDialog = false
-                                    if (newValue != languageToggle) {
-                                        prefs.edit().putBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, newValue).apply()
-                                        restartAction = { mainActivity.recreate() }
-                                        showRestartDialog = true
-                                    }
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(entry)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("Cancel")
+        RadioSelectionDialog(
+            title = "Select Language",
+            entries = listOf("English", "Croatian"),
+            values = listOf(false, true),
+            selectedValue = languageToggle,
+            onDismiss = { showLanguageDialog = false },
+            onSelected = { newValue ->
+                showLanguageDialog = false
+                if (newValue != languageToggle) {
+                    prefs.edit().putBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, newValue).apply()
+                    restartAction = { mainActivity.recreate() }
+                    showRestartDialog = true
                 }
             }
         )
