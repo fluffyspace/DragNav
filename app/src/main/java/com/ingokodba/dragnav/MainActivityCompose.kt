@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.core.graphics.drawable.toBitmap
@@ -94,6 +96,10 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     var gcolor: Int = 1
     var shortcutPopup: android.widget.PopupWindow? = null
 
+    // Status bar appearance
+    var statusBarColor by mutableStateOf(android.graphics.Color.TRANSPARENT)
+    var statusBarLightText by mutableStateOf(false)
+
     private var appListener: AppListener? = null
     private var launcherCallbacks: ModelLauncherCallbacks? = null
     private lateinit var launcherApps: android.content.pm.LauncherApps
@@ -156,11 +162,26 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Enable edge-to-edge for Android 15+ compatibility
         enableEdgeToEdge()
 
+        // Read status bar preferences
+        statusBarColor = PreferenceManager.getDefaultSharedPreferences(this)
+            .getInt(PreferenceKeys.UI_STATUS_BAR_COLOR, android.graphics.Color.TRANSPARENT)
+        statusBarLightText = PreferenceManager.getDefaultSharedPreferences(this)
+            .getBoolean(PreferenceKeys.UI_STATUS_BAR_LIGHT_TEXT, false)
+
         // Set up Compose UI with navigation
         setContent {
             MaterialTheme {
                 val navControllerState = rememberNavController()
                 navController = navControllerState
+
+                // Apply status bar appearance reactively
+                val view = LocalView.current
+                SideEffect {
+                    val window = (view.context as Activity).window
+                    @Suppress("DEPRECATION")
+                    window.statusBarColor = this@MainActivityCompose.statusBarColor
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !this@MainActivityCompose.statusBarLightText
+                }
 
                 Box(
                     modifier = Modifier
@@ -790,6 +811,27 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     fun startColorpicker() {
         val intent = Intent(this@MainActivityCompose, ColorPickerActivity::class.java)
         colorResultLauncher.launch(intent)
+    }
+
+    var statusBarColorResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.getIntExtra("color", 0)?.let { color ->
+                statusBarColor = color
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                    .putInt(PreferenceKeys.UI_STATUS_BAR_COLOR, color).apply()
+            }
+        }
+    }
+
+    fun startStatusBarColorPicker() {
+        val intent = Intent(this@MainActivityCompose, ColorPickerActivity::class.java)
+        statusBarColorResultLauncher.launch(intent)
+    }
+
+    fun clearStatusBarColor() {
+        statusBarColor = android.graphics.Color.TRANSPARENT
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putInt(PreferenceKeys.UI_STATUS_BAR_COLOR, android.graphics.Color.TRANSPARENT).apply()
     }
 
     // Activity result launcher for downloading errors file

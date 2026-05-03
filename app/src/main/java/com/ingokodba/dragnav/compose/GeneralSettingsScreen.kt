@@ -72,6 +72,40 @@ fun GeneralSettingsScreen(
                 )
             }
 
+            // Status Bar Background Color
+            item {
+                val hasColor = mainActivity.statusBarColor != android.graphics.Color.TRANSPARENT
+                PreferenceItem(
+                    title = "Status Bar Background",
+                    summary = if (hasColor) "Custom color set (tap to change)" else "Transparent (tap to pick color)",
+                    onClick = { mainActivity.startStatusBarColorPicker() }
+                )
+            }
+
+            // Clear Status Bar Color (only show if color is set)
+            if (mainActivity.statusBarColor != android.graphics.Color.TRANSPARENT) {
+                item {
+                    PreferenceItem(
+                        title = "Clear Status Bar Background",
+                        summary = "Reset to transparent",
+                        onClick = { mainActivity.clearStatusBarColor() }
+                    )
+                }
+            }
+
+            // Light Status Bar Text
+            item {
+                SwitchPreferenceItem(
+                    title = "Light Status Bar Text",
+                    summary = "Use white icons and text in status bar",
+                    checked = mainActivity.statusBarLightText,
+                    onCheckedChange = { checked ->
+                        mainActivity.statusBarLightText = checked
+                        prefs.edit().putBoolean(PreferenceKeys.UI_STATUS_BAR_LIGHT_TEXT, checked).apply()
+                    }
+                )
+            }
+
             // Language Toggle
             item {
                 SwitchPreferenceItem(

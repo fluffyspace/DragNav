@@ -32,6 +32,8 @@ object PreferenceKeys {
     const val DROP_DATABASE = "drop_database"
     const val DEFAULT_APPS = "default_apps"
     const val NOTIFICATION_EXCLUDED_APPS = "notification_excluded_apps"
+    const val UI_STATUS_BAR_COLOR = "ui_status_bar_color"
+    const val UI_STATUS_BAR_LIGHT_TEXT = "ui_status_bar_light_text"
 }
 
 // Legacy alias for backward compatibility
