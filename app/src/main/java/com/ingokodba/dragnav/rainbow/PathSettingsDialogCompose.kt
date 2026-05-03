@@ -439,6 +439,15 @@ private fun AppNamesSettings(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Alignment
+        SettingsLabel("Text Alignment")
+        AppNameAlignmentSpinner(
+            selected = config.appNameAlignment,
+            onSelected = { onConfigChanged(config.copy(appNameAlignment = it)) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Style
         SettingsLabel("Text Style")
         AppNameStyleSpinner(
@@ -934,6 +943,56 @@ private fun AppNameStyleSpinner(
                     text = { Text(style.name.replace("_", " ")) },
                     onClick = {
                         onSelected(style)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppNameAlignmentSpinner(
+    selected: AppNameAlignment,
+    onSelected: (AppNameAlignment) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    fun label(alignment: AppNameAlignment): String = when (alignment) {
+        AppNameAlignment.LEFT -> "Left"
+        AppNameAlignment.CENTER -> "Center"
+        AppNameAlignment.RIGHT -> "Right"
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        TextField(
+            value = label(selected),
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedContainerColor = Color(0x33FFFFFF),
+                unfocusedContainerColor = Color(0x33FFFFFF)
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            AppNameAlignment.values().forEach { alignment ->
+                DropdownMenuItem(
+                    text = { Text(label(alignment)) },
+                    onClick = {
+                        onSelected(alignment)
                         expanded = false
                     }
                 )

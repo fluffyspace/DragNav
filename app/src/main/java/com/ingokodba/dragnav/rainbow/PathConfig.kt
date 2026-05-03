@@ -48,6 +48,7 @@ data class PathConfig(
     val appNameStyle: AppNameStyle = AppNameStyle.PLAIN,
     val appNameBorderWidth: Float = 2f,              // Border width in pixels (for BORDERED style)
     val appNameFont: AppNameFont = AppNameFont.DEFAULT,
+    val appNameAlignment: AppNameAlignment = AppNameAlignment.CENTER,
 
     // Favorites button settings
     val favButtonPosition: PointF = PointF(0.15f, 0.15f),  // Position (normalized)
@@ -102,6 +103,12 @@ enum class AppNameFont {
     SANS_SERIF,  // Sans-serif font
     SERIF,       // Serif font
     MONOSPACE    // Monospace font
+}
+
+enum class AppNameAlignment {
+    LEFT,
+    CENTER,
+    RIGHT
 }
 
 enum class NotificationAnchor {
