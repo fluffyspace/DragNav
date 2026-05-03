@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
@@ -173,13 +174,27 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 val navControllerState = rememberNavController()
                 navController = navControllerState
 
-                // Apply status bar appearance reactively
+                // Apply status bar appearance reactively. Settings screens have a
+                // white background, so force a white status bar with dark icons
+                // there. Other screens follow the user-configured preferences.
                 val view = LocalView.current
+                val currentRoute = navControllerState.currentBackStackEntryAsState().value?.destination?.route
+                val onSettingsScreen = currentRoute?.startsWith("settings") == true
+                val effectiveStatusBarColor = if (onSettingsScreen) {
+                    android.graphics.Color.WHITE
+                } else {
+                    this@MainActivityCompose.statusBarColor
+                }
+                val effectiveLightStatusIcons = if (onSettingsScreen) {
+                    false
+                } else {
+                    this@MainActivityCompose.statusBarLightText
+                }
                 SideEffect {
                     val window = (view.context as Activity).window
                     @Suppress("DEPRECATION")
-                    window.statusBarColor = this@MainActivityCompose.statusBarColor
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !this@MainActivityCompose.statusBarLightText
+                    window.statusBarColor = effectiveStatusBarColor
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !effectiveLightStatusIcons
                 }
 
                 Box(
