@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.navigation.NavHostController
 import androidx.preference.PreferenceManager
+import com.example.dragnav.R
 import com.google.gson.Gson
 import com.ingokodba.dragnav.MainActivityCompose
 import com.ingokodba.dragnav.PreferenceKeys
@@ -109,10 +111,10 @@ fun ExcludedAppsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Exclude Apps") },
+                title = { Text(stringResource(R.string.exclude_apps)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -175,7 +177,7 @@ private fun AppExcludeItem(
             appInfo.icon?.let { drawable ->
                 Image(
                     bitmap = drawable.toBitmap(48, 48).asImageBitmap(),
-                    contentDescription = "App icon",
+                    contentDescription = stringResource(R.string.app_icon_desc),
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(8.dp))

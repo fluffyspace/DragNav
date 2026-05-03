@@ -29,9 +29,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
 import com.ingokodba.dragnav.ViewModel
 import com.ingokodba.dragnav.modeli.AppInfo
@@ -102,11 +104,11 @@ fun SearchScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
-            placeholder = { Text("Search apps") },
+            placeholder = { Text(stringResource(R.string.search_apps)) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear))
                     }
                 }
             },
@@ -238,19 +240,19 @@ fun AppMenuDialog(
                     onClick = onOpenAppInfo,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Open App Info", modifier = Modifier.fillMaxWidth())
+                    Text(stringResource(R.string.open_app_info), modifier = Modifier.fillMaxWidth())
                 }
                 TextButton(
                     onClick = onAddToMenu,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Add to Menu", modifier = Modifier.fillMaxWidth())
+                    Text(stringResource(R.string.add_to_menu), modifier = Modifier.fillMaxWidth())
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )

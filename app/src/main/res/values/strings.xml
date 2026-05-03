@@ -197,6 +197,8 @@
     <string name="pick_folder_color">Pick Folder Color</string>
     <string name="errors_file_available">Errors file is available</string>
     <string name="error_log_message">An error log has been recorded. You can download it for debugging or delete it.</string>
+    <string name="delete_item_q">Delete Item?</string>
+    <string name="confirm_delete_item">Are you sure you want to delete \"%1$s\"?</string>
 
     <!-- Search / activities -->
     <string name="search_apps">Search apps</string>

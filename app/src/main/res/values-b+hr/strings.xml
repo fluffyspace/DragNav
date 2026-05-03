@@ -198,6 +198,8 @@
     <string name="pick_folder_color">Odaberi boju mape</string>
     <string name="errors_file_available">Datoteka s pogreškama je dostupna</string>
     <string name="error_log_message">Zabilježen je zapis o pogrešci. Možete ga preuzeti radi otklanjanja poteškoća ili obrisati.</string>
+    <string name="delete_item_q">Izbrisati stavku?</string>
+    <string name="confirm_delete_item">Jeste li sigurni da želite izbrisati \"%1$s\"?</string>
 
     <!-- Search / activities -->
     <string name="search_apps">Traži aplikacije</string>

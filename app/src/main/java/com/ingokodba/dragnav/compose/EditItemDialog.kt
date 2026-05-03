@@ -10,10 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.dragnav.R
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 
 /**
@@ -58,10 +60,10 @@ fun EditItemDialog(
             ) {
                 // Top App Bar
                 TopAppBar(
-                    title = { Text("Edit Item") },
+                    title = { Text(stringResource(R.string.edit_item)) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -88,7 +90,7 @@ fun EditItemDialog(
                     OutlinedTextField(
                         value = labelText,
                         onValueChange = { labelText = it },
-                        label = { Text("Label") },
+                        label = { Text(stringResource(R.string.label_field)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -101,7 +103,7 @@ fun EditItemDialog(
                     OutlinedTextField(
                         value = intentText,
                         onValueChange = { intentText = it },
-                        label = { Text("Intent (package name or custom)") },
+                        label = { Text(stringResource(R.string.intent_field)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -120,10 +122,10 @@ fun EditItemDialog(
                     ) {
                         Icon(
                             Icons.Default.ColorLens,
-                            contentDescription = "Pick color",
+                            contentDescription = stringResource(R.string.pick_color),
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Pick Folder Color")
+                        Text(stringResource(R.string.pick_folder_color))
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -142,7 +144,7 @@ fun EditItemDialog(
                         )
                     ) {
                         Text(
-                            text = "SAVE",
+                            text = stringResource(R.string.save),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -169,19 +171,19 @@ fun ErrorsDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Errors file is available",
+                text = stringResource(R.string.errors_file_available),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
             Text(
-                text = "An error log has been recorded. You can download it for debugging or delete it.",
+                text = stringResource(R.string.error_log_message),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
             TextButton(onClick = onDownload) {
-                Text("DOWNLOAD")
+                Text(stringResource(R.string.download))
             }
         },
         dismissButton = {
@@ -192,10 +194,10 @@ fun ErrorsDialog(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("DELETE")
+                    Text(stringResource(R.string.delete))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("DISMISS")
+                    Text(stringResource(R.string.dismiss))
                 }
             }
         },
@@ -217,13 +219,13 @@ fun ConfirmDeleteDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Delete Item?",
+                text = stringResource(R.string.delete_item_q),
                 style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
             Text(
-                text = "Are you sure you want to delete \"$itemName\"?",
+                text = stringResource(R.string.confirm_delete_item, itemName),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
@@ -237,12 +239,12 @@ fun ConfirmDeleteDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("DELETE")
+                Text(stringResource(R.string.delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("CANCEL")
+                Text(stringResource(R.string.cancel))
             }
         },
         modifier = modifier

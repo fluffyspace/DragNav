@@ -16,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.navigation.NavHostController
+import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -75,10 +77,10 @@ fun HiddenAppsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hidden Apps") },
+                title = { Text(stringResource(R.string.hidden_apps)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -101,7 +103,7 @@ fun HiddenAppsScreen(
             ) {
                 item {
                     Text(
-                        text = "Hidden apps will not appear in search, the app list, or the rainbow launcher.",
+                        text = stringResource(R.string.hidden_apps_info),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -149,7 +151,7 @@ private fun HiddenAppItem(
             appInfo.icon?.let { drawable ->
                 Image(
                     bitmap = drawable.toBitmap(48, 48).asImageBitmap(),
-                    contentDescription = "App icon",
+                    contentDescription = stringResource(R.string.app_icon_desc),
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(8.dp))
