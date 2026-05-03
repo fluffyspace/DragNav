@@ -156,6 +156,8 @@ class RainbowPathView @JvmOverloads constructor(
 
     // Letter index for fast scrolling
     private val letterPositions = mutableMapOf<Char, Int>()
+    // First letters of apps currently visible on the path (baseT in [0,1])
+    private val visibleLetters = mutableSetOf<Char>()
 
     // Set of package names that belong to any folder (for showing folder badge)
     private val appsInFolders = mutableSetOf<String>()
@@ -198,6 +200,12 @@ class RainbowPathView @JvmOverloads constructor(
     private val letterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
+        setShadowLayer(2f, 1f, 1f, Color.BLACK)
+    }
+    private val letterPaintBold = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(2f, 1f, 1f, Color.BLACK)
     }
     private val bigLetterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -782,6 +790,7 @@ class RainbowPathView @JvmOverloads constructor(
         }
 
         letterPaint.textSize = config.letterIndexSize * w
+        letterPaintBold.textSize = config.letterIndexSize * w
         shortcutTextPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
 
         // Draw debug path if enabled
@@ -919,6 +928,7 @@ class RainbowPathView @JvmOverloads constructor(
     private fun drawAppsOnPath(canvas: Canvas, w: Float, h: Float) {
         val apps = getDisplayedApps()
         //Log.d("RainbowPath", "drawAppsOnPath: ${apps.size} apps, appList size: ${appList.size}")
+        visibleLetters.clear()
         if (apps.isEmpty()) return
 
         val provider = PathShapeRegistry.getProvider(config.pathShape)
@@ -934,6 +944,12 @@ class RainbowPathView @JvmOverloads constructor(
 
             // Skip if outside visible range
             if (baseT < -0.1f || baseT > 1.1f) return@forEachIndexed
+
+            // Track first letters of apps actually on the visible path range
+            if (baseT in 0f..1f) {
+                val name = getNameOfApp(thing)
+                if (name.isNotEmpty()) visibleLetters.add(name[0].uppercaseChar())
+            }
 
             val point = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
             val screenX = point.x * w
@@ -1188,11 +1204,12 @@ class RainbowPathView @JvmOverloads constructor(
 
         letters.forEachIndexed { index, letter ->
             val y = top + letterHeight * index + letterHeight / 2 + letterPaint.textSize / 3
+            val paint = if (letter in visibleLetters) letterPaintBold else letterPaint
             canvas.drawText(
                 letter.toString(),
                 left + indexWidth / 2,
                 y,
-                letterPaint
+                paint
             )
         }
     }
