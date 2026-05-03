@@ -153,12 +153,6 @@
     <string name="restore_preferences">Vrati postavke</string>
     <string name="restore_preferences_summary">Vrati postavke iz sigurnosne kopije</string>
     <string name="preferences_backup_restored">Postavke vraćene</string>
-    <string name="backup_preferences">Sigurnosna kopija postavki</string>
-    <string name="backup_preferences_summary">Spremi sigurnosnu kopiju postavki</string>
-    <string name="restore_preferences">Vrati postavke</string>
-    <string name="restore_preferences_summary">Vrati postavke iz sigurnosne kopije</string>
-    <string name="preferences_backup_successful">Sigurnosna kopija postavki uspješno stvorena</string>
-    <string name="preferences_backup_restored">Postavke vraćene</string>
     <string name="reset_database">Poništi bazu podataka</string>
     <string name="reset_database_summary">Obriši sve podatke aplikacije (potrebno ponovno pokretanje)</string>
     <string name="reset_database_q">Poništiti bazu podataka?</string>
