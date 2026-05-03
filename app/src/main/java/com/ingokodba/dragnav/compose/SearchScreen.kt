@@ -13,6 +13,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -72,10 +74,14 @@ fun SearchScreen(
         }
     }
 
-    // Handle back button
+    // Handle back button: first press hides keyboard, second press closes search
+    val isImeVisible = WindowInsets.isImeVisible
     BackHandler {
-        keyboardController?.hide()
-        mainActivity.navController?.popBackStack()
+        if (isImeVisible) {
+            keyboardController?.hide()
+        } else {
+            mainActivity.navController?.popBackStack()
+        }
     }
 
     // Request focus on first composition
