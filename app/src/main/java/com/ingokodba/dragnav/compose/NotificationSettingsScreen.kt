@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
+import com.example.dragnav.R
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
@@ -62,10 +64,10 @@ fun NotificationSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notification Settings") },
+                title = { Text(stringResource(R.string.notification_settings)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -79,8 +81,8 @@ fun NotificationSettingsScreen(
             // Notification Access Permission
             item {
                 PreferenceItem(
-                    title = "Notification Access",
-                    summary = if (isNotificationAccessEnabled) "Enabled" else "Disabled - tap to enable",
+                    title = stringResource(R.string.notification_access),
+                    summary = if (isNotificationAccessEnabled) stringResource(R.string.notification_access_enabled) else stringResource(R.string.notification_access_disabled),
                     onClick = {
                         NotificationUtils.openNotificationSettings(context)
                     }
@@ -90,8 +92,8 @@ fun NotificationSettingsScreen(
             // Excluded Apps
             item {
                 PreferenceItem(
-                    title = "Exclude Apps",
-                    summary = if (excludedAppsCount > 0) "$excludedAppsCount apps excluded" else "No apps excluded",
+                    title = stringResource(R.string.exclude_apps),
+                    summary = if (excludedAppsCount > 0) stringResource(R.string.apps_excluded_count, excludedAppsCount) else stringResource(R.string.no_apps_excluded),
                     onClick = { navController.navigate("settings/notifications/excluded") }
                 )
             }

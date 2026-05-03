@@ -99,4 +99,107 @@
     <string name="save">Save</string>
     <string name="search_hint">Search…</string>
 
+    <!-- Common UI -->
+    <string name="ok">OK</string>
+    <string name="clear">Clear</string>
+    <string name="reset">Reset</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="download">Download</string>
+    <string name="app_icon_desc">App icon</string>
+    <string name="pick_color">Pick color</string>
+    <string name="edit_action">Edit</string>
+    <string name="rename_action">Rename</string>
+    <string name="list">List</string>
+
+    <!-- Settings overview -->
+    <string name="select_ui_design">Select UI Design</string>
+    <string name="restart_for_changes">The app needs to restart for changes to take effect.</string>
+    <string name="circle_settings">Circle Settings</string>
+    <string name="circle_settings_summary">Customize circle appearance</string>
+    <string name="rainbow_settings">Rainbow Settings</string>
+    <string name="notifications">Notifications</string>
+    <string name="notifications_summary">Notification permissions and filters</string>
+    <string name="general">General</string>
+    <string name="general_summary">App-wide preferences</string>
+    <string name="hidden_apps">Hidden Apps</string>
+    <string name="hidden_apps_summary">Hide apps from showing up in the launcher</string>
+    <string name="hidden_apps_info">Hidden apps will not appear in search, the app list, or the rainbow launcher.</string>
+    <string name="help_and_about">Help &amp; About</string>
+    <string name="help_summary">Support, backup, and app info</string>
+    <string name="default_apps">Default Apps</string>
+    <string name="default_apps_summary">Set as default launcher</string>
+
+    <!-- Notification settings -->
+    <string name="notification_settings">Notification Settings</string>
+    <string name="notification_access">Notification Access</string>
+    <string name="notification_access_summary">Manage notification permissions</string>
+    <string name="notification_access_enabled">Enabled</string>
+    <string name="notification_access_disabled">Disabled - tap to enable</string>
+    <string name="exclude_apps">Exclude Apps</string>
+    <string name="apps_excluded_count">%1$d apps excluded</string>
+    <string name="no_apps_excluded">No apps excluded</string>
+
+    <!-- Help screen -->
+    <string name="backup_database">Backup Database</string>
+    <string name="backup_database_summary">Save a backup of your app data</string>
+    <string name="backup_successful">Backup successful</string>
+    <string name="restore_backup">Restore from Backup</string>
+    <string name="restore_backup_summary">Restore app data from backup</string>
+    <string name="backup_restored">Backup restored</string>
+    <string name="reset_database">Reset Database</string>
+    <string name="reset_database_summary">Clear all app data (requires restart)</string>
+    <string name="reset_database_q">Reset Database?</string>
+    <string name="reset_database_confirm">This will delete all your app data and restart the app. This action cannot be undone.</string>
+    <string name="send_feedback">Send Feedback</string>
+    <string name="restart_app">Restart App</string>
+    <string name="restart_app_summary">Restart the application</string>
+    <string name="app_version">App Version</string>
+    <string name="feedback_email_subject">Feedback</string>
+
+    <!-- General settings -->
+    <string name="general_settings">General Settings</string>
+    <string name="status_bar_background">Status Bar Background</string>
+    <string name="status_bar_custom">Custom color set (tap to change)</string>
+    <string name="status_bar_transparent">Transparent (tap to pick color)</string>
+    <string name="clear_status_bar_background">Clear Status Bar Background</string>
+    <string name="reset_to_transparent">Reset to transparent</string>
+    <string name="light_status_bar">Light Status Bar Text</string>
+    <string name="light_status_bar_summary">Use white icons and text in status bar</string>
+    <string name="language">Language</string>
+    <string name="language_croatian">Croatian</string>
+    <string name="language_english">English</string>
+    <string name="one_line_buttons">One-line Buttons</string>
+    <string name="one_line_buttons_summary">Show buttons in a single line</string>
+    <string name="back_button">Back Button</string>
+    <string name="back_button_summary">Enable back button behavior</string>
+    <string name="select_dark_mode">Select Dark Mode</string>
+    <string name="select_language">Select Language</string>
+
+    <!-- Circle/Rainbow settings -->
+    <string name="choose_color_theme">Choose app color theme</string>
+
+    <!-- Edit item dialog -->
+    <string name="edit_item">Edit Item</string>
+    <string name="label_field">Label</string>
+    <string name="intent_field">Intent (package name or custom)</string>
+    <string name="pick_folder_color">Pick Folder Color</string>
+    <string name="errors_file_available">Errors file is available</string>
+    <string name="error_log_message">An error log has been recorded. You can download it for debugging or delete it.</string>
+
+    <!-- Search / activities -->
+    <string name="search_apps">Search apps</string>
+    <string name="open_app_info">Open App Info</string>
+    <string name="add_to_menu">Add to Menu</string>
+
+    <!-- Rainbow path -->
+    <string name="open_settings_title">Open Settings</string>
+    <string name="open_settings_message">Which settings would you like to open?</string>
+    <string name="app_settings">App Settings</string>
+
+    <!-- Misc -->
+    <string name="max_elements">Max. elements present.</string>
+    <string name="nothing_selected">Nothing selected.</string>
+    <string name="shortcut_not_added">Shortcut not added.</string>
+    <string name="failed_launch_shortcut">Failed to launch shortcut: %1$s</string>
+
 </resources>

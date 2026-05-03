@@ -99,4 +99,107 @@
     <string name="color_on_primary">Tinta ikone gumba</string>
     <string name="save">Spremi</string>
     <string name="search_hint">Traži…</string>
+
+    <!-- Common UI -->
+    <string name="ok">U redu</string>
+    <string name="clear">Očisti</string>
+    <string name="reset">Poništi</string>
+    <string name="dismiss">Odbaci</string>
+    <string name="download">Preuzmi</string>
+    <string name="app_icon_desc">Ikona aplikacije</string>
+    <string name="pick_color">Odaberi boju</string>
+    <string name="edit_action">Uredi</string>
+    <string name="rename_action">Preimenuj</string>
+    <string name="list">Popis</string>
+
+    <!-- Settings overview -->
+    <string name="select_ui_design">Odaberi korisničko sučelje</string>
+    <string name="restart_for_changes">Aplikacija se mora ponovno pokrenuti da bi promjene stupile na snagu.</string>
+    <string name="circle_settings">Postavke kruga</string>
+    <string name="circle_settings_summary">Prilagodi izgled kruga</string>
+    <string name="rainbow_settings">Postavke duge</string>
+    <string name="notifications">Obavijesti</string>
+    <string name="notifications_summary">Dozvole i filtri obavijesti</string>
+    <string name="general">Općenito</string>
+    <string name="general_summary">Postavke aplikacije</string>
+    <string name="hidden_apps">Skrivene aplikacije</string>
+    <string name="hidden_apps_summary">Sakrij aplikacije iz pokretača</string>
+    <string name="hidden_apps_info">Skrivene aplikacije neće se pojavljivati u pretrazi, popisu aplikacija ni u dugi.</string>
+    <string name="help_and_about">Pomoć i informacije</string>
+    <string name="help_summary">Podrška, sigurnosna kopija i informacije</string>
+    <string name="default_apps">Zadane aplikacije</string>
+    <string name="default_apps_summary">Postavi kao zadani pokretač</string>
+
+    <!-- Notification settings -->
+    <string name="notification_settings">Postavke obavijesti</string>
+    <string name="notification_access">Pristup obavijestima</string>
+    <string name="notification_access_summary">Upravljanje dozvolama za obavijesti</string>
+    <string name="notification_access_enabled">Omogućeno</string>
+    <string name="notification_access_disabled">Onemogućeno – dodirni za uključivanje</string>
+    <string name="exclude_apps">Isključi aplikacije</string>
+    <string name="apps_excluded_count">Isključeno aplikacija: %1$d</string>
+    <string name="no_apps_excluded">Nema isključenih aplikacija</string>
+
+    <!-- Help screen -->
+    <string name="backup_database">Sigurnosna kopija baze</string>
+    <string name="backup_database_summary">Spremi sigurnosnu kopiju podataka aplikacije</string>
+    <string name="backup_successful">Sigurnosna kopija uspješno stvorena</string>
+    <string name="restore_backup">Vrati iz sigurnosne kopije</string>
+    <string name="restore_backup_summary">Vrati podatke aplikacije iz sigurnosne kopije</string>
+    <string name="backup_restored">Sigurnosna kopija vraćena</string>
+    <string name="reset_database">Poništi bazu podataka</string>
+    <string name="reset_database_summary">Obriši sve podatke aplikacije (potrebno ponovno pokretanje)</string>
+    <string name="reset_database_q">Poništiti bazu podataka?</string>
+    <string name="reset_database_confirm">Ovo će obrisati sve podatke aplikacije i ponovno pokrenuti aplikaciju. Ova radnja je nepovratna.</string>
+    <string name="send_feedback">Pošalji povratnu informaciju</string>
+    <string name="restart_app">Ponovno pokreni aplikaciju</string>
+    <string name="restart_app_summary">Ponovno pokreni aplikaciju</string>
+    <string name="app_version">Verzija aplikacije</string>
+    <string name="feedback_email_subject">Povratna informacija</string>
+
+    <!-- General settings -->
+    <string name="general_settings">Općenite postavke</string>
+    <string name="status_bar_background">Pozadina statusne trake</string>
+    <string name="status_bar_custom">Postavljena boja (dodirni za promjenu)</string>
+    <string name="status_bar_transparent">Prozirno (dodirni za odabir boje)</string>
+    <string name="clear_status_bar_background">Ukloni pozadinu statusne trake</string>
+    <string name="reset_to_transparent">Vrati na prozirno</string>
+    <string name="light_status_bar">Svijetli tekst statusne trake</string>
+    <string name="light_status_bar_summary">Koristi bijele ikone i tekst u statusnoj traci</string>
+    <string name="language">Jezik</string>
+    <string name="language_croatian">Hrvatski</string>
+    <string name="language_english">Engleski</string>
+    <string name="one_line_buttons">Gumbi u jednoj liniji</string>
+    <string name="one_line_buttons_summary">Prikaži gumbe u jednoj liniji</string>
+    <string name="back_button">Tipka natrag</string>
+    <string name="back_button_summary">Omogući funkciju tipke natrag</string>
+    <string name="select_dark_mode">Odaberi tamni način</string>
+    <string name="select_language">Odaberi jezik</string>
+
+    <!-- Circle/Rainbow settings -->
+    <string name="choose_color_theme">Odaberi temu boja</string>
+
+    <!-- Edit item dialog -->
+    <string name="edit_item">Uredi stavku</string>
+    <string name="label_field">Naziv</string>
+    <string name="intent_field">Namjera (naziv paketa ili prilagođeno)</string>
+    <string name="pick_folder_color">Odaberi boju mape</string>
+    <string name="errors_file_available">Datoteka s pogreškama je dostupna</string>
+    <string name="error_log_message">Zabilježen je zapis o pogrešci. Možete ga preuzeti radi otklanjanja poteškoća ili obrisati.</string>
+
+    <!-- Search / activities -->
+    <string name="search_apps">Traži aplikacije</string>
+    <string name="open_app_info">Otvori informacije o aplikaciji</string>
+    <string name="add_to_menu">Dodaj u izbornik</string>
+
+    <!-- Rainbow path -->
+    <string name="open_settings_title">Otvori postavke</string>
+    <string name="open_settings_message">Koje postavke želite otvoriti?</string>
+    <string name="app_settings">Postavke aplikacije</string>
+
+    <!-- Misc -->
+    <string name="max_elements">Najveći broj elemenata već je dosegnut.</string>
+    <string name="nothing_selected">Ništa nije odabrano.</string>
+    <string name="shortcut_not_added">Prečac nije dodan.</string>
+    <string name="failed_launch_shortcut">Pokretanje prečaca nije uspjelo: %1$s</string>
 </resources>

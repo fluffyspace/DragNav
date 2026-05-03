@@ -15,7 +15,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.dragnav.R
 
 /**
  * Reusable single-choice radio dialog. Used wherever a setting needs a list
@@ -30,7 +32,7 @@ fun <T> RadioSelectionDialog(
     selectedValue: T,
     onDismiss: () -> Unit,
     onSelected: (T) -> Unit,
-    dismissText: String = "Cancel"
+    dismissText: String = stringResource(R.string.cancel)
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -49,10 +49,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -68,14 +68,14 @@ fun SettingsScreen(
                 var showDialog by remember { mutableStateOf(false) }
 
                 PreferenceItem(
-                    title = "UI Design",
+                    title = stringResource(R.string.ui_design),
                     summary = uiDesignEntries[currentUiDesignIndex],
                     onClick = { showDialog = true }
                 )
 
                 if (showDialog) {
                     RadioSelectionDialog(
-                        title = "Select UI Design",
+                        title = stringResource(R.string.select_ui_design),
                         entries = uiDesignEntries.toList(),
                         values = uiDesignValues.toList(),
                         selectedValue = currentUiDesign,
@@ -96,8 +96,8 @@ fun SettingsScreen(
             if (showCircleSettings) {
                 item {
                     PreferenceItem(
-                        title = "Circle Settings",
-                        summary = "Customize circle appearance",
+                        title = stringResource(R.string.circle_settings),
+                        summary = stringResource(R.string.circle_settings_summary),
                         onClick = { navController.navigate("settings/circle") }
                     )
                 }
@@ -106,8 +106,8 @@ fun SettingsScreen(
             // Notifications Settings
             item {
                 PreferenceItem(
-                    title = "Notifications",
-                    summary = "Notification permissions and filters",
+                    title = stringResource(R.string.notifications),
+                    summary = stringResource(R.string.notifications_summary),
                     onClick = { navController.navigate("settings/notifications") }
                 )
             }
@@ -115,8 +115,8 @@ fun SettingsScreen(
             // General Settings
             item {
                 PreferenceItem(
-                    title = "General",
-                    summary = "App-wide preferences",
+                    title = stringResource(R.string.general),
+                    summary = stringResource(R.string.general_summary),
                     onClick = { navController.navigate("settings/general") }
                 )
             }
@@ -124,8 +124,8 @@ fun SettingsScreen(
             // Hidden Apps
             item {
                 PreferenceItem(
-                    title = "Hidden Apps",
-                    summary = "Hide apps from showing up in the launcher",
+                    title = stringResource(R.string.hidden_apps),
+                    summary = stringResource(R.string.hidden_apps_summary),
                     onClick = { navController.navigate(com.ingokodba.dragnav.navigation.NavRoute.SettingsHiddenApps.route) }
                 )
             }
@@ -133,8 +133,8 @@ fun SettingsScreen(
             // Help & About
             item {
                 PreferenceItem(
-                    title = "Help & About",
-                    summary = "Support, backup, and app info",
+                    title = stringResource(R.string.help_and_about),
+                    summary = stringResource(R.string.help_summary),
                     onClick = { navController.navigate("settings/help") }
                 )
             }
@@ -142,8 +142,8 @@ fun SettingsScreen(
             // Default Apps
             item {
                 PreferenceItem(
-                    title = "Default Apps",
-                    summary = "Set as default launcher",
+                    title = stringResource(R.string.default_apps),
+                    summary = stringResource(R.string.default_apps_summary),
                     onClick = { mainActivity.openDefaultApps() }
                 )
             }
@@ -155,7 +155,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
             title = { Text(stringResource(R.string.restart_required)) },
-            text = { Text("The app needs to restart for changes to take effect.") },
+            text = { Text(stringResource(R.string.restart_for_changes)) },
             confirmButton = {
                 TextButton(onClick = {
                     showRestartDialog = false

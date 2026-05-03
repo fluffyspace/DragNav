@@ -46,14 +46,15 @@ fun GeneralSettingsScreen(
     val languageToggle = prefs.getBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, false)
     val onelineButtons = prefs.getBoolean(PreferenceKeys.UI_ONELINE, false)
     val backButton = prefs.getBoolean(PreferenceKeys.UI_BACKBUTTON, false)
+    val feedbackSubject = stringResource(R.string.feedback_email_subject)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("General Settings") },
+                title = { Text(stringResource(R.string.general_settings)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -67,7 +68,7 @@ fun GeneralSettingsScreen(
             // Dark Mode
             item {
                 PreferenceItem(
-                    title = "Dark Mode",
+                    title = stringResource(R.string.dark_mode),
                     summary = darkModeEntries[currentDarkModeIndex],
                     onClick = { showDarkModeDialog = true }
                 )
@@ -77,8 +78,8 @@ fun GeneralSettingsScreen(
             item {
                 val hasColor = mainActivity.statusBarColor != android.graphics.Color.TRANSPARENT
                 PreferenceItem(
-                    title = "Status Bar Background",
-                    summary = if (hasColor) "Custom color set (tap to change)" else "Transparent (tap to pick color)",
+                    title = stringResource(R.string.status_bar_background),
+                    summary = if (hasColor) stringResource(R.string.status_bar_custom) else stringResource(R.string.status_bar_transparent),
                     onClick = { mainActivity.startStatusBarColorPicker() }
                 )
             }
@@ -87,8 +88,8 @@ fun GeneralSettingsScreen(
             if (mainActivity.statusBarColor != android.graphics.Color.TRANSPARENT) {
                 item {
                     PreferenceItem(
-                        title = "Clear Status Bar Background",
-                        summary = "Reset to transparent",
+                        title = stringResource(R.string.clear_status_bar_background),
+                        summary = stringResource(R.string.reset_to_transparent),
                         onClick = { mainActivity.clearStatusBarColor() }
                     )
                 }
@@ -97,8 +98,8 @@ fun GeneralSettingsScreen(
             // Light Status Bar Text
             item {
                 SwitchPreferenceItem(
-                    title = "Light Status Bar Text",
-                    summary = "Use white icons and text in status bar",
+                    title = stringResource(R.string.light_status_bar),
+                    summary = stringResource(R.string.light_status_bar_summary),
                     checked = mainActivity.statusBarLightText,
                     onCheckedChange = { checked ->
                         mainActivity.statusBarLightText = checked
@@ -110,8 +111,8 @@ fun GeneralSettingsScreen(
             // Language
             item {
                 PreferenceItem(
-                    title = "Language",
-                    summary = if (languageToggle) "Croatian" else "English",
+                    title = stringResource(R.string.language),
+                    summary = if (languageToggle) stringResource(R.string.language_croatian) else stringResource(R.string.language_english),
                     onClick = { showLanguageDialog = true }
                 )
             }
@@ -119,8 +120,8 @@ fun GeneralSettingsScreen(
             // One-line Buttons
             item {
                 SwitchPreferenceItem(
-                    title = "One-line Buttons",
-                    summary = "Show buttons in a single line",
+                    title = stringResource(R.string.one_line_buttons),
+                    summary = stringResource(R.string.one_line_buttons_summary),
                     checked = onelineButtons,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_ONELINE, checked).apply()
@@ -131,8 +132,8 @@ fun GeneralSettingsScreen(
             // Back Button
             item {
                 SwitchPreferenceItem(
-                    title = "Back Button",
-                    summary = "Enable back button behavior",
+                    title = stringResource(R.string.back_button),
+                    summary = stringResource(R.string.back_button_summary),
                     checked = backButton,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_BACKBUTTON, checked).apply()
@@ -143,8 +144,8 @@ fun GeneralSettingsScreen(
             // Notification Access
             item {
                 PreferenceItem(
-                    title = "Notification Access",
-                    summary = "Manage notification permissions",
+                    title = stringResource(R.string.notification_access),
+                    summary = stringResource(R.string.notification_access_summary),
                     onClick = {
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         context.startActivity(intent)
@@ -155,8 +156,8 @@ fun GeneralSettingsScreen(
             // Default Apps
             item {
                 PreferenceItem(
-                    title = "Default Apps",
-                    summary = "Set as default launcher",
+                    title = stringResource(R.string.default_apps),
+                    summary = stringResource(R.string.default_apps_summary),
                     onClick = { mainActivity.openDefaultApps() }
                 )
             }
@@ -164,13 +165,13 @@ fun GeneralSettingsScreen(
             // Feedback
             item {
                 PreferenceItem(
-                    title = "Send Feedback",
-                    summary = "Report bugs or suggest features",
+                    title = stringResource(R.string.send_feedback),
+                    summary = stringResource(R.string.feedback_summary),
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
                             data = Uri.parse("mailto:")
                             putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gamil.com"))
-                            putExtra(Intent.EXTRA_SUBJECT, "Feedback")
+                            putExtra(Intent.EXTRA_SUBJECT, feedbackSubject)
                         }
                         if (intent.resolveActivity(context.packageManager) != null) {
                             context.startActivity(intent)
@@ -182,8 +183,8 @@ fun GeneralSettingsScreen(
             // Drop Database
             item {
                 PreferenceItem(
-                    title = "Reset Database",
-                    summary = "Clear all app data (requires restart)",
+                    title = stringResource(R.string.reset_database),
+                    summary = stringResource(R.string.reset_database_summary),
                     onClick = {
                         restartAction = {
                             mainActivity.dropDatabase()
@@ -197,8 +198,8 @@ fun GeneralSettingsScreen(
             // Restart App
             item {
                 PreferenceItem(
-                    title = "Restart App",
-                    summary = "Restart the application",
+                    title = stringResource(R.string.restart_app),
+                    summary = stringResource(R.string.restart_app_summary),
                     onClick = {
                         mainActivity.recreate()
                     }
@@ -210,7 +211,7 @@ fun GeneralSettingsScreen(
     // Dark Mode Dialog
     if (showDarkModeDialog) {
         RadioSelectionDialog(
-            title = "Select Dark Mode",
+            title = stringResource(R.string.select_dark_mode),
             entries = darkModeEntries.toList(),
             values = darkModeValues.toList(),
             selectedValue = currentDarkMode,
@@ -231,8 +232,8 @@ fun GeneralSettingsScreen(
     // Language Dialog
     if (showLanguageDialog) {
         RadioSelectionDialog(
-            title = "Select Language",
-            entries = listOf("English", "Croatian"),
+            title = stringResource(R.string.select_language),
+            entries = listOf(stringResource(R.string.language_english), stringResource(R.string.language_croatian)),
             values = listOf(false, true),
             selectedValue = languageToggle,
             onDismiss = { showLanguageDialog = false },
@@ -252,7 +253,7 @@ fun GeneralSettingsScreen(
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
             title = { Text(stringResource(R.string.restart_required)) },
-            text = { Text("The app needs to restart for changes to take effect.") },
+            text = { Text(stringResource(R.string.restart_for_changes)) },
             confirmButton = {
                 TextButton(onClick = {
                     showRestartDialog = false

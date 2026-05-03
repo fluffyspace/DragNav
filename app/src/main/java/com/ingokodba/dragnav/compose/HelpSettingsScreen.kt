@@ -11,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
 
 /**
@@ -26,14 +28,17 @@ fun HelpSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val backupSuccessful = stringResource(R.string.backup_successful)
+    val backupRestored = stringResource(R.string.backup_restored)
+    val feedbackSubject = stringResource(R.string.feedback_email_subject)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Help & About") },
+                title = { Text(stringResource(R.string.help_and_about)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -47,11 +52,11 @@ fun HelpSettingsScreen(
             // Backup Database
             item {
                 PreferenceItem(
-                    title = "Backup Database",
-                    summary = "Save a backup of your app data",
+                    title = stringResource(R.string.backup_database),
+                    summary = stringResource(R.string.backup_database_summary),
                     onClick = {
                         mainActivity.to_backup()
-                        Toast.makeText(context, "Backup successful", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, backupSuccessful, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -59,11 +64,11 @@ fun HelpSettingsScreen(
             // Restore from Backup
             item {
                 PreferenceItem(
-                    title = "Restore from Backup",
-                    summary = "Restore app data from backup",
+                    title = stringResource(R.string.restore_backup),
+                    summary = stringResource(R.string.restore_backup_summary),
                     onClick = {
                         mainActivity.from_backup()
-                        Toast.makeText(context, "Backup restored", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, backupRestored, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -73,28 +78,28 @@ fun HelpSettingsScreen(
                 var showConfirmDialog by remember { mutableStateOf(false) }
 
                 PreferenceItem(
-                    title = "Reset Database",
-                    summary = "Clear all app data (requires restart)",
+                    title = stringResource(R.string.reset_database),
+                    summary = stringResource(R.string.reset_database_summary),
                     onClick = { showConfirmDialog = true }
                 )
 
                 if (showConfirmDialog) {
                     AlertDialog(
                         onDismissRequest = { showConfirmDialog = false },
-                        title = { Text("Reset Database?") },
-                        text = { Text("This will delete all your app data and restart the app. This action cannot be undone.") },
+                        title = { Text(stringResource(R.string.reset_database_q)) },
+                        text = { Text(stringResource(R.string.reset_database_confirm)) },
                         confirmButton = {
                             TextButton(onClick = {
                                 showConfirmDialog = false
                                 mainActivity.dropDatabase()
                                 mainActivity.recreate()
                             }) {
-                                Text("Reset")
+                                Text(stringResource(R.string.reset))
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showConfirmDialog = false }) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.cancel))
                             }
                         }
                     )
@@ -104,13 +109,13 @@ fun HelpSettingsScreen(
             // Send Feedback
             item {
                 PreferenceItem(
-                    title = "Send Feedback",
-                    summary = "Report bugs or suggest features",
+                    title = stringResource(R.string.send_feedback),
+                    summary = stringResource(R.string.feedback_summary),
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
                             data = Uri.parse("mailto:")
                             putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gamil.com"))
-                            putExtra(Intent.EXTRA_SUBJECT, "Feedback")
+                            putExtra(Intent.EXTRA_SUBJECT, feedbackSubject)
                         }
                         if (intent.resolveActivity(context.packageManager) != null) {
                             context.startActivity(intent)
@@ -122,8 +127,8 @@ fun HelpSettingsScreen(
             // Restart App
             item {
                 PreferenceItem(
-                    title = "Restart App",
-                    summary = "Restart the application",
+                    title = stringResource(R.string.restart_app),
+                    summary = stringResource(R.string.restart_app_summary),
                     onClick = {
                         mainActivity.recreate()
                     }
@@ -133,7 +138,7 @@ fun HelpSettingsScreen(
             // App Version (placeholder)
             item {
                 PreferenceItem(
-                    title = "App Version",
+                    title = stringResource(R.string.app_version),
                     summary = "1.0.0", // TODO: Get from BuildConfig
                     onClick = { }
                 )
