@@ -1486,8 +1486,12 @@ class RainbowPathView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP -> {
                 Log.d("RainbowPathTouch", "ACTION_UP: isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex, touchedAppIndex=$touchedAppIndex")
+                val wasInLetterIndex = isInLetterIndex || touchStartedInLetterIndex
                 isInLetterIndex = false
                 currentLetterIndexLetter = null  // Reset letter tracking
+                if (wasInLetterIndex) {
+                    invalidate()  // Redraw to clear the big letter indicator
+                }
 
                 // Release edge effects
                 topEdgeEffect?.onRelease()
