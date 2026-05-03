@@ -78,8 +78,6 @@ import com.ingokodba.dragnav.rainbow.PathSettingsDialog
 import com.ingokodba.dragnav.rainbow.PathSettingsDialogCompose
 import com.ingokodba.dragnav.rainbow.RainbowPathView
 import com.ingokodba.dragnav.rainbow.SearchOverlayMaterialView
-import com.ingokodba.dragnav.recording.VoiceRecordingComposable
-import com.ingokodba.dragnav.recording.VoiceRecordingService
 import kotlinx.coroutines.*
 
 /**
@@ -1040,9 +1038,6 @@ fun RainbowPathScreen(
         )
 
 
-
-        // Track if we're currently dragging (to distinguish from clicks)
-        VoiceRecordingComposable(context)
 
         // Independent PathSettingsDialog - shown at root level
         if (showPathSettings) {

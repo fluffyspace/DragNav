@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DragNav is an alternative Android launcher (home screen) app written in Kotlin. It provides multiple UI modes for app navigation and organization, including a circle-based interface, rainbow layout, and phone keypad style.
+DragNav is an alternative Android launcher (home screen) app written in Kotlin. It provides multiple UI modes for app navigation and organization, including a circle-based interface, rainbow layouts, a rainbow-path mode, and a phone keypad style.
 
 ## Build Commands
 
@@ -27,46 +27,62 @@ DragNav is an alternative Android launcher (home screen) app written in Kotlin. 
 
 ## Architecture
 
-### UI Modes
-The launcher supports 4 UI design modes defined in `UiDesignEnum`:
-- `CIRCLE` - Default circular navigation (MainFragment)
-- `CIRCLE_RIGHT_HAND` - Right-handed circle variant (MainFragmentRightHand)
-- `RAINBOW` - Rainbow-style layout (MainFragmentRainbow)
-- `KEYPAD` - Phone keypad style (MainFragmentTipke)
+The app is a **single-Activity Jetpack Compose** application using **Navigation Compose**. There are **no Fragments** — every screen is a `@Composable`. Gesture- and canvas-heavy launcher surfaces are still implemented as custom Android `View`s and embedded in Composables via `AndroidView`.
 
-All main fragments implement `MainFragmentInterface` for consistent behavior.
+### Entry Point
+- `MainActivityCompose` (extends `AppCompatActivity`, `@AndroidEntryPoint`) is the only launcher activity. It calls `setContent { … }` with `AppNavigation`, owns the `ViewModel`, edge-to-edge insets, app loading, broadcast registration, and database wiring.
+- Two small auxiliary activities exist outside the main flow: `ColorPickerActivity` and `AddShortcutActivity`.
 
-### Data Layer
-- **Room Database** (`baza/AppDatabase.kt`): SQLite persistence with version migrations
-- **Entities**:
-  - `KrugSAplikacijama`: Represents a menu item (app shortcut or folder). Contains `polja` (child item IDs) for folder hierarchy.
-  - `AppInfo`: Cached app information including package name, label, color, and usage frequency
-- **DAOs**: `KrugSAplikacijamaDao` and `AppInfoDao` for database operations
+### Navigation
+- `compose/AppNavigation.kt` builds a `NavHost`. Routes are defined as type-safe sealed objects in `navigation/NavRoutes.kt`:
+  `Main`, `Search`, `Activities`, `Actions`, `Settings`, `SettingsCircle`, `SettingsRainbow`, `SettingsGeneral`, `SettingsHelp`, `SettingsNotifications`, `SettingsExcludedApps`.
+- The `Main` route dispatches to one of several launcher composables based on `MainActivityCompose.uiDesignMode`.
+
+### UI Modes (`UiDesignEnum`)
+- `CIRCLE`, `CIRCLE_RIGHT_HAND`, `CIRCLE_LEFT_HAND` → `CircleScreen` (with handedness flags)
+- `RAINBOW_RIGHT`, `RAINBOW_LEFT` → `RainbowScreen`
+- `KEYPAD` → `KeypadScreen`
+- `RAINBOW_PATH` → `RainbowPathScreen`
+
+### Compose Screens (`compose/`)
+- Launcher surfaces: `MainScreen`, `CircleScreen`, `RainbowScreen`, `KeypadScreen`, `RainbowPathScreen`
+- Navigation destinations: `SearchScreen`, `ActivitiesScreen` (app list), `ActionsScreen`
+- Settings: `SettingsScreen`, `GeneralSettingsScreen`, `CircleSettingsScreen`, `RainbowSettingsScreen`, `NotificationSettingsScreen`, `HelpSettingsScreen`, `ExcludedAppsScreen`
+- Dialogs: `EditItemDialog`, `ShortcutDialog`, `FolderNameDialog`
+- Subpackages: `compose/notifications/` (notification composables), `compose/rainbowpath/` (rainbow-path event listener)
+
+### Custom Views (embedded via `AndroidView`)
+Gesture- and Canvas-driven widgets that predate the Compose migration:
+- `CircleView`, `Rainbow`, `PhoneKeypadView` — the three legacy launcher surfaces, still used inside the corresponding screens
+- `BottomMenuView`
+- `rainbow/RainbowPathView`, `rainbow/SearchOverlay`, `rainbow/SearchOverlayMaterial`, `rainbow/PathSettingsDialog`, `rainbow/MaterialActionsDialog`
+
+### Data Layer (`baza/`)
+- **Room** (`AppDatabase.kt`, version 11, `exportSchema = true`).
+- Entities: `KrugSAplikacijama`, `AppInfo`, `RainbowMapa`, `IconCacheEntry` (all under `modeli/`).
+- DAOs: `krugSAplikacijamaDao`, `rainbowMapaDao`, `appInfoDao`, `iconCacheDao`. Concrete DAO files: `Daovi.kt`, `IconCacheDao.kt`. `Converters.kt` holds Room type converters.
+- `KrugSAplikacijama` represents a menu item — either an app shortcut or a folder; folders nest children via the `polja` ID list.
 
 ### State Management
-- `ViewModel.kt`: Holds LiveData for apps list and icons map
-- `viewModel.sviKrugovi`: All menu items (folders and shortcuts)
-- `viewModel.currentMenu`: Currently displayed folder
-- `viewModel.trenutnoPrikazanaPolja`: Items shown in current view
+- `ViewModel.kt` (Hilt-injected via `viewModels()`) holds the LiveData consumed by Compose:
+  - `sviKrugovi` — all menu items
+  - `currentMenu` — currently displayed folder
+  - `trenutnoPrikazanaPolja` — items shown in the current view
+- Launcher composables observe these LiveData via `observeAsState`.
 
-### Key Components
-- `MainActivity`: Central coordinator, handles fragment transactions, app loading, database operations
-- `CircleView` / `Rainbow` / `PhoneKeypadView`: Custom views for each UI mode
-- `AppListener`: BroadcastReceiver for app install/uninstall events
-- `Hilt`: Dependency injection framework for managing component dependencies
-
-### Navigation Flow
-`MainActivity` manages layout states via `Layouts` enum:
-- `LAYOUT_MAIN` - Main launcher view
-- `LAYOUT_SEARCH` - SearchFragment
-- `LAYOUT_ACTIVITIES` - ActivitiesFragment (app list)
-- `LAYOUT_ACTIONS` - ActionsFragment
-- `LAYOUT_SETTINGS` - SettingsActivity
+### Other Components
+- `AppListener`: `BroadcastReceiver` for `PACKAGE_ADDED` / `PACKAGE_REMOVED`, registered by the activity.
+- `AppLoader`, `AppManager`, `IconCache`, `IconLoadTask`: app-info and icon pipeline.
+- `NotificationListener` + `NotificationData` + `NotificationUtils`: status-bar notification capture, surfaced to launcher composables.
+- `RemoveAppService`, `ModelLauncherCallbacks`, `TopExceptionHandler`, `Constants`, `PreferenceKeys`, `SearchUtils`.
+- `DragNavApplication` (`@HiltAndroidApp`): application class.
 
 ## Key Patterns
 
-- Hilt for dependency injection with `@AndroidEntryPoint` annotations on Activities
-- Coroutines with `lifecycleScope` for async database and icon loading operations
-- Data binding enabled for views
-- Navigation component with SafeArgs for settings navigation
-- JitPack repository used for external dependencies (Pikolo color picker, Skydoves ColorPickerView)
+- **Hilt** for DI (`@HiltAndroidApp` on the application, `@AndroidEntryPoint` on activities).
+- **Coroutines** with `lifecycleScope` for async DB and icon loading; DB work runs on `Dispatchers.IO`.
+- **Navigation Compose** with sealed-class route objects (`NavRoute`) for type-safe navigation. (No Fragment Navigation / SafeArgs anymore.)
+- **AndroidView interop**: legacy custom Views embedded inside Composable screens for gesture/canvas-heavy surfaces.
+- **Mixed Croatian/English naming** throughout: `krug` = circle, `polja` = fields, `sviKrugovi` = all circles, `baza` = database, `modeli` = models, `Daovi` = DAOs.
+- **Edge-to-edge** with `enableEdgeToEdge()` and `WindowInsets.systemBars` / `ime` padding handled in Compose.
+- **JitPack** repository used for external dependencies (Pikolo color picker, Skydoves ColorPickerView).

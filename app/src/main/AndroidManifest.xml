@@ -4,11 +4,8 @@
     <permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
     <permission android:name="com.android.launcher.permission" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <supports-screens
         android:anyDensity="true"
@@ -60,12 +57,6 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
-
-        <service
-            android:name="com.ingokodba.dragnav.recording.VoiceRecordingService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="microphone" />
 
         <receiver
             android:name="com.ingokodba.dragnav.AppListener"

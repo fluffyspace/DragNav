@@ -38,12 +38,6 @@ fun AppNavigation(
                 UiDesignEnum.CIRCLE_LEFT_HAND -> {
                     CircleScreen(mainActivity, viewModel = viewModel, leftHanded = true)
                 }
-                UiDesignEnum.RAINBOW_RIGHT -> {
-                    RainbowScreen(mainActivity, viewModel = viewModel, rightSide = true)
-                }
-                UiDesignEnum.RAINBOW_LEFT -> {
-                    RainbowScreen(mainActivity, viewModel = viewModel, rightSide = false)
-                }
                 UiDesignEnum.KEYPAD -> {
                     KeypadScreen(mainActivity, viewModel = viewModel)
                 }
@@ -95,10 +89,6 @@ fun AppNavigation(
 
         composable(NavRoute.SettingsExcludedApps.route) {
             ExcludedAppsScreen(mainActivity, navController)
-        }
-
-        composable(NavRoute.SettingsRecordings.route) {
-            RecordingsListScreen(mainActivity, navController)
         }
     }
 }

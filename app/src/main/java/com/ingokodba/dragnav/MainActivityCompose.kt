@@ -148,14 +148,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Read UI design mode preference
         val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
         uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this)
-            .getString(PreferenceKeys.UI_DESIGN, uiDesignValues[0])) {
-            uiDesignValues[0] -> UiDesignEnum.RAINBOW_RIGHT
-            uiDesignValues[1] -> UiDesignEnum.RAINBOW_LEFT
-            uiDesignValues[2] -> UiDesignEnum.CIRCLE
-            uiDesignValues[3] -> UiDesignEnum.CIRCLE_RIGHT_HAND
-            uiDesignValues[4] -> UiDesignEnum.CIRCLE_LEFT_HAND
-            uiDesignValues[5] -> UiDesignEnum.KEYPAD
-            uiDesignValues[6] -> UiDesignEnum.RAINBOW_PATH
+            .getString(PreferenceKeys.UI_DESIGN, uiDesignValues[4])) {
+            uiDesignValues[0] -> UiDesignEnum.CIRCLE
+            uiDesignValues[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
+            uiDesignValues[2] -> UiDesignEnum.CIRCLE_LEFT_HAND
+            uiDesignValues[3] -> UiDesignEnum.KEYPAD
+            uiDesignValues[4] -> UiDesignEnum.RAINBOW_PATH
             else -> UiDesignEnum.RAINBOW_PATH
         }
 

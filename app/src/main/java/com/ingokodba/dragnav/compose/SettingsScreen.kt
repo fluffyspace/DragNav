@@ -20,7 +20,6 @@ import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
 import com.ingokodba.dragnav.PreferenceKeys
-import com.ingokodba.dragnav.UiDesignEnum
 
 /**
  * Main Settings Screen - Compose version of MySettingsFragment
@@ -41,12 +40,11 @@ fun SettingsScreen(
     // Get UI design mode
     val uiDesignValues = context.resources.getStringArray(R.array.ui_designs_values)
     val uiDesignEntries = context.resources.getStringArray(R.array.ui_designs_entries)
-    val currentUiDesign = prefs.getString(PreferenceKeys.UI_DESIGN, uiDesignValues[0]) ?: uiDesignValues[0]
+    val currentUiDesign = prefs.getString(PreferenceKeys.UI_DESIGN, uiDesignValues[4]) ?: uiDesignValues[4]
     val currentUiDesignIndex = uiDesignValues.indexOf(currentUiDesign).coerceIn(0, uiDesignEntries.size - 1)
 
     // Determine which UI-specific settings to show
-    val showCircleSettings = currentUiDesignIndex in 2..4 // CIRCLE modes
-    val showRainbowSettings = currentUiDesignIndex in 0..1 // RAINBOW modes
+    val showCircleSettings = currentUiDesignIndex in 0..2 // CIRCLE modes
 
     Scaffold(
         topBar = {
@@ -102,26 +100,6 @@ fun SettingsScreen(
                         onClick = { navController.navigate("settings/circle") }
                     )
                 }
-            }
-
-            // Rainbow Settings (for RAINBOW UI modes)
-            if (showRainbowSettings) {
-                item {
-                    PreferenceItem(
-                        title = "Rainbow Settings",
-                        summary = "Customize rainbow appearance",
-                        onClick = { navController.navigate("settings/rainbow") }
-                    )
-                }
-            }
-
-            // Voice Recordings
-            item {
-                PreferenceItem(
-                    title = "Voice Recordings",
-                    summary = "View and manage recorded audio",
-                    onClick = { navController.navigate("settings/recordings") }
-                )
             }
 
             // Notifications Settings

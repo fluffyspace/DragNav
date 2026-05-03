@@ -167,28 +167,6 @@ fun GeneralSettingsScreen(
                 )
             }
 
-            // Import (placeholder)
-            item {
-                PreferenceItem(
-                    title = "Import",
-                    summary = "Import app configuration",
-                    onClick = {
-                        // TODO: Implement import
-                    }
-                )
-            }
-
-            // Export (placeholder)
-            item {
-                PreferenceItem(
-                    title = "Export",
-                    summary = "Export app configuration",
-                    onClick = {
-                        // TODO: Implement export
-                    }
-                )
-            }
-
             // Feedback
             item {
                 PreferenceItem(
