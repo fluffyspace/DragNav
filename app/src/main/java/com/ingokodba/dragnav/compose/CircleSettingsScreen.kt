@@ -9,10 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.preference.PreferenceManager
+import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
 import com.ingokodba.dragnav.PreferenceKeys
 
@@ -48,10 +50,10 @@ fun CircleSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Circle Settings") },
+                title = { Text(stringResource(R.string.circle_settings)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -65,8 +67,8 @@ fun CircleSettingsScreen(
             // Color Picker
             item {
                 PreferenceItem(
-                    title = "Primary Color",
-                    summary = "Choose app color theme",
+                    title = stringResource(R.string.primary_color),
+                    summary = stringResource(R.string.choose_color_theme),
                     onClick = {
                         mainActivity.startColorpicker()
                     }
@@ -76,7 +78,7 @@ fun CircleSettingsScreen(
             // Show Icons Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Show Icons",
+                    title = stringResource(R.string.icons),
                     checked = showIcons,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_ICONS_TOGGLE, checked).apply()
@@ -91,7 +93,7 @@ fun CircleSettingsScreen(
             // Show Circles Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Show Circles",
+                    title = stringResource(R.string.show_circles),
                     checked = showCircles,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_CIRCLES_TOGGLE, checked).apply()
@@ -102,7 +104,7 @@ fun CircleSettingsScreen(
             // Show Shadow Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Show Shadow",
+                    title = stringResource(R.string.shadow),
                     checked = showShadow,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_SHADOW_TOGGLE, checked).apply()
@@ -113,7 +115,7 @@ fun CircleSettingsScreen(
             // Show App Names Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Show App Names",
+                    title = stringResource(R.string.ui_show_app_names),
                     checked = showAppNames,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_SHOW_APP_NAMES, checked).apply()
@@ -124,7 +126,7 @@ fun CircleSettingsScreen(
             // Show Big Circle Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Show Big Circle",
+                    title = stringResource(R.string.show_big_circle),
                     checked = showBigCircle,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_BIG_CIRCLE, checked).apply()
@@ -135,7 +137,7 @@ fun CircleSettingsScreen(
             // Color on Primary Toggle
             item {
                 SwitchPreferenceItem(
-                    title = "Color on Primary",
+                    title = stringResource(R.string.color_on_primary),
                     checked = colorOnPrimary,
                     onCheckedChange = { checked ->
                         prefs.edit().putBoolean(PreferenceKeys.UI_COLOR_ON_PRIMARY, checked).apply()
@@ -146,7 +148,7 @@ fun CircleSettingsScreen(
             // Border Width
             item {
                 PreferenceItem(
-                    title = "Border Width",
+                    title = stringResource(R.string.debljina_ruba),
                     summary = borderWidth,
                     onClick = { showBorderWidthDialog = true }
                 )
@@ -155,7 +157,7 @@ fun CircleSettingsScreen(
             // Text Size
             item {
                 PreferenceItem(
-                    title = "Text Size",
+                    title = stringResource(R.string.text_size),
                     summary = textSize,
                     onClick = { showTextSizeDialog = true }
                 )
@@ -164,7 +166,7 @@ fun CircleSettingsScreen(
             // Smaller Text Size
             item {
                 PreferenceItem(
-                    title = "Smaller Text Size",
+                    title = stringResource(R.string.smaller_text_size),
                     summary = smallerTextSize,
                     onClick = { showSmallerTextSizeDialog = true }
                 )
@@ -173,7 +175,7 @@ fun CircleSettingsScreen(
             // Transparency
             item {
                 PreferenceItem(
-                    title = "Transparency",
+                    title = stringResource(R.string.transparency),
                     summary = "$transparency (0.0 - 1.0)",
                     onClick = { showTransparencyDialog = true }
                 )
@@ -184,7 +186,7 @@ fun CircleSettingsScreen(
     // Dialogs
     if (showBorderWidthDialog) {
         NumberInputDialog(
-            title = "Border Width",
+            title = stringResource(R.string.debljina_ruba),
             currentValue = borderWidth,
             onDismiss = { showBorderWidthDialog = false },
             onConfirm = { value ->
@@ -197,7 +199,7 @@ fun CircleSettingsScreen(
 
     if (showTextSizeDialog) {
         NumberInputDialog(
-            title = "Text Size",
+            title = stringResource(R.string.text_size),
             currentValue = textSize,
             onDismiss = { showTextSizeDialog = false },
             onConfirm = { value ->
@@ -210,7 +212,7 @@ fun CircleSettingsScreen(
 
     if (showSmallerTextSizeDialog) {
         NumberInputDialog(
-            title = "Smaller Text Size",
+            title = stringResource(R.string.smaller_text_size),
             currentValue = smallerTextSize,
             onDismiss = { showSmallerTextSizeDialog = false },
             onConfirm = { value ->
@@ -223,7 +225,7 @@ fun CircleSettingsScreen(
 
     if (showTransparencyDialog) {
         NumberInputDialog(
-            title = "Transparency",
+            title = stringResource(R.string.transparency),
             currentValue = transparency,
             onDismiss = { showTransparencyDialog = false },
             onConfirm = { value ->
@@ -286,12 +288,12 @@ fun NumberInputDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(textValue) }) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

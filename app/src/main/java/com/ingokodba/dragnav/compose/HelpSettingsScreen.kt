@@ -30,6 +30,8 @@ fun HelpSettingsScreen(
     val context = LocalContext.current
     val backupSuccessful = stringResource(R.string.backup_successful)
     val backupRestored = stringResource(R.string.backup_restored)
+    val prefsBackupSuccessful = stringResource(R.string.preferences_backup_successful)
+    val prefsBackupRestored = stringResource(R.string.preferences_backup_restored)
     val feedbackSubject = stringResource(R.string.feedback_email_subject)
 
     Scaffold(
@@ -69,6 +71,30 @@ fun HelpSettingsScreen(
                     onClick = {
                         mainActivity.from_backup()
                         Toast.makeText(context, backupRestored, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            // Backup Preferences
+            item {
+                PreferenceItem(
+                    title = stringResource(R.string.backup_preferences),
+                    summary = stringResource(R.string.backup_preferences_summary),
+                    onClick = {
+                        mainActivity.to_backup_prefs()
+                        Toast.makeText(context, prefsBackupSuccessful, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            // Restore Preferences
+            item {
+                PreferenceItem(
+                    title = stringResource(R.string.restore_preferences),
+                    summary = stringResource(R.string.restore_preferences_summary),
+                    onClick = {
+                        mainActivity.from_backup_prefs()
+                        Toast.makeText(context, prefsBackupRestored, Toast.LENGTH_SHORT).show()
                     }
                 )
             }

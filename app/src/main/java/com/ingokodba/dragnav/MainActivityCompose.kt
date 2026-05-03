@@ -1089,6 +1089,113 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
     }
 
+    /**
+     * Backup SharedPreferences to JSON file
+     */
+    fun to_backup_prefs() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            putExtra(Intent.EXTRA_TITLE, "preferences.json")
+            type = "application/json"
+        }
+        prefsBackupLauncher.launch(intent)
+    }
+
+    /**
+     * Restore SharedPreferences from JSON file
+     */
+    fun from_backup_prefs() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        prefsRestoreLauncher.launch(intent)
+    }
+
+    private val prefsBackupLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                try {
+                    val all = PreferenceManager.getDefaultSharedPreferences(this).all
+                    val typed = mutableMapOf<String, Map<String, Any?>>()
+                    for ((k, v) in all) {
+                        val type = when (v) {
+                            is Boolean -> "boolean"
+                            is Int -> "int"
+                            is Long -> "long"
+                            is Float -> "float"
+                            is String -> "string"
+                            is Set<*> -> "stringSet"
+                            null -> "null"
+                            else -> "string"
+                        }
+                        val value: Any? = if (v is Set<*>) v.filterIsInstance<String>() else v
+                        typed[k] = mapOf("type" to type, "value" to value)
+                    }
+                    val json = com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(typed)
+                    contentResolver.openFileDescriptor(uri, "w")?.use { pfd ->
+                        FileOutputStream(pfd.fileDescriptor).use { fos ->
+                            fos.write(json.toByteArray(Charsets.UTF_8))
+                        }
+                    }
+                    Log.d("MainActivityCompose", "Prefs backup successful (${typed.size} entries)")
+                } catch (e: Exception) {
+                    Log.e("MainActivityCompose", "Prefs backup failed", e)
+                }
+            }
+        }
+    }
+
+    private val prefsRestoreLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                try {
+                    val text = contentResolver.openInputStream(uri)?.use { input ->
+                        input.bufferedReader(Charsets.UTF_8).readText()
+                    } ?: return@also
+
+                    val mapType = com.google.gson.reflect.TypeToken
+                        .getParameterized(
+                            MutableMap::class.java,
+                            String::class.java,
+                            com.google.gson.reflect.TypeToken.getParameterized(
+                                MutableMap::class.java,
+                                String::class.java,
+                                Any::class.java
+                            ).type
+                        ).type
+                    val parsed: MutableMap<String, MutableMap<String, Any?>> =
+                        com.google.gson.Gson().fromJson(text, mapType)
+
+                    val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
+                    editor.clear()
+                    for ((key, entry) in parsed) {
+                        val type = entry["type"] as? String ?: continue
+                        val value = entry["value"]
+                        when (type) {
+                            "boolean" -> editor.putBoolean(key, value as? Boolean ?: continue)
+                            "int" -> editor.putInt(key, (value as? Number)?.toInt() ?: continue)
+                            "long" -> editor.putLong(key, (value as? Number)?.toLong() ?: continue)
+                            "float" -> editor.putFloat(key, (value as? Number)?.toFloat() ?: continue)
+                            "string" -> editor.putString(key, value as? String)
+                            "stringSet" -> {
+                                @Suppress("UNCHECKED_CAST")
+                                val list = value as? List<String> ?: continue
+                                editor.putStringSet(key, list.toSet())
+                            }
+                            "null" -> editor.putString(key, null)
+                        }
+                    }
+                    editor.apply()
+                    Log.d("MainActivityCompose", "Prefs restore successful (${parsed.size} entries)")
+                    recreate()
+                } catch (e: Exception) {
+                    Log.e("MainActivityCompose", "Prefs restore failed", e)
+                }
+            }
+        }
+    }
+
     // ========== CIRCLE SCREEN CALLBACKS ==========
 
     var circleScreenCallbacks: com.ingokodba.dragnav.compose.CircleScreenCallbacks? = null
