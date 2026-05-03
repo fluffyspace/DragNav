@@ -143,6 +143,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         instance = this
 
         viewModel.initialize()
+        viewModel.setHiddenApps(loadHiddenAppsFromPrefs())
         changeLocale(this)
 
         // Read UI design mode preference
@@ -464,6 +465,23 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
 
         Log.d("MainActivityCompose", "initializeRoom completed: ${installedApps.size} apps, ${rainbowMape.size} folders")
+    }
+
+    fun loadHiddenAppsFromPrefs(): Set<String> {
+        val json = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString(PreferenceKeys.HIDDEN_APPS, "[]") ?: "[]"
+        return try {
+            com.google.gson.Gson().fromJson(json, Array<String>::class.java)?.toSet() ?: emptySet()
+        } catch (e: Exception) {
+            emptySet()
+        }
+    }
+
+    fun saveHiddenAppsToPrefs(hidden: Set<String>) {
+        val json = com.google.gson.Gson().toJson(hidden.toTypedArray())
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putString(PreferenceKeys.HIDDEN_APPS, json).apply()
+        viewModel.setHiddenApps(hidden)
     }
 
     @SuppressWarnings("ResourceType")

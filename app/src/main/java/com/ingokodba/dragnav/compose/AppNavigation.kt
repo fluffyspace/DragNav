@@ -1,5 +1,7 @@
 package com.ingokodba.dragnav.compose
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -62,33 +64,85 @@ fun AppNavigation(
             ActionsScreen(mainActivity, viewModel)
         }
 
-        // Settings screens
-        composable(NavRoute.Settings.route) {
+        // Settings screens — no transition animations
+        composable(
+            NavRoute.Settings.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             SettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsCircle.route) {
+        composable(
+            NavRoute.SettingsCircle.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             CircleSettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsRainbow.route) {
+        composable(
+            NavRoute.SettingsRainbow.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             RainbowSettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsGeneral.route) {
+        composable(
+            NavRoute.SettingsGeneral.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             GeneralSettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsHelp.route) {
+        composable(
+            NavRoute.SettingsHelp.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             HelpSettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsNotifications.route) {
+        composable(
+            NavRoute.SettingsNotifications.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             NotificationSettingsScreen(mainActivity, navController)
         }
 
-        composable(NavRoute.SettingsExcludedApps.route) {
+        composable(
+            NavRoute.SettingsExcludedApps.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             ExcludedAppsScreen(mainActivity, navController)
+        }
+
+        composable(
+            NavRoute.SettingsHiddenApps.route,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            HiddenAppsScreen(mainActivity, navController)
         }
     }
 }

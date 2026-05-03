@@ -28,11 +28,13 @@ class ViewModel : ViewModel() {
     private val _notifications = MutableLiveData<List<AppNotification>>()
 
     // New Flow-based state
+    private val _rawAppsListFlow = MutableStateFlow<List<AppInfo>>(emptyList())
     private val _appsListFlow = MutableStateFlow<List<AppInfo>>(emptyList())
     private val _rainbowMapeFlow = MutableStateFlow<List<RainbowMapa>>(emptyList())
     private val _iconsFlow = MutableStateFlow<Map<String, Drawable?>>(emptyMap())
     private val _notificationsFlow = MutableStateFlow<List<AppNotification>>(emptyList())
     private val _displayModeFlow = MutableStateFlow(DisplayMode.ALL_APPS)
+    private val _hiddenAppsFlow = MutableStateFlow<Set<String>>(emptySet())
 
     // The external immutable LiveData for the request status (kept for backward compatibility)
     val appsList: LiveData<MutableList<AppInfo>> = _popis_aplikacija
@@ -47,6 +49,7 @@ class ViewModel : ViewModel() {
     val rainbowMapeFlow: StateFlow<List<RainbowMapa>> = _rainbowMapeFlow.asStateFlow()
     val iconsFlow: StateFlow<Map<String, Drawable?>> = _iconsFlow.asStateFlow()
     val notificationsFlow: StateFlow<List<AppNotification>> = _notificationsFlow.asStateFlow()
+    val hiddenAppsFlow: StateFlow<Set<String>> = _hiddenAppsFlow.asStateFlow()
 
     // Computed flows
     val rainbowFilteredFlow: StateFlow<List<EncapsulatedAppInfoWithFolder>> = combine(
@@ -90,11 +93,22 @@ class ViewModel : ViewModel() {
         currentMenuId = -1
 
         // Initialize flows
+        _rawAppsListFlow.value = emptyList()
         _appsListFlow.value = emptyList()
         _rainbowMapeFlow.value = emptyList()
         _iconsFlow.value = emptyMap()
         _notificationsFlow.value = emptyList()
         _displayModeFlow.value = DisplayMode.ALL_APPS
+
+        // Wire hidden-app filtering: appsListFlow = raw - hidden
+        viewModelScope.launch {
+            combine(_rawAppsListFlow, _hiddenAppsFlow) { apps, hidden ->
+                if (hidden.isEmpty()) apps else apps.filterNot { it.packageName in hidden }
+            }.collect { filtered ->
+                _appsListFlow.value = filtered
+                _popis_aplikacija.postValue(filtered.toMutableList())
+            }
+        }
     }
 
     /**
@@ -106,9 +120,9 @@ class ViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             appsFlow.collect { apps ->
-                _appsListFlow.value = apps
-                // Keep LiveData in sync for backward compatibility
-                _popis_aplikacija.postValue(apps.toMutableList())
+                _rawAppsListFlow.value = apps
+                // _appsListFlow / _popis_aplikacija get the filtered version via the
+                // combine() collector wired up in initialize()
             }
         }
 
@@ -314,12 +328,20 @@ class ViewModel : ViewModel() {
     }
 
     fun addApps(apps: MutableList<AppInfo>){
-        var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!.plus(apps).filter{it.packageName != "com.ingokodba.dragnav"}.toMutableList()
+        val hidden = _hiddenAppsFlow.value
+        var concatenatedApps: MutableList<AppInfo> = _popis_aplikacija.value!!
+            .plus(apps)
+            .filter { it.packageName != "com.ingokodba.dragnav" && it.packageName !in hidden }
+            .toMutableList()
         concatenatedApps.sortBy { it.label.lowercase() }
         _popis_aplikacija.postValue(concatenatedApps)
         for(app in concatenatedApps){
             Log.d("ingo", app.label + "->" + app.packageName)
         }
+    }
+
+    fun setHiddenApps(packages: Set<String>) {
+        _hiddenAppsFlow.value = packages
     }
 
     fun clearApps(){

@@ -120,6 +120,15 @@ fun SettingsScreen(
                 )
             }
 
+            // Hidden Apps
+            item {
+                PreferenceItem(
+                    title = "Hidden Apps",
+                    summary = "Hide apps from showing up in the launcher",
+                    onClick = { navController.navigate(com.ingokodba.dragnav.navigation.NavRoute.SettingsHiddenApps.route) }
+                )
+            }
+
             // Help & About
             item {
                 PreferenceItem(
