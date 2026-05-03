@@ -309,8 +309,8 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 foldersFlow = db.rainbowMapaDao().getAllFlow()
             )
 
-            initializeRoom()
-            if (circleViewLoadIcons) loadIcons()
+            val loadedApps = initializeRoom()
+            if (circleViewLoadIcons) loadIcons(loadedApps)
             Log.d("MainActivityCompose", "initializeRoom after loadicons")
             saveNewApps()
         }
@@ -429,7 +429,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
     }
 
-    suspend fun initializeRoom() {
+    suspend fun initializeRoom(): List<AppInfo> {
         val db = AppDatabase.getInstance(this@MainActivityCompose)
         val appDao: AppInfoDao = db.appInfoDao()
         val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
@@ -437,7 +437,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Load apps
         val installedApps = loadNewApps()
 
-        if (cache_apps) {
+        val appsForUi: List<AppInfo> = if (cache_apps) {
             val allAppsCached = appDao.getAll().toMutableList()
 
             // Merge installed apps with cached data (preserve favorite, frequency, etc.)
@@ -465,10 +465,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             withContext(Dispatchers.Main) {
                 viewModel.addApps(mergedApps)
             }
+            mergedApps
         } else {
             withContext(Dispatchers.Main) {
                 viewModel.addApps(installedApps)
             }
+            installedApps
         }
 
         // Load rainbow maps (folders)
@@ -480,6 +482,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
 
         Log.d("MainActivityCompose", "initializeRoom completed: ${installedApps.size} apps, ${rainbowMape.size} folders")
+        return appsForUi
     }
 
     fun loadHiddenAppsFromPrefs(): Set<String> {
@@ -532,9 +535,8 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         return newApps
     }
 
-    suspend fun loadIcons() {
+    suspend fun loadIcons(apps: List<AppInfo>) {
         Log.d("MainActivityCompose", "loadIcons start")
-        val apps = viewModel.appsList.value ?: return
         val iconsMap = mutableMapOf<String, Drawable?>()
 
         for (app in apps) {
