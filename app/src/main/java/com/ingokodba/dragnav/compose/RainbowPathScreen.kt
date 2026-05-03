@@ -74,7 +74,7 @@ import com.ingokodba.dragnav.compose.notifications.NotificationsList
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import com.ingokodba.dragnav.rainbow.PathConfig
-import com.ingokodba.dragnav.rainbow.PathSettingsDialog
+import com.ingokodba.dragnav.rainbow.PathSettingsCategory
 import com.ingokodba.dragnav.rainbow.PathSettingsDialogCompose
 import com.ingokodba.dragnav.rainbow.RainbowPathView
 import com.ingokodba.dragnav.rainbow.SearchOverlayMaterialView
@@ -159,6 +159,7 @@ fun RainbowPathScreen(
     var globalThing by remember { mutableStateOf<EncapsulatedAppInfoWithFolder?>(null) }
     var dialogState by remember { mutableStateOf<DialogStates?>(null) }
     var showPathSettings by remember { mutableStateOf(false) }
+    var showSettingsChoice by remember { mutableStateOf(false) }
     var selectedNotificationPackage by remember { mutableStateOf<String?>(null) }
 
 
@@ -573,7 +574,7 @@ fun RainbowPathScreen(
             pathView.invalidate()
         }
     }
-    
+
     // Create OnShortcutClick handler that delegates to screen functions
     // Defined after all functions it references (openShortcut, addAppToMap, folderOptions)
     // Initialize the handler reference now that all functions are defined
@@ -588,22 +589,6 @@ fun RainbowPathScreen(
                 }
             }
         }
-    }
-
-    fun showSettingsDialog() {
-        PathSettingsDialog(
-            context,
-            config,
-            onConfigChanged = { newConfig ->
-                config = newConfig
-                pathViewRef.value?.config = config
-                saveConfig(context, config)
-            },
-            onCategoryChanged = { category ->
-                pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
-                pathViewRef.value?.invalidate()
-            }
-        ).show()
     }
 
     fun showSearchOverlay() {
@@ -702,6 +687,14 @@ fun RainbowPathScreen(
         })
 
         searchOverlayRef.value?.show()
+    }
+
+    androidx.activity.compose.BackHandler {
+        when {
+            searchOverlayRef.value?.visibility == View.VISIBLE -> searchOverlayRef.value?.hide()
+            inFolder -> goToHome()
+            else -> showSearchOverlay()
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -843,6 +836,8 @@ fun RainbowPathScreen(
                                     searchOverlayRef.value?.hide()
                                 } else if (inFolder) {
                                     goToHome()
+                                } else {
+                                    showSearchOverlay()
                                 }
                             }
 
@@ -888,7 +883,7 @@ fun RainbowPathScreen(
                                 settingsCountdownJob = scope.launch(Dispatchers.IO) {
                                     delay(250)
                                     withContext(Dispatchers.Main) {
-                                        showSettingsDialog()
+                                        showSettingsChoice = true
                                         v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     }
                                 }
@@ -1039,7 +1034,35 @@ fun RainbowPathScreen(
 
 
 
-        // Independent PathSettingsDialog - shown at root level
+        // Settings choice dialog - asks user which settings to open
+        if (showSettingsChoice) {
+            AlertDialog(
+                onDismissRequest = { showSettingsChoice = false },
+                title = { Text("Open Settings") },
+                text = { Text("Which settings would you like to open?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSettingsChoice = false
+                            mainActivity.navigateToSettings()
+                        }
+                    ) {
+                        Text("App Settings")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showSettingsChoice = false
+                            showPathSettings = true
+                        }
+                    ) {
+                        Text("Rainbow Settings")
+                    }
+                }
+            )
+        }
+
         if (showPathSettings) {
             PathSettingsDialogCompose(
                 config = config,
@@ -1050,7 +1073,7 @@ fun RainbowPathScreen(
                 },
                 onDismiss = { showPathSettings = false },
                 onCategoryChanged = { category ->
-                    pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsDialog.Category.LETTERS)
+                    pathViewRef.value?.showLetterIndexBackground = (category == PathSettingsCategory.LETTERS)
                     pathViewRef.value?.invalidate()
                 }
             )

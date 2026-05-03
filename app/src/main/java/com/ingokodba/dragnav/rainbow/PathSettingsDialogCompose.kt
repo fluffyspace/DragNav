@@ -27,30 +27,35 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.dragnav.R
 
-/**
- * Jetpack Compose version of PathSettingsDialog
- * Floating settings dialog with categorized options
- */
+enum class PathSettingsCategory(val title: String) {
+    PATH("Path"),
+    APPS("Apps"),
+    APP_NAMES("App Names"),
+    FAVORITES("Favorites"),
+    SEARCH("Search"),
+    LETTERS("Letters"),
+    NOTIFICATIONS("Notifications")
+}
+
 @Composable
 fun PathSettingsDialogCompose(
     config: PathConfig,
     onConfigChanged: (PathConfig) -> Unit,
     onDismiss: () -> Unit,
-    onCategoryChanged: ((PathSettingsDialog.Category) -> Unit)? = null,
+    onCategoryChanged: ((PathSettingsCategory) -> Unit)? = null,
     showAsFullScreenOverlay: Boolean = false
 ) {
-    var currentCategory by remember { mutableStateOf(PathSettingsDialog.Category.PATH) }
+    var currentCategory by remember { mutableStateOf(PathSettingsCategory.PATH) }
     var currentConfig by remember { mutableStateOf(config) }
     var isTransparent by remember { mutableStateOf(false) }
 
-    // Notify category changes
     LaunchedEffect(currentCategory) {
         onCategoryChanged?.invoke(currentCategory)
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            onCategoryChanged?.invoke(PathSettingsDialog.Category.PATH)
+            onCategoryChanged?.invoke(PathSettingsCategory.PATH)
         }
     }
 
@@ -140,7 +145,7 @@ fun PathSettingsDialogCompose(
                     edgePadding = 0.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    PathSettingsDialog.Category.values().forEach { category ->
+                    PathSettingsCategory.values().forEach { category ->
                         Tab(
                             selected = category == currentCategory,
                             onClick = { currentCategory = category },
@@ -163,49 +168,49 @@ fun PathSettingsDialogCompose(
                         .heightIn(min = 400.dp, max = 600.dp)
                 ) {
                     when (currentCategory) {
-                        PathSettingsDialog.Category.PATH -> PathSettings(
+                        PathSettingsCategory.PATH -> PathSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.APPS -> AppsSettings(
+                        PathSettingsCategory.APPS -> AppsSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.APP_NAMES -> AppNamesSettings(
+                        PathSettingsCategory.APP_NAMES -> AppNamesSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.FAVORITES -> FavoritesSettings(
+                        PathSettingsCategory.FAVORITES -> FavoritesSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.SEARCH -> SearchSettings(
+                        PathSettingsCategory.SEARCH -> SearchSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.LETTERS -> LettersSettings(
+                        PathSettingsCategory.LETTERS -> LettersSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
                                 onConfigChanged(it)
                             }
                         )
-                        PathSettingsDialog.Category.NOTIFICATIONS -> NotificationsSettings(
+                        PathSettingsCategory.NOTIFICATIONS -> NotificationsSettings(
                             config = currentConfig,
                             onConfigChanged = {
                                 currentConfig = it
