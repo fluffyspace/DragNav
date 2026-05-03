@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -207,7 +208,7 @@ fun CircleScreen(
     fun addNew() {
         Log.d("CircleScreen", "it's add")
         if (maxElementsPresent()) {
-            Toast.makeText(context, "Max. elements present.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.max_elements), Toast.LENGTH_SHORT).show()
         } else {
             Log.d("CircleScreen", "openaddmenu")
             mainActivity.openAddMenu()
@@ -330,7 +331,7 @@ fun CircleScreen(
             }
         } else {
             if (counter != -4 && viewModel.editSelected == -1) {
-                Toast.makeText(context, "Nothing selected.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.nothing_selected), Toast.LENGTH_SHORT).show()
                 return
             }
             when (counter) {
@@ -447,50 +448,50 @@ fun CircleScreen(
                     IconButton(onClick = { mainActivity.showMyDialog(viewModel.editSelected) }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_edit_24),
-                            contentDescription = "Rename"
+                            contentDescription = stringResource(R.string.rename_action)
                         )
                     }
                     IconButton(onClick = { mainActivity.showDeleteConfirmDialog(viewModel.editSelected) }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_delete_24),
-                            contentDescription = "Delete"
+                            contentDescription = stringResource(R.string.delete)
                         )
                     }
                     IconButton(onClick = { enterSelected() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_arrow_forward_24),
-                            contentDescription = "Enter"
+                            contentDescription = stringResource(R.string.enter)
                         )
                     }
                     IconButton(onClick = { toggleEditMode() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_close_50),
-                            contentDescription = "Cancel"
+                            contentDescription = stringResource(R.string.cancel)
                         )
                     }
                 } else {
                     IconButton(onClick = { mainActivity.navigateToSearch() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_search_50),
-                            contentDescription = "Search"
+                            contentDescription = stringResource(R.string.search)
                         )
                     }
                     IconButton(onClick = { mainActivity.navigateToActivities() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_list_100),
-                            contentDescription = "List"
+                            contentDescription = stringResource(R.string.list)
                         )
                     }
                     IconButton(onClick = { toggleEditMode() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_edit_24),
-                            contentDescription = "Edit"
+                            contentDescription = stringResource(R.string.edit_action)
                         )
                     }
                     IconButton(onClick = { mainActivity.navigateToSettings() }) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_baseline_settings_100),
-                            contentDescription = "Settings"
+                            contentDescription = stringResource(R.string.settings)
                         )
                     }
                 }

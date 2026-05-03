@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.res.ResourcesCompat
@@ -1038,8 +1039,8 @@ fun RainbowPathScreen(
         if (showSettingsChoice) {
             AlertDialog(
                 onDismissRequest = { showSettingsChoice = false },
-                title = { Text("Open Settings") },
-                text = { Text("Which settings would you like to open?") },
+                title = { Text(stringResource(R.string.open_settings_title)) },
+                text = { Text(stringResource(R.string.open_settings_message)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -1047,7 +1048,7 @@ fun RainbowPathScreen(
                             mainActivity.navigateToSettings()
                         }
                     ) {
-                        Text("App Settings")
+                        Text(stringResource(R.string.app_settings))
                     }
                 },
                 dismissButton = {
@@ -1057,7 +1058,7 @@ fun RainbowPathScreen(
                             showPathSettings = true
                         }
                     ) {
-                        Text("Rainbow Settings")
+                        Text(stringResource(R.string.rainbow_settings))
                     }
                 }
             )

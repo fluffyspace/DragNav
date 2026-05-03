@@ -33,7 +33,7 @@ class AddShortcutActivity : AppCompatActivity(), FolderSelectionListener {
         setContentView(R.layout.activity_add_shortcut)
         Log.d("ingo", "AddShortcutActivity oncreate")
         findViewById<Button>(R.id.cancel).setOnClickListener {
-            Toast.makeText(this, "Shortcut not added.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
             val launchNewIntent = Intent(this@AddShortcutActivity, MainActivity::class.java)
             startActivity(launchNewIntent, null)
         }

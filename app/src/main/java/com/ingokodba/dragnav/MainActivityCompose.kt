@@ -1346,7 +1346,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         } catch (e: Exception) {
             Log.e("MainActivityCompose", "Error launching shortcut", e)
             android.widget.Toast.makeText(this,
-                "Failed to launch shortcut: ${item.text}",
+                getString(R.string.failed_launch_shortcut, item.text),
                 android.widget.Toast.LENGTH_SHORT).show()
         }
     }
