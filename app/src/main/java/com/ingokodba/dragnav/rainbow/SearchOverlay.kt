@@ -17,6 +17,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toBitmap
+import com.example.dragnav.R
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.SearchUtils
 import kotlin.math.abs
@@ -242,7 +243,7 @@ class SearchOverlay @JvmOverloads constructor(
         val searchBarWidth = (width * 0.8f).toInt().coerceAtMost((resources.displayMetrics.widthPixels * 0.8f).toInt())
         
         searchBar = EditText(context).apply {
-            hint = "Search apps and folders..."
+            hint = context.getString(R.string.search_hint)
             setHintTextColor(Color.parseColor("#80000000")) // Dark hint text for white background
             setTextColor(Color.BLACK) // Black text for white background
             textSize = 16f

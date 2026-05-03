@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.res.stringResource
+import com.example.dragnav.R
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.SearchUtils
 import kotlinx.coroutines.delay
@@ -366,7 +368,7 @@ private fun SearchBar(
                     ) {
                         if (query.isEmpty()) {
                             Text(
-                                text = "Search apps and folders...",
+                                text = stringResource(R.string.search_hint),
                                 style = textStyle,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )

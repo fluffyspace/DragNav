@@ -97,5 +97,6 @@
     <string name="application_names_font_size">Application names font size</string>
     <string name="color_on_primary">Button icon tint</string>
     <string name="save">Save</string>
+    <string name="search_hint">Search…</string>
 
 </resources>
