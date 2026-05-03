@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ import androidx.core.graphics.drawable.toBitmap
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import androidx.compose.ui.graphics.ImageBitmap
+import com.example.dragnav.R
 import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.rainbow.PathConfig
 
@@ -145,7 +147,7 @@ fun NotificationIconsList(
                     imageBitmap?.let { bitmap ->
                         Image(
                             bitmap = bitmap,
-                            contentDescription = "App icon for ${notification.packageName}",
+                            contentDescription = stringResource(R.string.app_icon_for, notification.packageName),
                             modifier = Modifier
                                 .size(config.notificationIconSize.dp)
                                 .clip(RoundedCornerShape(12.dp))
@@ -227,7 +229,7 @@ fun NotificationItem(
             imageBitmap?.let { bitmap ->
                 Image(
                     bitmap = bitmap,
-                    contentDescription = "App icon",
+                    contentDescription = stringResource(R.string.app_icon_desc),
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))

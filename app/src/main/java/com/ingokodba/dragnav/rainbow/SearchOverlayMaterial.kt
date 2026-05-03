@@ -233,7 +233,7 @@ fun SearchOverlayMaterial(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings",
+                                    contentDescription = stringResource(R.string.settings),
                                     tint = Color.Black.copy(alpha = 0.7f),
                                     modifier = Modifier.size(28.dp)
                                 )
@@ -327,7 +327,7 @@ private fun SearchBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search",
+                contentDescription = stringResource(R.string.search),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.size(24.dp)
             )

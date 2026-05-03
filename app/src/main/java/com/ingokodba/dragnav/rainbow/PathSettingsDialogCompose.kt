@@ -106,7 +106,7 @@ fun PathSettingsDialogCompose(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.visibility),
-                            contentDescription = "Toggle Visibility",
+                            contentDescription = stringResource(R.string.toggle_visibility),
                             tint = Color.White
                         )
                     }
@@ -119,7 +119,7 @@ fun PathSettingsDialogCompose(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color.White
                         )
                     }

@@ -212,6 +212,8 @@
     <string name="app_settings">Postavke aplikacije</string>
 
     <!-- Misc -->
+    <string name="toggle_visibility">Promijeni vidljivost</string>
+    <string name="app_icon_for">Ikona aplikacije za %1$s</string>
     <string name="max_elements">Najveći broj elemenata već je dosegnut.</string>
     <string name="nothing_selected">Ništa nije odabrano.</string>
     <string name="shortcut_not_added">Prečac nije dodan.</string>

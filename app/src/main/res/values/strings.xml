@@ -211,6 +211,8 @@
     <string name="app_settings">App Settings</string>
 
     <!-- Misc -->
+    <string name="toggle_visibility">Toggle Visibility</string>
+    <string name="app_icon_for">App icon for %1$s</string>
     <string name="max_elements">Max. elements present.</string>
     <string name="nothing_selected">Nothing selected.</string>
     <string name="shortcut_not_added">Shortcut not added.</string>
