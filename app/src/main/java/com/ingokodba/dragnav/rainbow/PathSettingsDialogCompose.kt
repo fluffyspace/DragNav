@@ -701,17 +701,48 @@ private fun SettingsSlider(
     steps: Int = 0,
     onValueChange: (Float) -> Unit
 ) {
-    Slider(
-        value = value.coerceIn(valueRange),
-        onValueChange = onValueChange,
-        valueRange = valueRange,
-        steps = steps,
-        colors = SliderDefaults.colors(
-            thumbColor = Color.White,
-            activeTrackColor = Color.White,
-            inactiveTrackColor = Color.Gray
+    val span = valueRange.endInclusive - valueRange.start
+    val zeroInInterior = valueRange.start < 0f && valueRange.endInclusive > 0f
+    val snapThreshold = span * 0.03f
+
+    Column {
+        Text(
+            text = formatSliderValue(value, valueRange, steps),
+            color = Color.White,
+            fontSize = 12.sp,
+            textAlign = TextAlign.End,
+            modifier = Modifier.fillMaxWidth()
         )
-    )
+        Slider(
+            value = value.coerceIn(valueRange),
+            onValueChange = { newValue ->
+                val snapped = if (zeroInInterior && kotlin.math.abs(newValue) < snapThreshold) 0f else newValue
+                onValueChange(snapped)
+            },
+            valueRange = valueRange,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color.Gray
+            )
+        )
+    }
+}
+
+private fun formatSliderValue(
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int
+): String {
+    val span = valueRange.endInclusive - valueRange.start
+    val isIntegerStepped = steps > 0 && span >= steps + 1
+    return when {
+        isIntegerStepped -> value.toInt().toString()
+        span >= 100f -> "%.0f".format(value)
+        span >= 10f -> "%.1f".format(value)
+        else -> "%.2f".format(value)
+    }
 }
 
 @Composable
