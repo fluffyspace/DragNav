@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable
 import android.view.KeyEvent
 import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -330,7 +332,11 @@ private fun SearchBar(
             
             Spacer(modifier = Modifier.width(12.dp))
             
-            TextField(
+            val textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier
@@ -344,29 +350,30 @@ private fun SearchBar(
                             false
                         }
                     },
-                placeholder = {
-                    Text(
-                        text = "Search apps and folders...",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                textStyle = textStyle,
                 singleLine = true,
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Search
                 ),
                 keyboardActions = KeyboardActions(
                     onSearch = { onSearch() }
-                )
+                ),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Search apps and folders...",
+                                style = textStyle,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
             )
         }
     }
