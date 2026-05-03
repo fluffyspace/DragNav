@@ -36,6 +36,7 @@ fun GeneralSettingsScreen(
     var showRestartDialog by remember { mutableStateOf(false) }
     var restartAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showDarkModeDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     val darkModeValues = context.resources.getStringArray(R.array.dark_mode_values)
     val darkModeEntries = context.resources.getStringArray(R.array.dark_mode_entries)
@@ -106,19 +107,12 @@ fun GeneralSettingsScreen(
                 )
             }
 
-            // Language Toggle
+            // Language
             item {
-                SwitchPreferenceItem(
-                    title = "Alternative Language",
-                    summary = "Switch app language",
-                    checked = languageToggle,
-                    onCheckedChange = { checked ->
-                        prefs.edit().putBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, checked).apply()
-                        restartAction = {
-                            mainActivity.recreate()
-                        }
-                        showRestartDialog = true
-                    }
+                PreferenceItem(
+                    title = "Language",
+                    summary = if (languageToggle) "Croatian" else "English",
+                    onClick = { showLanguageDialog = true }
                 )
             }
 
@@ -248,6 +242,47 @@ fun GeneralSettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDarkModeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Language Dialog
+    if (showLanguageDialog) {
+        val languageEntries = listOf("English", "Croatian")
+        val languageValues = listOf(false, true)
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text("Select Language") },
+            text = {
+                Column {
+                    languageEntries.forEachIndexed { index, entry ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = languageValues[index] == languageToggle,
+                                onClick = {
+                                    val newValue = languageValues[index]
+                                    showLanguageDialog = false
+                                    if (newValue != languageToggle) {
+                                        prefs.edit().putBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, newValue).apply()
+                                        restartAction = { mainActivity.recreate() }
+                                        showRestartDialog = true
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(entry)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
                     Text("Cancel")
                 }
             }
