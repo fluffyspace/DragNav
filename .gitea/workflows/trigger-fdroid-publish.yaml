@@ -1,0 +1,22 @@
+name: Trigger F-Droid publish
+
+on:
+  push:
+
+concurrency:
+  group: dispatch-fdroid
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch fdroid-autopublish
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST \
+            -H "Authorization: token ${{ secrets.FDROID_DISPATCH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"main"}' \
+            "https://git.kodba.eu/api/v1/repos/ingo/fdroid-autopublish/actions/workflows/publish-all.yaml/dispatches"
