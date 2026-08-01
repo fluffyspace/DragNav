@@ -1,7 +1,18 @@
 name: Trigger F-Droid publish
 
+# Pushes here ask the central auto-publisher (homelab/fdroid-autopublish) to
+# run. It rescans every repo and only rebuilds ones whose source tree changed,
+# so a spurious dispatch is cheap -- but a *silently missed* one means the app
+# never reaches the F-Droid repo until the nightly 03:30 cron.
+#
+# CI-only commits are ignored on purpose: publish.py computes its rebuild
+# signature over non-.gitea/ blobs, so a workflow edit can never change what
+# gets built. Triggering on it would just burn a full scan.
+
 on:
   push:
+    paths-ignore:
+      - '.gitea/**'
 
 concurrency:
   group: dispatch-fdroid
@@ -13,10 +24,28 @@ jobs:
     steps:
       - name: Dispatch fdroid-autopublish
         shell: bash
+        env:
+          # Owner-level secret on the org that owns this repo.
+          DISPATCH_TOKEN: ${{ secrets.FDROID_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
-          curl -fsS -X POST \
-            -H "Authorization: token ${{ secrets.FDROID_DISPATCH_TOKEN }}" \
+          if [ -z "${DISPATCH_TOKEN:-}" ]; then
+            echo "::error::FDROID_DISPATCH_TOKEN is not set for this repo's owner"
+            exit 1
+          fi
+          # NOTE: check the status code explicitly. `curl -f` only fails on
+          # >=400, so a 301 (e.g. after an owner rename) would otherwise be
+          # reported as success while dispatching nothing -- exactly how this
+          # trigger sat dead across every app repo after ingo -> homelab.
+          code=$(curl -sS -o /tmp/dispatch.out -w '%{http_code}' -X POST \
+            -H "Authorization: token $DISPATCH_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"ref":"main"}' \
-            "https://git.kodba.eu/api/v1/repos/ingo/fdroid-autopublish/actions/workflows/publish-all.yaml/dispatches"
+            "https://git.kodba.eu/api/v1/repos/homelab/fdroid-autopublish/actions/workflows/publish-all.yaml/dispatches")
+          echo "dispatch HTTP $code"
+          head -c 500 /tmp/dispatch.out || true
+          echo
+          case "$code" in
+            2??) echo "auto-publisher dispatched" ;;
+            *)   echo "::error::dispatch failed (HTTP $code)"; exit 1 ;;
+          esac
