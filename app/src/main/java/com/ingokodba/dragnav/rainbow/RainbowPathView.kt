@@ -1511,6 +1511,7 @@ class RainbowPathView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
+                touchedAppIndex = null  // lifting the finger cancels a pending long press (triggerLongPress checks this)
                 Log.d("RainbowPathTouch", "ACTION_UP: isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex, touchedAppIndex=$touchedAppIndex")
                 val wasInLetterIndex = isInLetterIndex || touchStartedInLetterIndex
                 isInLetterIndex = false
