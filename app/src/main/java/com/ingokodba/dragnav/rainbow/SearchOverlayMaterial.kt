@@ -255,7 +255,8 @@ fun SearchOverlayMaterial(
                     itemsIndexed(
                         items = filteredApps,
                         key = { index, item ->
-                            item.folderName ?: item.apps.firstOrNull()?.packageName ?: index.toString()
+                            if (item.folderName != null) "folder:${item.folderName}:$index"
+                            else "app:${item.apps.firstOrNull()?.packageName ?: index}"
                         }
                     ) { index, item ->
                         AppListItem(

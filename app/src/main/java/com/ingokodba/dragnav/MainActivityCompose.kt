@@ -348,6 +348,11 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         val appsForUi: List<AppInfo> = if (cache_apps) {
             val allAppsCached = appDao.getAll().toMutableList()
 
+            // Remove duplicate rows for the same package left over from older versions
+            allAppsCached.groupBy { it.packageName }.values
+                .filter { it.size > 1 }
+                .forEach { dupes -> dupes.drop(1).forEach { dup -> appDao.delete(dup); allAppsCached.remove(dup) } }
+
             // Merge installed apps with cached data (preserve favorite, frequency, etc.)
             val mergedApps = installedApps.map { installedApp ->
                 // Find matching cached app
