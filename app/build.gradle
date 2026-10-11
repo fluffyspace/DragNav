@@ -10,18 +10,15 @@ plugins {
 android {
     compileSdk 35
 
-    splits {
-        abi {
-            enable true
-        }
-    }
-
     defaultConfig {
         applicationId "com.ingokodba.dragnav"
         minSdk 26
         targetSdk 35
-        versionCode 18
-        versionName "1.0.0"
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+        versionCode 19
+        versionName "1.0.1"
         resConfigs 'en', 'hr'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
