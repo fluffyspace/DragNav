@@ -950,25 +950,19 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     // Activity result launchers for backup/restore
     private val backupLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.also { uri ->
-                val db = AppDatabase.getInstance(this)
+            val uri = result.data?.data ?: return@registerForActivityResult
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    db.close()
-                    val currentDBPath = getDatabasePath(AppDatabase.DATABASE_NAME).path
-                    val currentDB = File(currentDBPath)
-
-                    contentResolver.openFileDescriptor(uri, "w")?.use {
-                        FileOutputStream(it.fileDescriptor).use { fos ->
-                            FileInputStream(currentDB).use { fis ->
-                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
-                            }
-                        }
+                    val db = AppDatabase.getInstance(this@MainActivityCompose)
+                    db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { it.moveToFirst() }
+                    val currentDB = getDatabasePath(AppDatabase.DATABASE_NAME)
+                    contentResolver.openOutputStream(uri, "w")?.use { out ->
+                        FileInputStream(currentDB).use { it.copyTo(out) }
                     }
                     Log.d("MainActivityCompose", "Backup successful")
                 } catch (e: Exception) {
                     Log.e("MainActivityCompose", "Backup failed", e)
                 }
-                db.setInstanceToNull()
             }
         }
     }
