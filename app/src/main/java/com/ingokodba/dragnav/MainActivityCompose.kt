@@ -422,21 +422,20 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
         for (activity in activities) {
             val packageName = activity.applicationInfo.packageName
-            val label = activity.label.toString()
-            val id = newApps.size
-
-            val appInfo = AppInfo(
-                id = id,
-                packageName = packageName,
-                label = label,
-                color = "",
-                favorite = false,
-                frequency = 0,
-                lastLaunched = 0,
-                hasShortcuts = false
+            if (packageName == this.packageName) continue
+            if (newApps.any { it.packageName == packageName }) continue
+            newApps.add(
+                AppInfo(
+                    id = 0,
+                    packageName = packageName,
+                    label = activity.label.toString(),
+                    color = "",
+                    favorite = false,
+                    frequency = 0,
+                    lastLaunched = 0,
+                    hasShortcuts = false
+                )
             )
-
-            newApps.add(appInfo)
         }
 
         Log.d("MainActivityCompose", "loadNewApps loaded ${newApps.size} apps")
