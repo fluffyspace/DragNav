@@ -99,6 +99,7 @@
 
     <style name="Theme.Shrine.Transparent" parent="Theme.Shrine">
         <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowShowWallpaper">false</item>
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 </resources>

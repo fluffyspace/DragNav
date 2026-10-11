@@ -428,13 +428,14 @@ private fun AppListItem(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(CircleShape)
+                    // Background shape only, no clip: the 2x2 folder grid reaches the corners
                     .background(
                         if (item.folderName != null) {
                             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         } else {
                             Color.Transparent
-                        }
+                        },
+                        CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -479,8 +480,9 @@ private fun AppListItem(
 @Composable
 private fun AppIcon(app: AppInfo, icon: Drawable?, size: androidx.compose.ui.unit.Dp) {
     if (icon != null) {
-        val bitmap = remember(icon) {
-            icon.toBitmap(56, 56)
+        val sizePx = with(LocalDensity.current) { size.roundToPx() }
+        val bitmap = remember(icon, sizePx) {
+            icon.toBitmap(sizePx, sizePx)
         }
         androidx.compose.foundation.Image(
             bitmap = bitmap.asImageBitmap(),

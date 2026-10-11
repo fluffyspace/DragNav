@@ -36,7 +36,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import android.widget.Toast
 import com.example.dragnav.R
-import com.ingokodba.dragnav.PreferenceKeys.DARK_MODE
 import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
 import com.ingokodba.dragnav.baza.AppDatabase
 import com.ingokodba.dragnav.baza.AppInfoDao
@@ -119,15 +118,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     var showErrorsDialog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Apply dark mode preference
-        val darkModeValues = resources.getStringArray(R.array.dark_mode_values)
-        when (PreferenceManager.getDefaultSharedPreferences(this).getString(DARK_MODE, darkModeValues[1])) {
-            darkModeValues[0] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-            darkModeValues[1] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            darkModeValues[2] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            darkModeValues[3] -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY)
-            else -> {}
-        }
         super.onCreate(savedInstanceState)
 
         Log.d("MainActivityCompose", "onCreate")

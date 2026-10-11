@@ -464,8 +464,12 @@ class RainbowPathView @JvmOverloads constructor(
     }
     
     fun saveScrollPosition() {
-        // Save current scroll position to parent view offset
-        // This is called BEFORE entering folder, so we always save to parent view
+        // Inside a folder scrollOffset is the folder's, which updateFolderScrollPosition already tracks;
+        // writing it to the parent offsets would make the list jump on leaving the folder
+        if (inFolder) {
+            saveScrollStateToPrefs()
+            return
+        }
         if (onlyFavorites) {
             favoritesScrollOffset = scrollOffset
         } else {
