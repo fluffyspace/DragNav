@@ -19,8 +19,8 @@ enum class PathShape {
  */
 data class PathConfig(
     // Path endpoints (normalized 0-1)
-    val startPoint: PointF = PointF(0.5f, 0f),      // Default: bottom center
-    val endPoint: PointF = PointF(1f, 0.5f),        // Default: right center
+    val startPoint: PointF = PointF(0.2f, 0f),      // Default: bottom, left of center
+    val endPoint: PointF = PointF(1f, 0.8f),        // Default: right edge, 4/5 up
 
     // Path shape
     val pathShape: PathShape = PathShape.CURVED,
@@ -37,26 +37,27 @@ data class PathConfig(
     val pathWidth: Float = 2f,  // Line width in pixels
 
     // App display settings
-    val appIconSize: Float = 0.08f,                  // Size relative to screen width
-    val appSpacing: Float = 0.05f,                   // Spacing between apps (0-1 of path length)
+    val appIconSize: Float = 0.12f,                  // Size relative to screen width
+    val appSpacing: Float = 0.09f,                   // Spacing between apps (0-1 of path length)
     val showAppNames: Boolean = true,
     val appNameSize: Float = 12f,                    // Text size in sp
 
     // App name positioning and styling
     val appNameOffsetX: Float = 0f,                  // Horizontal offset from icon center (-1 to 1)
-    val appNameOffsetY: Float = 0.5f,                // Vertical offset from icon center (-1 to 1)
+    val appNameOffsetY: Float = 0.22f,               // Vertical offset from icon center (-1 to 1); 0.22 = just below the icon
     val appNameStyle: AppNameStyle = AppNameStyle.PLAIN,
     val appNameBorderWidth: Float = 2f,              // Border width in pixels (for BORDERED style)
     val appNameFont: AppNameFont = AppNameFont.DEFAULT,
     val appNameAlignment: AppNameAlignment = AppNameAlignment.CENTER,
 
-    // Favorites button settings
-    val favButtonPosition: PointF = PointF(0.15f, 0.15f),  // Position (normalized)
-    val favButtonSize: Float = 0.08f,                       // Size relative to screen width
+    // Favorites button settings (right side, above the search button,
+    // kept left of the letter index touch area)
+    val favButtonPosition: PointF = PointF(0.76f, 0.19f),  // Position (normalized)
+    val favButtonSize: Float = 0.13f,                       // Size relative to screen width
 
     // Search button settings
-    val searchButtonPosition: PointF = PointF(0.85f, 0.15f),  // Position (normalized)
-    val searchButtonSize: Float = 0.08f,                       // Size relative to screen width
+    val searchButtonPosition: PointF = PointF(0.76f, 0.10f),  // Position (normalized)
+    val searchButtonSize: Float = 0.13f,                       // Size relative to screen width
 
     // Letter index settings (for fast scrolling)
     val letterIndexEnabled: Boolean = true,
