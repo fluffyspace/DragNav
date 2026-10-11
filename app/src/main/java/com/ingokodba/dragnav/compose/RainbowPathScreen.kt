@@ -410,6 +410,9 @@ fun RainbowPathScreen(
         }
     }
 
+    // goToHome is declared further down; local functions can't be referenced before their declaration
+    var goToHomeRef: () -> Unit = {}
+
     fun openShortcut(index: Int) {
         val thing = globalThing ?: return
 
@@ -455,11 +458,13 @@ fun RainbowPathScreen(
                     val isInMap = callIsAppAlreadyInMap(thing.apps.first())
                     if (isInMap) {
                         // Remove from folder
-                        val mapa = rainbowMape?.firstOrNull { rainbowMapa -> rainbowMapa.apps.contains(thing.apps.first()) }
+                        val pkg = thing.apps.first().packageName
+                        val mapa = rainbowMape?.firstOrNull { rainbowMapa -> rainbowMapa.apps.any { it.packageName == pkg } }
                         if (mapa != null) {
-                            val azurirana_mapa = mapa.copy(apps = mapa.apps.minus(thing.apps.first()).toMutableList())
+                            val azurirana_mapa = mapa.copy(apps = mapa.apps.filter { it.packageName != pkg }.toMutableList())
                             viewModel.updateRainbowMapa(azurirana_mapa)
                             callRainbowMapaUpdateItem(azurirana_mapa)
+                            if (inFolder) goToHomeRef()
                             // Flow will automatically update UI when database changes
                         }
                         dismissShortcutPopup()
@@ -575,6 +580,7 @@ fun RainbowPathScreen(
             pathView.invalidate()
         }
     }
+    goToHomeRef = ::goToHome
 
     // Create OnShortcutClick handler that delegates to screen functions
     // Defined after all functions it references (openShortcut, addAppToMap, folderOptions)
