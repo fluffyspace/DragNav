@@ -1,163 +1,81 @@
 package com.ingokodba.dragnav
 
-import android.content.Intent
 import android.content.pm.LauncherApps
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.widget.Button
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
 import com.example.dragnav.R
 import com.ingokodba.dragnav.baza.AppDatabase
-import com.ingokodba.dragnav.baza.KrugSAplikacijamaDao
-import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.PinnedShortcut
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Started when another app asks to pin a shortcut to the launcher ("Add to home screen").
+ * The user picks the main list or a folder, and the shortcut is then stored as a [PinnedShortcut].
+ */
 @AndroidEntryPoint
-class AddShortcutActivity : AppCompatActivity(), FolderSelectionListener {
-    // ova aktivnost se pokreće kada netko iz druge aplikacije koristi mogućnost dodavanja prečaca na launcher
-    var pocetnaId = 0
-    var meniPolja:List<KrugSAplikacijama> = listOf()
-    var pinItemRequest:LauncherApps.PinItemRequest? = null
-    lateinit var shortcut_as_meni: KrugSAplikacijama
-    @RequiresApi(Build.VERSION_CODES.O)
+class AddShortcutActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_shortcut)
-        Log.d("ingo", "AddShortcutActivity oncreate")
-        findViewById<Button>(R.id.cancel).setOnClickListener {
-            Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
-            finish()
-        }
+
         val launcherApps = getSystemService(LauncherApps::class.java)
-        pinItemRequest = launcherApps.getPinItemRequest( this.getIntent() );
-        if(pinItemRequest != null) {
-            val shortcut = pinItemRequest!!.shortcutInfo
-            shortcut_as_meni = KrugSAplikacijama(
-                0,
-                shortcut?.shortLabel.toString(),
-                nextIntent = shortcut?.`package`.toString(),
-                nextId = shortcut?.id.toString(),
-                shortcut = true,
-                color = "0"
-            )
-            val context = this
-            lifecycleScope.launch(Dispatchers.IO) {
-                if (initializeRoom()) {
-                    withContext(Dispatchers.Main) {
-                        //goToPocetna()
-                        val foldersAdapter = FoldersAdapter(context, meniPolja, this@AddShortcutActivity)
-                        findViewById<RecyclerView>(R.id.recycler_view4).adapter = foldersAdapter
-                        foldersAdapter.notifyDataSetChanged()
-                    }
-                } else {
-                    Log.d("ingo", "initialize bad")
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
-                        finish()
+        val request = launcherApps.getPinItemRequest(intent)
+        val shortcut = request?.shortcutInfo
+        if (request == null || !request.isValid || request.requestType != LauncherApps.PinItemRequest.REQUEST_TYPE_SHORTCUT || shortcut == null) {
+            cancel()
+            return
+        }
+
+        lifecycleScope.launch {
+            val folders = withContext(Dispatchers.IO) {
+                AppDatabase.getInstance(this@AddShortcutActivity).rainbowMapaDao().getAll()
+            }
+            val choices = listOf(getString(R.string.pin_shortcut_main_list)) + folders.map { it.folderName }
+            AlertDialog.Builder(this@AddShortcutActivity)
+                .setTitle(R.string.pin_shortcut_title)
+                .setItems(choices.toTypedArray()) { _, which ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val saved = try {
+                            if (!request.accept()) {
+                                false
+                            } else {
+                                val label = (shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id).toString()
+                                val db = AppDatabase.getInstance(this@AddShortcutActivity)
+                                val dao = db.pinnedShortcutDao()
+                                val pinned = dao.find(shortcut.`package`, shortcut.id)
+                                    ?: PinnedShortcut(0, shortcut.id, shortcut.`package`, label).also { dao.insert(it) }
+                                if (which > 0) {
+                                    val folder = folders[which - 1]
+                                    val item = (dao.find(pinned.packageName, pinned.shortcutId) ?: pinned).toAppInfo()
+                                    if (folder.apps.none { it.packageName == item.packageName }) {
+                                        db.rainbowMapaDao().update(folder.copy(apps = folder.apps.plus(item).toMutableList()))
+                                    }
+                                }
+                                true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("AddShortcutActivity", "Failed to pin shortcut", e)
+                            false
+                        }
+                        withContext(Dispatchers.Main) {
+                            if (saved) finish() else cancel()
+                        }
                     }
                 }
-                //loadIcons()
-                Log.d("ingo", "end of initialization")
-            }
-
-        } else {
-            Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
-            finish()
+                .setOnCancelListener { cancel() }
+                .show()
         }
-
-        //handle request...
-
-        //this.finish();
     }
 
-    override fun onBackPressed() {
-        super.onBackPressed()
+    private fun cancel() {
+        Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
         finish()
-    }
-
-    override fun onFolderSelected(folderIndex: Int) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val novo_polje = databaseAddNewPolje(shortcut_as_meni)
-            meniPolja[folderIndex].polja = meniPolja[folderIndex].polja.plus(novo_polje.id)
-            Log.d("ingo", "onFolderSelected dodaj u polje " + meniPolja[folderIndex].text)
-            databaseUpdateItem(meniPolja[folderIndex])
-            Log.d("ingo", "onFolderSelected ended")
-            withContext(Dispatchers.Main){
-                pinItemRequest?.accept()
-                finish()
-            }
-        }
-    }
-
-    fun databaseUpdateItem(polje: KrugSAplikacijama){
-        val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        recDao.update(polje)
-        Log.d("ingo", "updated " + polje.text + "(" + polje.id + ")")
-    }
-
-    fun databaseAddNewPolje(polje: KrugSAplikacijama): KrugSAplikacijama {
-        polje.id = 0
-        Log.d("ingo", "databaseAddNewPolje(" + polje.text + ")")
-        val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        val rowid = recDao.insertAll(polje)
-        return databaseGetItemByRowId(rowid.first())
-    }
-
-    fun databaseGetItemByRowId(id:Long): KrugSAplikacijama {
-        val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        Log.d("ingo", "databaseGetItemByRowId " + id)
-        return recDao.findByRowId(id).first()
-    }
-
-    suspend fun initializeRoom():Boolean{
-        Log.d("ingo", "initializeRoom start")
-        val db = AppDatabase.getInstance(this)
-        val recDao: KrugSAplikacijamaDao = db.krugSAplikacijamaDao()
-        meniPolja = recDao.getAll()
-        if(meniPolja.size == 0) return false
-        //Log.d("ingo", meniPolja.map{it.text}.toString())
-        pocetnaId = meniPolja.first().id
-        /*val appDao: AppInfoDao = db.appInfoDao()
-        Log.d("ingo", "initializeRoom before cache")
-        if(cache_apps) {
-            val apps = appDao.getAll() as MutableList<AppInfo>
-            withContext(Dispatchers.Main) {
-                viewModel.addApps(apps)
-            }
-
-            Log.d("ingo", "loaded " + (viewModel.appsList.value?.size ?: 0) + " cached apps")
-        }
-        Log.d("ingo", "initializeRoom before loadnewapps")
-        val newApps = loadNewApps()
-        Log.d("ingo", "initializeRoom before insertall")
-        if(cache_apps && newApps.isNotEmpty()){
-            for(app in newApps){
-                Log.d("ingo", "new app " + app.label)
-                appDao.insertAll(app)
-            }
-        }
-        for(app in listaMenija){
-            loadIcon(app.nextIntent)
-        }
-        Log.d("ingo", "initializeRoom before addall")
-        withContext(Dispatchers.Main) {
-            viewModel.addApps(newApps)
-            circleView.icons = viewModel.icons.value!!
-        }
-        //radapter.appsList.sortBy { it.label.toString().lowercase() }
-        //if(cache_apps){
-        Log.d("ingo", "initializeRoom before loadicons")*/
-        return true
     }
 }

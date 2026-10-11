@@ -31,7 +31,7 @@ The app is a **single-Activity Jetpack Compose** application using **Navigation 
 
 ### Entry Point
 - `MainActivityCompose` (extends `AppCompatActivity`, `@AndroidEntryPoint`) is the only launcher activity. It calls `setContent { … }` with `AppNavigation`, owns the `ViewModel`, edge-to-edge insets, app loading, broadcast registration, and database wiring.
-- Two small auxiliary activities exist outside the main flow: `ColorPickerActivity` and `AddShortcutActivity`.
+- Two small auxiliary activities exist outside the main flow: `ColorPickerActivity` and `AddShortcutActivity` (handles other apps' "add to home screen" pin requests; stores a `PinnedShortcut`, which the path/folders see as an `AppInfo` with a `shortcut:<pkg>/<id>` package name).
 
 ### Navigation
 - `compose/AppNavigation.kt` builds a `NavHost`. Routes are defined as type-safe sealed objects in `navigation/NavRoutes.kt`:
@@ -49,9 +49,9 @@ Gesture- and Canvas-driven widgets that predate the Compose migration:
 - `rainbow/RainbowPathView`, `rainbow/SearchOverlay`, `rainbow/SearchOverlayMaterial`, `rainbow/PathSettingsDialogCompose`, `rainbow/PathConfig`
 
 ### Data Layer (`baza/`)
-- **Room** (`AppDatabase.kt`, version 11, `exportSchema = true`).
-- Entities: `KrugSAplikacijama`, `AppInfo`, `RainbowMapa`, `IconCacheEntry` (all under `modeli/`).
-- DAOs: `krugSAplikacijamaDao`, `rainbowMapaDao`, `appInfoDao`, `iconCacheDao`. Concrete DAO files: `Daovi.kt`, `IconCacheDao.kt`. `Converters.kt` holds Room type converters.
+- **Room** (`AppDatabase.kt`, version 12, `exportSchema = true`).
+- Entities: `KrugSAplikacijama`, `AppInfo`, `RainbowMapa`, `IconCacheEntry`, `PinnedShortcut` (all under `modeli/`).
+- DAOs: `krugSAplikacijamaDao`, `rainbowMapaDao`, `appInfoDao`, `iconCacheDao`, `pinnedShortcutDao`. Concrete DAO files: `Daovi.kt`, `IconCacheDao.kt`. `Converters.kt` holds Room type converters.
 - `KrugSAplikacijama` represents a menu item — either an app shortcut or a folder; folders nest children via the `polja` ID list.
 
 ### State Management

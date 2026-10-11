@@ -75,6 +75,7 @@
             android:exported="false" />
         <activity
             android:name="com.ingokodba.dragnav.AddShortcutActivity"
+            android:theme="@style/Theme.Shrine.Transparent"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
