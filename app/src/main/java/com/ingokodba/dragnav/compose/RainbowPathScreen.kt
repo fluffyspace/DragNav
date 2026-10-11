@@ -168,7 +168,6 @@ fun RainbowPathScreen(
 
 
     // Coroutine jobs - use plain variables, not state
-    var flingJob by remember { mutableStateOf<Job?>(null) }
     var countdownJob by remember { mutableStateOf<Job?>(null) }
     var settingsCountdownJob by remember { mutableStateOf<Job?>(null) }
 
@@ -274,13 +273,11 @@ fun RainbowPathScreen(
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
                     pathViewRef.value?.saveScrollPosition()
-                    flingJob?.cancel()
                     countdownJob?.cancel()
                     settingsCountdownJob?.cancel()
                     Log.d("RainbowPathScreen", "onPause - scroll position saved")
                 }
                 Lifecycle.Event.ON_DESTROY -> {
-                    flingJob?.cancel()
                     countdownJob?.cancel()
                     settingsCountdownJob?.cancel()
                 }
@@ -823,19 +820,9 @@ fun RainbowPathScreen(
                                 }
                             }
 
-                            override fun onFlingStarted() {
-                                flingJob?.cancel()
-                                flingJob = scope.launch(Dispatchers.Main) {
-                                    while (isActive) {
-                                        delay(16) // ~60fps
-                                        pathViewRef.value?.flingUpdate()
-                                    }
-                                }
-                            }
+                            override fun onFlingStarted() {}
 
-                            override fun onFlingEnded() {
-                                flingJob?.cancel()
-                            }
+                            override fun onFlingEnded() {}
 
                             override fun onLongPressStart(appIndex: Int) {
                                 countdownJob?.cancel()
