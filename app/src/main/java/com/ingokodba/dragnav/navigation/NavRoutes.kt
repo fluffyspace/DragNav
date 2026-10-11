@@ -5,9 +5,6 @@ package com.ingokodba.dragnav.navigation
  */
 sealed class NavRoute(val route: String) {
     object Main : NavRoute("main")
-    object Search : NavRoute("search")
-    object Activities : NavRoute("activities")
-    object Actions : NavRoute("actions")
     object Settings : NavRoute("settings")
     object SettingsRainbow : NavRoute("settings/rainbow")
     object SettingsGeneral : NavRoute("settings/general")

@@ -30,21 +30,6 @@ fun AppNavigation(
             RainbowPathScreen(mainActivity, viewModel = viewModel)
         }
 
-        // Search screen
-        composable(NavRoute.Search.route) {
-            SearchScreen(mainActivity, viewModel)
-        }
-
-        // Activities (app list) screen
-        composable(NavRoute.Activities.route) {
-            ActivitiesScreen(mainActivity, viewModel)
-        }
-
-        // Actions screen
-        composable(NavRoute.Actions.route) {
-            ActionsScreen(mainActivity, viewModel)
-        }
-
         // Settings screens — no transition animations
         composable(
             NavRoute.Settings.route,

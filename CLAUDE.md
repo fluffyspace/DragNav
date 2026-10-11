@@ -35,12 +35,11 @@ The app is a **single-Activity Jetpack Compose** application using **Navigation 
 
 ### Navigation
 - `compose/AppNavigation.kt` builds a `NavHost`. Routes are defined as type-safe sealed objects in `navigation/NavRoutes.kt`:
-  `Main`, `Search`, `Activities`, `Actions`, `Settings`, `SettingsRainbow`, `SettingsGeneral`, `SettingsHelp`, `SettingsNotifications`, `SettingsExcludedApps`, `SettingsHiddenApps`.
+  `Main`, `Settings`, `SettingsRainbow`, `SettingsGeneral`, `SettingsHelp`, `SettingsNotifications`, `SettingsExcludedApps`, `SettingsHiddenApps`.
 - The `Main` route shows `RainbowPathScreen`.
 
 ### Compose Screens (`compose/`)
 - Launcher surface: `RainbowPathScreen` (`MainScreen` is an unused placeholder)
-- Navigation destinations: `SearchScreen`, `ActivitiesScreen` (app list), `ActionsScreen`
 - Settings: `SettingsScreen`, `GeneralSettingsScreen`, `RainbowSettingsScreen`, `NotificationSettingsScreen`, `HelpSettingsScreen`, `ExcludedAppsScreen`, `HiddenAppsScreen` (shared `PreferenceItem` / `SwitchPreferenceItem` / `NumberInputDialog` live in `SettingsScreen.kt`)
 - Dialogs: `ErrorsDialog`, `ShortcutDialog`, `FolderNameDialog`, `RadioSelectionDialog`
 - Subpackages: `compose/notifications/` (notification composables), `compose/rainbowpath/` (rainbow-path event listener)

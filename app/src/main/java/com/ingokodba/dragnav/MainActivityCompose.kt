@@ -872,13 +872,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     // ========== NAVIGATION ==========
 
     /**
-     * Navigate to the actions screen
-     */
-    fun navigateToActions() {
-        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Actions.route)
-    }
-
-    /**
      * Navigate back to the main screen
      */
     fun navigateToMain() {
