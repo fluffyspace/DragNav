@@ -162,10 +162,6 @@
     <string name="language">Jezik</string>
     <string name="language_croatian">Hrvatski</string>
     <string name="language_english">Engleski</string>
-    <string name="one_line_buttons">Gumbi u jednoj liniji</string>
-    <string name="one_line_buttons_summary">Prikaži gumbe u jednoj liniji</string>
-    <string name="back_button">Tipka natrag</string>
-    <string name="back_button_summary">Omogući funkciju tipke natrag</string>
     <string name="select_dark_mode">Odaberi tamni način</string>
     <string name="select_language">Odaberi jezik</string>
 

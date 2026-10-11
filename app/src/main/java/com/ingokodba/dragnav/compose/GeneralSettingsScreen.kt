@@ -44,8 +44,6 @@ fun GeneralSettingsScreen(
     val currentDarkModeIndex = darkModeValues.indexOf(currentDarkMode).coerceIn(0, darkModeEntries.size - 1)
 
     val languageToggle = prefs.getBoolean(PreferenceKeys.UI_LANGUAGE_TOGGLE, false)
-    val onelineButtons = prefs.getBoolean(PreferenceKeys.UI_ONELINE, false)
-    val backButton = prefs.getBoolean(PreferenceKeys.UI_BACKBUTTON, false)
     val feedbackSubject = stringResource(R.string.feedback_email_subject)
 
     Scaffold(
@@ -114,30 +112,6 @@ fun GeneralSettingsScreen(
                     title = stringResource(R.string.language),
                     summary = if (languageToggle) stringResource(R.string.language_croatian) else stringResource(R.string.language_english),
                     onClick = { showLanguageDialog = true }
-                )
-            }
-
-            // One-line Buttons
-            item {
-                SwitchPreferenceItem(
-                    title = stringResource(R.string.one_line_buttons),
-                    summary = stringResource(R.string.one_line_buttons_summary),
-                    checked = onelineButtons,
-                    onCheckedChange = { checked ->
-                        prefs.edit().putBoolean(PreferenceKeys.UI_ONELINE, checked).apply()
-                    }
-                )
-            }
-
-            // Back Button
-            item {
-                SwitchPreferenceItem(
-                    title = stringResource(R.string.back_button),
-                    summary = stringResource(R.string.back_button_summary),
-                    checked = backButton,
-                    onCheckedChange = { checked ->
-                        prefs.edit().putBoolean(PreferenceKeys.UI_BACKBUTTON, checked).apply()
-                    }
                 )
             }
 

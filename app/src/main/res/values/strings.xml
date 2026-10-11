@@ -161,10 +161,6 @@
     <string name="language">Language</string>
     <string name="language_croatian">Croatian</string>
     <string name="language_english">English</string>
-    <string name="one_line_buttons">One-line Buttons</string>
-    <string name="one_line_buttons_summary">Show buttons in a single line</string>
-    <string name="back_button">Back Button</string>
-    <string name="back_button_summary">Enable back button behavior</string>
     <string name="select_dark_mode">Select Dark Mode</string>
     <string name="select_language">Select Language</string>
 

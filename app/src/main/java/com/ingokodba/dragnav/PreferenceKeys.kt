@@ -16,8 +16,6 @@ object PreferenceKeys {
     const val UI_SHOW_APP_NAMES = "ui_show_app_names"
     const val UI_BIG_CIRCLE = "ui_big_circle"
     const val UI_LANGUAGE_TOGGLE = "ui_language_toggle"
-    const val UI_ONELINE = "ui_oneline_buttons_toggle"
-    const val UI_BACKBUTTON = "ui_backbutton_toggle"
     const val DARK_MODE = "dark_mode"
     const val UI_RIGHT_HAND = "ui_right_hand"
     const val IMPORT = "import"
