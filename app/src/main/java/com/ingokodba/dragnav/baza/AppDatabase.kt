@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.IconCacheEntry
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.PinnedShortcut
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import java.io.File
 import java.io.FileInputStream
@@ -16,7 +17,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 
 
-@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class, IconCacheEntry::class), version = 11, exportSchema = true)
+@Database(entities = arrayOf(KrugSAplikacijama::class, AppInfo::class, RainbowMapa::class, IconCacheEntry::class, PinnedShortcut::class), version = 12, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -24,6 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rainbowMapaDao(): RainbowMapaDao
     abstract fun appInfoDao(): AppInfoDao
     abstract fun iconCacheDao(): IconCacheDao
+    abstract fun pinnedShortcutDao(): PinnedShortcutDao
 
     fun setInstanceToNull(){
         instance = WeakReference(null)
@@ -62,7 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                     )
                     */
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     //.fallbackToDestructiveMigration()
                     .build()
         }
@@ -170,6 +172,11 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("DROP TABLE IF EXISTS voice_recordings")
+            }
+        }
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `PinnedShortcut` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `shortcutId` TEXT NOT NULL, `packageName` TEXT NOT NULL, `label` TEXT NOT NULL, `favorite` INTEGER NOT NULL)")
             }
         }
 

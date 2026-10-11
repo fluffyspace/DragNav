@@ -3,6 +3,7 @@ package com.ingokodba.dragnav.baza
 import androidx.room.*
 import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
+import com.ingokodba.dragnav.modeli.PinnedShortcut
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import kotlinx.coroutines.flow.Flow
 
@@ -98,3 +99,24 @@ interface MeniPoljaDao {
     @Delete
     fun delete(polje: MeniPolja)
 }*/
+
+@Dao
+interface PinnedShortcutDao {
+    @Query("SELECT * FROM PinnedShortcut")
+    fun getAll(): List<PinnedShortcut>
+
+    @Query("SELECT * FROM PinnedShortcut")
+    fun getAllFlow(): Flow<List<PinnedShortcut>>
+
+    @Query("SELECT * FROM PinnedShortcut WHERE packageName = :packageName AND shortcutId = :shortcutId LIMIT 1")
+    fun find(packageName: String, shortcutId: String): PinnedShortcut?
+
+    @Insert
+    fun insert(shortcut: PinnedShortcut): Long
+
+    @Update
+    fun update(shortcut: PinnedShortcut)
+
+    @Delete
+    fun delete(shortcut: PinnedShortcut)
+}
