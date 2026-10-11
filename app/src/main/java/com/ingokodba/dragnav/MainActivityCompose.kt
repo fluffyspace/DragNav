@@ -388,6 +388,16 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
         // Load rainbow maps (folders)
         val rainbowMape = rainbowMapaDao.getAll().toMutableList()
+        val installedPackages = installedApps.map { it.packageName }.toSet()
+        for (i in rainbowMape.indices) {
+            val mapa = rainbowMape[i]
+            val kept = mapa.apps.filter { it.packageName in installedPackages }
+            if (kept.size != mapa.apps.size) {
+                val updated = mapa.copy(apps = kept.toMutableList())
+                rainbowMapaDao.update(updated)
+                rainbowMape[i] = updated
+            }
+        }
         if (rainbowMape.isNotEmpty()) {
             withContext(Dispatchers.Main) {
                 viewModel.addRainbowMape(rainbowMape)
