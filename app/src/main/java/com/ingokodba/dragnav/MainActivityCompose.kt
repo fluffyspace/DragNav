@@ -80,9 +80,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         lateinit var resources2: Resources
     }
 
-    // UI design mode selected by user
-    lateinit var uiDesignMode: UiDesignEnum
-
     // Navigation controller for Compose navigation
     var navController: NavHostController? = null
 
@@ -92,7 +89,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     var newApps: MutableList<AppInfo> = mutableListOf()
     var loadIconBool: Boolean = true
-    var circleViewLoadIcons: Boolean = true
     val cache_apps: Boolean = true
     var gcolor: Int = 1
     var shortcutPopup: android.widget.PopupWindow? = null
@@ -115,8 +111,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     var shortcutDialogActions by mutableStateOf<List<ShortcutAction>?>(null)
     var shortcutDialogListener: OnShortcutClick? = null
     var folderNameDialogState by mutableStateOf<com.ingokodba.dragnav.compose.FolderNameDialogState?>(null)
-    var editItemDialogState by mutableStateOf<KrugSAplikacijama?>(null)
-    var deleteConfirmDialogState by mutableStateOf<KrugSAplikacijama?>(null)
 
     // Dialog state tracking
     var dialogState: DialogStates? = null
@@ -146,18 +140,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         viewModel.initialize()
         viewModel.setHiddenApps(loadHiddenAppsFromPrefs())
         changeLocale(this)
-
-        // Read UI design mode preference
-        val uiDesignValues = resources.getStringArray(R.array.ui_designs_values)
-        uiDesignMode = when(PreferenceManager.getDefaultSharedPreferences(this)
-            .getString(PreferenceKeys.UI_DESIGN, uiDesignValues[4])) {
-            uiDesignValues[0] -> UiDesignEnum.CIRCLE
-            uiDesignValues[1] -> UiDesignEnum.CIRCLE_RIGHT_HAND
-            uiDesignValues[2] -> UiDesignEnum.CIRCLE_LEFT_HAND
-            uiDesignValues[3] -> UiDesignEnum.KEYPAD
-            uiDesignValues[4] -> UiDesignEnum.RAINBOW_PATH
-            else -> UiDesignEnum.RAINBOW_PATH
-        }
 
         // Enable edge-to-edge for Android 15+ compatibility
         enableEdgeToEdge()
@@ -237,47 +219,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                         }
                     )
 
-                    // Edit item dialog overlay
-                    editItemDialogState?.let { item ->
-                        com.ingokodba.dragnav.compose.EditItemDialog(
-                            item = item,
-                            currentColor = gcolor,
-                            onDismiss = {
-                                editItemDialogState = null
-                            },
-                            onSave = { label, intent ->
-                                item.text = label
-                                item.nextIntent = intent
-                                item.color = gcolor.toString()
-                                databaseUpdateItem(item)
-                                // Trigger UI refresh in CircleScreen via callback
-                                circleScreenCallbacks?.refreshCurrentMenu()
-                                editItemDialogState = null
-                            },
-                            onPickColor = {
-                                startColorpicker()
-                            }
-                        )
-                    }
-
-                    // Delete confirmation dialog overlay
-                    deleteConfirmDialogState?.let { item ->
-                        com.ingokodba.dragnav.compose.ConfirmDeleteDialog(
-                            itemName = item.text ?: "this item",
-                            onConfirm = {
-                                // Find the index in trenutnoPrikazanaPolja
-                                val selectedId = viewModel.trenutnoPrikazanaPolja.indexOfFirst { it.id == item.id }
-                                if (selectedId >= 0) {
-                                    deleteSelectedItem(selectedId)
-                                }
-                                deleteConfirmDialogState = null
-                            },
-                            onDismiss = {
-                                deleteConfirmDialogState = null
-                            }
-                        )
-                    }
-
                     // Errors dialog overlay
                     if (showErrorsDialog) {
                         com.ingokodba.dragnav.compose.ErrorsDialog(
@@ -298,9 +239,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             }
         }
 
-        circleViewLoadIcons = PreferenceManager.getDefaultSharedPreferences(this)
-            .getBoolean(PreferenceKeys.UI_ICONS_TOGGLE, true)
-
         lifecycleScope.launch(Dispatchers.IO) {
             // Initialize database flows for reactive updates
             val db = AppDatabase.getInstance(this@MainActivityCompose)
@@ -310,7 +248,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             )
 
             val loadedApps = initializeRoom()
-            if (circleViewLoadIcons) loadIcons(loadedApps)
+            loadIcons(loadedApps)
             Log.d("MainActivityCompose", "initializeRoom after loadicons")
             saveNewApps()
         }
@@ -947,20 +885,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     // ========== NAVIGATION ==========
 
     /**
-     * Navigate to the search screen
-     */
-    fun navigateToSearch() {
-        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Search.route)
-    }
-
-    /**
-     * Navigate to the activities (app list) screen
-     */
-    fun navigateToActivities() {
-        navController?.navigate(com.ingokodba.dragnav.navigation.NavRoute.Activities.route)
-    }
-
-    /**
      * Navigate to the actions screen
      */
     fun navigateToActions() {
@@ -1192,138 +1116,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 } catch (e: Exception) {
                     Log.e("MainActivityCompose", "Prefs restore failed", e)
                 }
-            }
-        }
-    }
-
-    // ========== CIRCLE SCREEN CALLBACKS ==========
-
-    var circleScreenCallbacks: com.ingokodba.dragnav.compose.CircleScreenCallbacks? = null
-    var addingNewAppEvent: MessageEvent? = null
-
-    /**
-     * Show rename/edit dialog for selected item
-     */
-    fun showMyDialog(selectedId: Int) {
-        if (selectedId < 0 || selectedId >= viewModel.trenutnoPrikazanaPolja.size) {
-            Log.w("MainActivityCompose", "Invalid selectedId: $selectedId")
-            return
-        }
-
-        val selectedItem = viewModel.trenutnoPrikazanaPolja[selectedId]
-        Log.d("MainActivityCompose", "showMyDialog for ${selectedItem.text}")
-
-        // Set the color from the item
-        gcolor = selectedItem.color?.toIntOrNull() ?: Color.GRAY
-
-        // Show the edit dialog
-        editItemDialogState = selectedItem
-    }
-
-    /**
-     * Show delete confirmation dialog for selected item
-     */
-    fun showDeleteConfirmDialog(selectedId: Int) {
-        if (selectedId < 0 || selectedId >= viewModel.trenutnoPrikazanaPolja.size) {
-            Log.w("MainActivityCompose", "Invalid selectedId: $selectedId")
-            return
-        }
-
-        val selectedItem = viewModel.trenutnoPrikazanaPolja[selectedId]
-        Log.d("MainActivityCompose", "showDeleteConfirmDialog for ${selectedItem.text}")
-
-        // Show the delete confirmation dialog
-        deleteConfirmDialogState = selectedItem
-    }
-
-    /**
-     * Delete selected item
-     */
-    fun deleteSelectedItem(selectedId: Int) {
-        if (selectedId < 0 || selectedId >= viewModel.trenutnoPrikazanaPolja.size) {
-            Log.w("MainActivityCompose", "Invalid selectedId: $selectedId")
-            return
-        }
-
-        val selectedItem = viewModel.trenutnoPrikazanaPolja[selectedId]
-        Log.d("MainActivityCompose", "deleteSelectedItem: ${selectedItem.text}")
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            // Delete from database
-            val polje = viewModel.sviKrugovi.find { it.id == selectedItem.id }
-            if (polje != null) {
-                // Remove from parent's polja list
-                val parent = viewModel.sviKrugovi.find { it.id == viewModel.currentMenuId }
-                if (parent != null && parent.polja != null) {
-                    parent.polja = parent.polja!!.filter { it != selectedItem.id }.toMutableList()
-                    // Update database
-                    val db = AppDatabase.getInstance(this@MainActivityCompose)
-                    val dao = db.krugSAplikacijamaDao()
-                    dao.update(parent)
-                }
-
-                // Delete the item itself
-                viewModel.sviKrugovi.remove(polje)
-                val db = AppDatabase.getInstance(this@MainActivityCompose)
-                val dao = db.krugSAplikacijamaDao()
-                dao.delete(polje)
-
-                withContext(Dispatchers.Main) {
-                    circleScreenCallbacks?.selectedItemDeleted()
-                }
-            }
-        }
-    }
-
-    /**
-     * Open add menu (navigate to activities screen to select app)
-     */
-    fun openAddMenu() {
-        Log.d("MainActivityCompose", "openAddMenu")
-        navigateToActivities()
-    }
-
-    /**
-     * Add new app to current menu
-     */
-    fun addNewApp(event: MessageEvent?) {
-        if (event == null) {
-            Log.w("MainActivityCompose", "addNewApp called with null event")
-            return
-        }
-
-        Log.d("MainActivityCompose", "addNewApp: ${event.text}")
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.getInstance(this@MainActivityCompose)
-            val dao = db.krugSAplikacijamaDao()
-
-            // Create new KrugSAplikacijama for the app
-            val newKrug = KrugSAplikacijama(
-                id = 0, // Will be auto-generated
-                text = event.text,
-                nextIntent = event.launchIntent,
-                nextId = event.launchIntent,
-                color = event.color,
-                shortcut = event.type == MessageEventType.LONG_HOLD // Shortcuts come through LONG_HOLD
-            )
-
-            val roomIds = dao.insertAll(newKrug)
-            newKrug.id = roomIds[0].toInt()
-
-            // Add to parent's polja list
-            val parent = viewModel.sviKrugovi.find { it.id == viewModel.currentMenuId }
-            if (parent != null) {
-                if (parent.polja == null) parent.polja = mutableListOf()
-                parent.polja = (parent.polja!! + newKrug.id).toMutableList()
-                dao.update(parent)
-            }
-
-            // Add to viewModel
-            viewModel.sviKrugovi.add(newKrug)
-
-            withContext(Dispatchers.Main) {
-                circleScreenCallbacks?.refreshCurrentMenu()
             }
         }
     }

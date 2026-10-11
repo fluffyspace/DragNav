@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DragNav is an alternative Android launcher (home screen) app written in Kotlin. It provides multiple UI modes for app navigation and organization, including a circle-based interface, rainbow layouts, a rainbow-path mode, and a phone keypad style.
+DragNav is an alternative Android launcher (home screen) app written in Kotlin. It has a single launcher mode, **Rainbow Path**. The former Circle and Keypad modes were removed from `main` and are preserved on the `archive/all-launcher-modes` branch.
 
 ## Build Commands
 
@@ -27,7 +27,7 @@ DragNav is an alternative Android launcher (home screen) app written in Kotlin. 
 
 ## Architecture
 
-The app is a **single-Activity Jetpack Compose** application using **Navigation Compose**. There are **no Fragments** — every screen is a `@Composable`. Gesture- and canvas-heavy launcher surfaces are still implemented as custom Android `View`s and embedded in Composables via `AndroidView`.
+The app is a **single-Activity Jetpack Compose** application using **Navigation Compose**. There are **no Fragments** — every screen is a `@Composable`. The gesture- and canvas-heavy launcher surface is still implemented as a custom Android `View` and embedded in Composables via `AndroidView`.
 
 ### Entry Point
 - `MainActivityCompose` (extends `AppCompatActivity`, `@AndroidEntryPoint`) is the only launcher activity. It calls `setContent { … }` with `AppNavigation`, owns the `ViewModel`, edge-to-edge insets, app loading, broadcast registration, and database wiring.
@@ -35,27 +35,19 @@ The app is a **single-Activity Jetpack Compose** application using **Navigation 
 
 ### Navigation
 - `compose/AppNavigation.kt` builds a `NavHost`. Routes are defined as type-safe sealed objects in `navigation/NavRoutes.kt`:
-  `Main`, `Search`, `Activities`, `Actions`, `Settings`, `SettingsCircle`, `SettingsRainbow`, `SettingsGeneral`, `SettingsHelp`, `SettingsNotifications`, `SettingsExcludedApps`.
-- The `Main` route dispatches to one of several launcher composables based on `MainActivityCompose.uiDesignMode`.
-
-### UI Modes (`UiDesignEnum`)
-- `CIRCLE`, `CIRCLE_RIGHT_HAND`, `CIRCLE_LEFT_HAND` → `CircleScreen` (with handedness flags)
-- `RAINBOW_RIGHT`, `RAINBOW_LEFT` → `RainbowScreen`
-- `KEYPAD` → `KeypadScreen`
-- `RAINBOW_PATH` → `RainbowPathScreen`
+  `Main`, `Search`, `Activities`, `Actions`, `Settings`, `SettingsRainbow`, `SettingsGeneral`, `SettingsHelp`, `SettingsNotifications`, `SettingsExcludedApps`, `SettingsHiddenApps`.
+- The `Main` route shows `RainbowPathScreen`.
 
 ### Compose Screens (`compose/`)
-- Launcher surfaces: `MainScreen`, `CircleScreen`, `RainbowScreen`, `KeypadScreen`, `RainbowPathScreen`
+- Launcher surface: `RainbowPathScreen` (`MainScreen` is an unused placeholder)
 - Navigation destinations: `SearchScreen`, `ActivitiesScreen` (app list), `ActionsScreen`
-- Settings: `SettingsScreen`, `GeneralSettingsScreen`, `CircleSettingsScreen`, `RainbowSettingsScreen`, `NotificationSettingsScreen`, `HelpSettingsScreen`, `ExcludedAppsScreen`
-- Dialogs: `EditItemDialog`, `ShortcutDialog`, `FolderNameDialog`
+- Settings: `SettingsScreen`, `GeneralSettingsScreen`, `RainbowSettingsScreen`, `NotificationSettingsScreen`, `HelpSettingsScreen`, `ExcludedAppsScreen`, `HiddenAppsScreen` (shared `PreferenceItem` / `SwitchPreferenceItem` / `NumberInputDialog` live in `SettingsScreen.kt`)
+- Dialogs: `ErrorsDialog`, `ShortcutDialog`, `FolderNameDialog`, `RadioSelectionDialog`
 - Subpackages: `compose/notifications/` (notification composables), `compose/rainbowpath/` (rainbow-path event listener)
 
 ### Custom Views (embedded via `AndroidView`)
 Gesture- and Canvas-driven widgets that predate the Compose migration:
-- `CircleView`, `Rainbow`, `PhoneKeypadView` — the three legacy launcher surfaces, still used inside the corresponding screens
-- `BottomMenuView`
-- `rainbow/RainbowPathView`, `rainbow/SearchOverlay`, `rainbow/SearchOverlayMaterial`, `rainbow/PathSettingsDialog`, `rainbow/MaterialActionsDialog`
+- `rainbow/RainbowPathView`, `rainbow/SearchOverlay`, `rainbow/SearchOverlayMaterial`, `rainbow/PathSettingsDialogCompose`, `rainbow/PathConfig`
 
 ### Data Layer (`baza/`)
 - **Room** (`AppDatabase.kt`, version 11, `exportSchema = true`).

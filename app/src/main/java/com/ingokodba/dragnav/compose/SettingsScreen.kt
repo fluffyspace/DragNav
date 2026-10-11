@@ -1,10 +1,9 @@
 package com.ingokodba.dragnav.compose
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
@@ -12,14 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.preference.PreferenceManager
 import com.example.dragnav.R
 import com.ingokodba.dragnav.MainActivityCompose
-import com.ingokodba.dragnav.PreferenceKeys
 
 /**
  * Main Settings Screen - Compose version of MySettingsFragment
@@ -31,21 +28,6 @@ fun SettingsScreen(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
-
-    var showRestartDialog by remember { mutableStateOf(false) }
-    var restartAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-
-    // Get UI design mode
-    val uiDesignValues = context.resources.getStringArray(R.array.ui_designs_values)
-    val uiDesignEntries = context.resources.getStringArray(R.array.ui_designs_entries)
-    val currentUiDesign = prefs.getString(PreferenceKeys.UI_DESIGN, uiDesignValues[4]) ?: uiDesignValues[4]
-    val currentUiDesignIndex = uiDesignValues.indexOf(currentUiDesign).coerceIn(0, uiDesignEntries.size - 1)
-
-    // Determine which UI-specific settings to show
-    val showCircleSettings = currentUiDesignIndex in 0..2 // CIRCLE modes
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -63,46 +45,6 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // UI Design Preference
-            item {
-                var showDialog by remember { mutableStateOf(false) }
-
-                PreferenceItem(
-                    title = stringResource(R.string.ui_design),
-                    summary = uiDesignEntries[currentUiDesignIndex],
-                    onClick = { showDialog = true }
-                )
-
-                if (showDialog) {
-                    RadioSelectionDialog(
-                        title = stringResource(R.string.select_ui_design),
-                        entries = uiDesignEntries.toList(),
-                        values = uiDesignValues.toList(),
-                        selectedValue = currentUiDesign,
-                        onDismiss = { showDialog = false },
-                        onSelected = { newValue ->
-                            prefs.edit().putString(PreferenceKeys.UI_DESIGN, newValue).apply()
-                            showDialog = false
-                            restartAction = {
-                                mainActivity.recreate()
-                            }
-                            showRestartDialog = true
-                        }
-                    )
-                }
-            }
-
-            // Circle Settings (for CIRCLE UI modes)
-            if (showCircleSettings) {
-                item {
-                    PreferenceItem(
-                        title = stringResource(R.string.circle_settings),
-                        summary = stringResource(R.string.circle_settings_summary),
-                        onClick = { navController.navigate("settings/circle") }
-                    )
-                }
-            }
-
             // Notifications Settings
             item {
                 PreferenceItem(
@@ -148,28 +90,6 @@ fun SettingsScreen(
                 )
             }
         }
-    }
-
-    // Restart Dialog
-    if (showRestartDialog) {
-        AlertDialog(
-            onDismissRequest = { showRestartDialog = false },
-            title = { Text(stringResource(R.string.restart_required)) },
-            text = { Text(stringResource(R.string.restart_for_changes)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showRestartDialog = false
-                    restartAction?.invoke()
-                }) {
-                    Text(stringResource(R.string.restart))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRestartDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
     }
 }
 
@@ -217,3 +137,65 @@ fun PreferenceItem(
     HorizontalDivider()
 }
 
+
+/**
+ * Switch Preference Item
+ */
+@Composable
+fun SwitchPreferenceItem(
+    title: String,
+    summary: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    PreferenceItem(
+        title = title,
+        summary = summary,
+        onClick = { onCheckedChange(!checked) },
+        trailing = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    )
+}
+
+/**
+ * Number Input Dialog for numeric preferences
+ */
+@Composable
+fun NumberInputDialog(
+    title: String,
+    currentValue: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    isDecimal: Boolean = false
+) {
+    var textValue by remember { mutableStateOf(currentValue) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
+                ),
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(textValue) }) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}

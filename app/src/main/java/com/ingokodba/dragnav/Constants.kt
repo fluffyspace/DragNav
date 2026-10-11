@@ -43,7 +43,6 @@ class MainActivity {
     // These are never called in MainActivityCompose but are needed for compilation
     var shortcutPopup: android.widget.PopupWindow? = null
     var addingNewAppEvent: com.ingokodba.dragnav.modeli.MessageEvent? = null
-    lateinit var uiDesignMode: UiDesignEnum
     var gcolor: Int = android.graphics.Color.GRAY
 
     // Stub mainFragment with refreshCurrentMenu method for CustomDialogFragment compatibility
@@ -173,14 +172,3 @@ interface OnShortcutClick {
     fun onShortcutClick(index: Int)
 }
 
-enum class EventTypes {
-    OPEN_APP, START_COUNTDOWN, STOP_COUNTDOWN, OPEN_SHORTCUT, TOGGLE_FAVORITES, START_FLING, TOGGLE_SLIDERS
-}
-
-interface IMyEventListener {
-    fun onEventOccurred(app: EventTypes, counter: Int)
-}
-
-interface IKeypadEventListener {
-    fun onEventOccurred(number: Int)
-}

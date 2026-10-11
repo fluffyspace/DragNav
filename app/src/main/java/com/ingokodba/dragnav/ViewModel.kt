@@ -70,14 +70,8 @@ class ViewModel : ViewModel() {
     lateinit var currentMenu: KrugSAplikacijama
     var currentMenuId: Int = -1
     var trenutnoPrikazanaPolja: List<KrugSAplikacijama> = listOf()
-    var max_subcounter:Int = -1
     var stack:MutableList<Pair<Int,Int>> = mutableListOf()
     var highestId = -1
-    var no_draw_position:Int = -1
-    var lastEnteredIntent: KrugSAplikacijama? = null
-    var editMode:Boolean = false
-    var addNewAppMode:Boolean = false
-    var editSelected:Int = -1
     var pocetnaId:Int = -1
     var sviKrugovi:MutableList<KrugSAplikacijama> = mutableListOf()
 

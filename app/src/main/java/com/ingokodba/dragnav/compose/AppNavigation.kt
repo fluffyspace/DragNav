@@ -8,13 +8,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.ingokodba.dragnav.MainActivityCompose
-import com.ingokodba.dragnav.UiDesignEnum
 import com.ingokodba.dragnav.ViewModel
 import com.ingokodba.dragnav.navigation.NavRoute
 
 /**
  * Main navigation component for the app
- * Routes to different screens based on UI design mode and current navigation state
  */
 @Composable
 fun AppNavigation(
@@ -28,25 +26,8 @@ fun AppNavigation(
         startDestination = NavRoute.Main.route,
         modifier = modifier
     ) {
-        // Main screen - switches between different UI modes
         composable(NavRoute.Main.route) {
-            when (mainActivity.uiDesignMode) {
-                UiDesignEnum.CIRCLE -> {
-                    CircleScreen(mainActivity, viewModel = viewModel)
-                }
-                UiDesignEnum.CIRCLE_RIGHT_HAND -> {
-                    CircleScreen(mainActivity, viewModel = viewModel, rightHanded = true)
-                }
-                UiDesignEnum.CIRCLE_LEFT_HAND -> {
-                    CircleScreen(mainActivity, viewModel = viewModel, leftHanded = true)
-                }
-                UiDesignEnum.KEYPAD -> {
-                    KeypadScreen(mainActivity, viewModel = viewModel)
-                }
-                UiDesignEnum.RAINBOW_PATH -> {
-                    RainbowPathScreen(mainActivity, viewModel = viewModel)
-                }
-            }
+            RainbowPathScreen(mainActivity, viewModel = viewModel)
         }
 
         // Search screen
@@ -73,16 +54,6 @@ fun AppNavigation(
             popExitTransition = { ExitTransition.None }
         ) {
             SettingsScreen(mainActivity, navController)
-        }
-
-        composable(
-            NavRoute.SettingsCircle.route,
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
-        ) {
-            CircleSettingsScreen(mainActivity, navController)
         }
 
         composable(
