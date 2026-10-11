@@ -16,8 +16,6 @@ class NotificationListener : NotificationListenerService() {
     private var updateRequestReceiver: BroadcastReceiver? = null
 
     companion object {
-        const val ACTION_NOTIFICATIONS_UPDATED = "com.ingokodba.dragnav.NOTIFICATIONS_UPDATED"
-        const val EXTRA_NOTIFICATIONS = "notifications"
 
         @Volatile
         private var instance: NotificationListener? = null
@@ -47,6 +45,7 @@ class NotificationListener : NotificationListenerService() {
         Log.d("NL_DEBUG", "=== SERVICE CONNECTED === callback is ${if (onNotificationsChanged != null) "SET" else "NULL"}")
 
         // Register receiver for update requests
+        updateRequestReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
         updateRequestReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 Log.d("NotificationListener", "Received update request")
@@ -55,11 +54,9 @@ class NotificationListener : NotificationListenerService() {
             }
         }
         val filter = IntentFilter("com.ingokodba.dragnav.REQUEST_NOTIFICATION_UPDATE")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(updateRequestReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(updateRequestReceiver, filter)
-        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this, updateRequestReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         updateNotifications()
     }
@@ -154,14 +151,6 @@ class NotificationListener : NotificationListenerService() {
                 Log.d("NL_DEBUG", ">>> CALLBACK IS NULL - notifications NOT delivered to UI! <<<")
             }
             Log.d("NotificationListener", "Called callback with ${notificationsList.size} notifications")
-
-            // Also broadcast for backwards compatibility
-            val intent = Intent(ACTION_NOTIFICATIONS_UPDATED)
-            intent.putParcelableArrayListExtra(EXTRA_NOTIFICATIONS,
-                ArrayList(notificationsList.map { NotificationData(it) }))
-            sendBroadcast(intent)
-
-            Log.d("NotificationListener", "Broadcast sent with ${notificationsList.size} notifications")
         } catch (e: Exception) {
             Log.e("NotificationListener", "Error updating notifications", e)
         }
