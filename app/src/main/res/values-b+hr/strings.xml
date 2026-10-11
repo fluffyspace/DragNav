@@ -188,4 +188,5 @@
     <string name="shortcut_not_added">Prečac nije dodan.</string>
     <string name="failed_launch_shortcut">Pokretanje prečaca nije uspjelo: %1$s</string>
     <string name="new_folder">Nova mapa</string>
+    <string name="remove_shortcut">Ukloni prečac</string>
 </resources>

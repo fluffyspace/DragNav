@@ -73,6 +73,7 @@ import com.ingokodba.dragnav.DisplayMode
 import com.ingokodba.dragnav.compose.notifications.NotificationIconsList
 import com.ingokodba.dragnav.compose.notifications.NotificationsList
 import com.ingokodba.dragnav.modeli.AppInfo
+import com.ingokodba.dragnav.modeli.PinnedShortcut
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import com.ingokodba.dragnav.rainbow.PathConfig
 import com.ingokodba.dragnav.rainbow.PathSettingsCategory
@@ -319,13 +320,9 @@ fun RainbowPathScreen(
         if (thing.folderName != null) return // Should not happen, but safety check
 
         val app = thing.apps.first()
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-        if (launchIntent != null) {
-            countdownJob?.cancel()
-            pathViewRef.value?.saveScrollPosition()
-            context.startActivity(launchIntent)
-            mainActivity.addFrequency(app.packageName)
-        }
+        countdownJob?.cancel()
+        pathViewRef.value?.saveScrollPosition()
+        mainActivity.launchAppOrShortcut(app)
     }
 
     fun openFolderWithApps(folderApps: List<AppInfo>) {
@@ -408,8 +405,18 @@ fun RainbowPathScreen(
         val thing = globalThing ?: return
 
         if (thing.folderName == null) {
+            // Pinned shortcuts have no app-info entry or app shortcuts: [favorite, folder, remove]
+            val isPinned = PinnedShortcut.isShortcut(thing.apps.first())
+            val favoriteIndex = if (isPinned) 0 else shortcuts.size + 1
+            val folderIndex = if (isPinned) 1 else shortcuts.size + 2
+            if (isPinned && index == 2) {
+                mainActivity.removePinnedShortcut(thing.apps.first().packageName)
+                if (inFolder) goToHomeRef()
+                dismissShortcutPopup()
+                return
+            }
             if (index >= shortcuts.size) {
-                if (index == shortcuts.size) {
+                if (!isPinned && index == shortcuts.size) {
                     // App info
                     val app = thing.apps.first()
                     val intent = android.content.Intent()
@@ -418,7 +425,7 @@ fun RainbowPathScreen(
                     intent.data = uri
                     context.startActivity(intent)
                     dismissShortcutPopup()
-                } else if (index == shortcuts.size + 1) {
+                } else if (index == favoriteIndex) {
                     // Toggle favorite
                     val app = thing.apps.first()
                     val newFavoriteValue = !app.favorite
@@ -444,7 +451,7 @@ fun RainbowPathScreen(
                     callSaveAppInfo(app)
                     // Flow will automatically update UI when database changes
                     dismissShortcutPopup()
-                } else if (index == shortcuts.size + 2) {
+                } else if (index == folderIndex) {
                     // Add/remove from folder
                     val isInMap = callIsAppAlreadyInMap(thing.apps.first())
                     if (isInMap) {
@@ -599,12 +606,8 @@ fun RainbowPathScreen(
             override fun onAppClicked(app: EncapsulatedAppInfoWithFolder) {
                 searchOverlayRef.value?.hide()
                 if (app.folderName == null && app.apps.isNotEmpty()) {
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(app.apps.first().packageName)
-                    if (launchIntent != null) {
-                        pathViewRef.value?.saveScrollPosition()
-                        context.startActivity(launchIntent)
-                        mainActivity.addFrequency(app.apps.first().packageName)
-                    }
+                    pathViewRef.value?.saveScrollPosition()
+                    mainActivity.launchAppOrShortcut(app.apps.first())
                 } else if (app.folderName != null) {
                     if (inFolder) goToHome()
                     openFolderWithApps(app.apps)
@@ -728,13 +731,9 @@ fun RainbowPathScreen(
                                     // Launch the app directly here instead of calling launchApp
                                     // to avoid using the Composable's unsorted getDisplayedApps
                                     val app = thing.apps.first()
-                                    val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                                    if (launchIntent != null) {
-                                        countdownJob?.cancel()
-                                        this@apply.saveScrollPosition()
-                                        context.startActivity(launchIntent)
-                                        mainActivity.addFrequency(app.packageName)
-                                    }
+                                    countdownJob?.cancel()
+                                    this@apply.saveScrollPosition()
+                                    mainActivity.launchAppOrShortcut(app)
                                 } else {
                                     // Open folder - need to pass the thing directly
                                     countdownJob?.cancel()
@@ -1174,7 +1173,8 @@ private fun openShortcutsMenu(
     onStateChanged: (DialogStates, List<ShortcutInfo>) -> Unit
 ) {
     val launcherApps: LauncherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-    val newShortcuts = if (launcherApps.hasShortcutHostPermission()) {
+    val isPinned = PinnedShortcut.isShortcut(thing.apps.first())
+    val newShortcuts = if (!isPinned && launcherApps.hasShortcutHostPermission()) {
         mainActivity.getShortcutFromPackage(thing.apps.first().packageName)
     } else {
         emptyList()
@@ -1182,7 +1182,7 @@ private fun openShortcutsMenu(
     val appDrawable = icons?.get(thing.apps.first().packageName)
     val isInMap = mainActivity.isAppAlreadyInMap(thing.apps.first())
     val actions = newShortcuts.map { ShortcutAction(it.shortLabel.toString(), appDrawable) }.toMutableList().apply {
-        add(ShortcutAction(getTranslatedString(R.string.app_info, context), getDrawable(R.drawable.ic_outline_info_75, context)))
+        if (!isPinned) add(ShortcutAction(getTranslatedString(R.string.app_info, context), getDrawable(R.drawable.ic_outline_info_75, context)))
         add(if (thing.apps.first().favorite)
             ShortcutAction(getTranslatedString(R.string.remove_from_favorites, context), getDrawable(R.drawable.star_fill, context))
         else
@@ -1191,6 +1191,7 @@ private fun openShortcutsMenu(
             ShortcutAction(getTranslatedString(R.string.remove_from_folder, context), getDrawable(R.drawable.baseline_folder_off_24, context))
         else
             ShortcutAction(getTranslatedString(R.string.add_to_folder, context), getDrawable(R.drawable.ic_baseline_create_new_folder_50, context)))
+        if (isPinned) add(ShortcutAction(getTranslatedString(R.string.remove_shortcut, context), getDrawable(R.drawable.ic_baseline_delete_24, context)))
     }
     onStateChanged(DialogStates.APP_SHORTCUTS, newShortcuts)
     mainActivity.showDialogWithActions(actions, shortcutClickHandler, pathView ?: return)

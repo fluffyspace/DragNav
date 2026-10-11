@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.ingokodba.dragnav.compose.AppNotification
 import com.ingokodba.dragnav.modeli.AppInfo
+import com.ingokodba.dragnav.modeli.PinnedShortcut
 import com.ingokodba.dragnav.modeli.KrugSAplikacijama
 import com.ingokodba.dragnav.modeli.RainbowMapa
 import kotlinx.coroutines.flow.*
@@ -115,11 +116,15 @@ class ViewModel : ViewModel() {
      */
     fun initializeDatabaseFlows(
         appsFlow: Flow<List<AppInfo>>,
-        foldersFlow: Flow<List<RainbowMapa>>
+        foldersFlow: Flow<List<RainbowMapa>>,
+        shortcutsFlow: Flow<List<PinnedShortcut>>
     ) {
         dbAppsJob?.cancel()
         dbAppsJob = viewModelScope.launch {
-            appsFlow.collect { apps ->
+            // Pinned shortcuts are shown as app items, next to the installed apps
+            combine(appsFlow, shortcutsFlow) { apps, shortcuts ->
+                apps + shortcuts.map { it.toAppInfo() }
+            }.collect { apps ->
                 _rawAppsListFlow.value = apps
                 // _appsListFlow / _popis_aplikacija get the filtered version via the
                 // combine() collector wired up in initialize()

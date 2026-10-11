@@ -188,4 +188,5 @@
     <string name="failed_launch_shortcut">Failed to launch shortcut: %1$s</string>
 
     <string name="new_folder">New folder</string>
+    <string name="remove_shortcut">Remove shortcut</string>
 </resources>

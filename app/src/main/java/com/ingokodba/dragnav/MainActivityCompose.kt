@@ -34,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import android.widget.Toast
 import com.example.dragnav.R
 import com.ingokodba.dragnav.PreferenceKeys.DARK_MODE
 import com.ingokodba.dragnav.TopExceptionHandler.ERORI_FILE
@@ -242,8 +243,13 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
             val db = AppDatabase.getInstance(this@MainActivityCompose)
             viewModel.initializeDatabaseFlows(
                 appsFlow = db.appInfoDao().getAllFlow(),
-                foldersFlow = db.rainbowMapaDao().getAllFlow()
+                foldersFlow = db.rainbowMapaDao().getAllFlow(),
+                shortcutsFlow = db.pinnedShortcutDao().getAllFlow()
             )
+
+            launch {
+                db.pinnedShortcutDao().getAllFlow().collect { loadShortcutIcons(it) }
+            }
 
             val loadedApps = initializeRoom()
             loadIcons(loadedApps)
@@ -388,9 +394,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         // Load rainbow maps (folders)
         val rainbowMape = rainbowMapaDao.getAll().toMutableList()
         val installedPackages = installedApps.map { it.packageName }.toSet()
+        val pinnedKeys = db.pinnedShortcutDao().getAll().map { it.key }.toSet()
         for (i in rainbowMape.indices) {
             val mapa = rainbowMape[i]
-            val kept = mapa.apps.filter { it.packageName in installedPackages }
+            val kept = mapa.apps.filter {
+                if (PinnedShortcut.isShortcut(it)) it.packageName in pinnedKeys else it.packageName in installedPackages
+            }
             if (kept.size != mapa.apps.size) {
                 val updated = mapa.copy(apps = kept.toMutableList())
                 rainbowMapaDao.update(updated)
@@ -476,6 +485,8 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
 
         withContext(Dispatchers.Main) {
+            // Keep pinned-shortcut icons that were loaded separately
+            viewModel.icons.value?.filterKeys { it.startsWith(PinnedShortcut.KEY_PREFIX) }?.let { iconsMap.putAll(it) }
             viewModel.setIcons(iconsMap.toMutableMap())
         }
 
@@ -515,8 +526,89 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     fun saveAppInfo(application: AppInfo) {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = AppDatabase.getInstance(this@MainActivityCompose)
+            if (PinnedShortcut.isShortcut(application)) {
+                val (pkg, shortcutId) = PinnedShortcut.parseKey(application.packageName) ?: return@launch
+                val dao = db.pinnedShortcutDao()
+                dao.find(pkg, shortcutId)?.let { dao.update(it.copy(favorite = application.favorite)) }
+                return@launch
+            }
             val appDao: AppInfoDao = db.appInfoDao()
             appDao.update(application)
+        }
+    }
+
+    /** Launches an installed app or a pinned shortcut. Returns false if nothing could be launched. */
+    fun launchAppOrShortcut(app: AppInfo): Boolean {
+        PinnedShortcut.parseKey(app.packageName)?.let { (pkg, shortcutId) ->
+            return try {
+                val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                launcherApps.startShortcut(pkg, shortcutId, null, null, android.os.Process.myUserHandle())
+                true
+            } catch (e: Exception) {
+                Log.e("MainActivityCompose", "Failed to start pinned shortcut ${app.packageName}", e)
+                Toast.makeText(this, getString(R.string.failed_launch_shortcut, app.label), Toast.LENGTH_SHORT).show()
+                false
+            }
+        }
+        val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName) ?: return false
+        startActivity(launchIntent)
+        addFrequency(app.packageName)
+        return true
+    }
+
+    /** Loads icons for pinned shortcuts into the icon map, next to the app icons. */
+    suspend fun loadShortcutIcons(shortcuts: List<PinnedShortcut>) {
+        if (shortcuts.isEmpty()) return
+        val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        val loaded = mutableMapOf<String, Drawable?>()
+        for ((pkg, shortcuts) in shortcuts.groupBy { it.packageName }) {
+            try {
+                val query = LauncherApps.ShortcutQuery()
+                    .setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+                    .setPackage(pkg)
+                    .setShortcutIds(shortcuts.map { it.shortcutId })
+                val infos = launcherApps.getShortcuts(query, android.os.Process.myUserHandle()) ?: continue
+                for (info in infos) {
+                    loaded[PinnedShortcut.keyOf(pkg, info.id)] =
+                        launcherApps.getShortcutIconDrawable(info, resources.displayMetrics.densityDpi)
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivityCompose", "Failed to load shortcut icons for $pkg", e)
+            }
+        }
+        withContext(Dispatchers.Main) {
+            val merged = (viewModel.icons.value ?: mutableMapOf()).toMutableMap()
+            merged.putAll(loaded)
+            viewModel.setIcons(merged)
+        }
+    }
+
+    /** Deletes a pinned shortcut, removes it from folders and unpins it in the system. */
+    fun removePinnedShortcut(key: String) {
+        val (pkg, shortcutId) = PinnedShortcut.parseKey(key) ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getInstance(this@MainActivityCompose)
+            val dao = db.pinnedShortcutDao()
+            dao.find(pkg, shortcutId)?.let { dao.delete(it) }
+            removeFromFolders { it.packageName == key }
+            try {
+                val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                val stillPinned = dao.getAll().filter { it.packageName == pkg }.map { it.shortcutId }
+                launcherApps.pinShortcuts(pkg, stillPinned, android.os.Process.myUserHandle())
+            } catch (e: Exception) {
+                Log.e("MainActivityCompose", "Failed to unpin shortcut $key", e)
+            }
+        }
+    }
+
+    /** Removes every folder entry matching [predicate]; DB and ViewModel are both updated. */
+    private suspend fun removeFromFolders(predicate: (AppInfo) -> Boolean) {
+        val rainbowMapaDao = AppDatabase.getInstance(this).rainbowMapaDao()
+        for (mapa in rainbowMapaDao.getAll()) {
+            if (mapa.apps.none(predicate)) continue
+            val updatedMapa = mapa.copy(apps = mapa.apps.filterNot(predicate).toMutableList())
+            rainbowMapaDao.update(updatedMapa)
+            withContext(Dispatchers.Main) { viewModel.updateRainbowMapa(updatedMapa) }
         }
     }
 
@@ -662,12 +754,19 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 }
             }
 
+            // Pinned shortcuts of the removed app go away with it
+            val shortcutDao = db.pinnedShortcutDao()
+            shortcutDao.getAll().filter { it.packageName == packageName }.forEach { shortcutDao.delete(it) }
+
             // Remove from rainbow maps if present
             val rainbowMapaDao: RainbowMapaDao = db.rainbowMapaDao()
             val rainbowMaps = rainbowMapaDao.getAll()
             for (mapa in rainbowMaps) {
-                if (mapa.apps.any { it.packageName == packageName }) {
-                    val updatedMapa = mapa.copy(apps = mapa.apps.filter { it.packageName != packageName }.toMutableList())
+                val belongsToApp = { app: AppInfo ->
+                    app.packageName == packageName || app.packageName.startsWith(PinnedShortcut.keyOf(packageName, ""))
+                }
+                if (mapa.apps.any(belongsToApp)) {
+                    val updatedMapa = mapa.copy(apps = mapa.apps.filterNot(belongsToApp).toMutableList())
                     rainbowMapaDao.update(updatedMapa)
                     withContext(Dispatchers.Main) {
                         viewModel.updateRainbowMapa(updatedMapa)
