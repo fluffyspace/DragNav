@@ -34,8 +34,7 @@ class AddShortcutActivity : AppCompatActivity(), FolderSelectionListener {
         Log.d("ingo", "AddShortcutActivity oncreate")
         findViewById<Button>(R.id.cancel).setOnClickListener {
             Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
-            val launchNewIntent = Intent(this@AddShortcutActivity, MainActivity::class.java)
-            startActivity(launchNewIntent, null)
+            finish()
         }
         val launcherApps = getSystemService(LauncherApps::class.java)
         pinItemRequest = launcherApps.getPinItemRequest( this.getIntent() );
@@ -60,13 +59,18 @@ class AddShortcutActivity : AppCompatActivity(), FolderSelectionListener {
                     }
                 } else {
                     Log.d("ingo", "initialize bad")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
                 }
                 //loadIcons()
                 Log.d("ingo", "end of initialization")
             }
 
         } else {
-            Toast.makeText(this, "no", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.shortcut_not_added), Toast.LENGTH_SHORT).show()
+            finish()
         }
 
         //handle request...
