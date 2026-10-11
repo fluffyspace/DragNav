@@ -936,8 +936,10 @@ fun RainbowPathScreen(
                             val options = android.app.ActivityOptions.makeBasic().apply {
                                 // Mark this as allowed to start background activities
                                 // This is needed because Android blocks "Background Activity Launch" (BAL)
-                                pendingIntentBackgroundActivityStartMode =
-                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                    pendingIntentBackgroundActivityStartMode =
+                                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                                }
                             }.toBundle()
 
                             // Send with context and options to bypass BAL restrictions
