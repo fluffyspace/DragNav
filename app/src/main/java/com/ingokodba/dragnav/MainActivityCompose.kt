@@ -684,7 +684,9 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 if (mapa.apps.any { it.packageName == packageName }) {
                     val updatedMapa = mapa.copy(apps = mapa.apps.filter { it.packageName != packageName }.toMutableList())
                     rainbowMapaDao.update(updatedMapa)
-                    viewModel.updateRainbowMapa(updatedMapa)
+                    withContext(Dispatchers.Main) {
+                        viewModel.updateRainbowMapa(updatedMapa)
+                    }
                     Log.v("ingokodba", "Removed app from folder: ${mapa.folderName}")
                 }
             }

@@ -313,8 +313,10 @@ class ViewModel : ViewModel() {
     }
 
     fun updateRainbowMapa(mapa: RainbowMapa){
-        val index = _rainbow_mape.value!!.indexOfFirst { it.id == mapa.id }
-        _rainbow_mape.value = (_rainbow_mape.value!!.filter{it.id != mapa.id}.toMutableList().apply { add(index, mapa) }.toMutableList())
+        val current = _rainbow_mape.value!!
+        val index = current.indexOfFirst { it.id == mapa.id }
+        if (index == -1) return
+        _rainbow_mape.value = current.toMutableList().apply { set(index, mapa) }
     }
 
     fun deleteRainbowMapa(mapa: RainbowMapa){
