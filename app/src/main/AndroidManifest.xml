@@ -43,10 +43,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <service
-            android:name="com.ingokodba.dragnav.RemoveAppService"
-            android:enabled="true"
-            android:exported="true" />
 
         <service
             android:name="com.ingokodba.dragnav.NotificationListener"
