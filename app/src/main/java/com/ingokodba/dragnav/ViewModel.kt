@@ -77,6 +77,10 @@ class ViewModel : ViewModel() {
 
     var currentlyLoadingApps: MutableList<String> = mutableListOf()
 
+    private var hiddenFilterJob: kotlinx.coroutines.Job? = null
+    private var dbAppsJob: kotlinx.coroutines.Job? = null
+    private var dbFoldersJob: kotlinx.coroutines.Job? = null
+
     fun initialize(){
         _icons.value = mutableMapOf()
         _popis_aplikacija.value = mutableListOf()
@@ -95,7 +99,8 @@ class ViewModel : ViewModel() {
         _displayModeFlow.value = DisplayMode.ALL_APPS
 
         // Wire hidden-app filtering: appsListFlow = raw - hidden
-        viewModelScope.launch {
+        hiddenFilterJob?.cancel()
+        hiddenFilterJob = viewModelScope.launch {
             combine(_rawAppsListFlow, _hiddenAppsFlow) { apps, hidden ->
                 if (hidden.isEmpty()) apps else apps.filterNot { it.packageName in hidden }
             }.collect { filtered ->
@@ -112,7 +117,8 @@ class ViewModel : ViewModel() {
         appsFlow: Flow<List<AppInfo>>,
         foldersFlow: Flow<List<RainbowMapa>>
     ) {
-        viewModelScope.launch {
+        dbAppsJob?.cancel()
+        dbAppsJob = viewModelScope.launch {
             appsFlow.collect { apps ->
                 _rawAppsListFlow.value = apps
                 // _appsListFlow / _popis_aplikacija get the filtered version via the
@@ -120,7 +126,8 @@ class ViewModel : ViewModel() {
             }
         }
 
-        viewModelScope.launch {
+        dbFoldersJob?.cancel()
+        dbFoldersJob = viewModelScope.launch {
             foldersFlow.collect { folders ->
                 _rainbowMapeFlow.value = folders
                 // Keep LiveData in sync for backward compatibility
