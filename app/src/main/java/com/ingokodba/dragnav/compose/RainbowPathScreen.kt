@@ -467,7 +467,7 @@ fun RainbowPathScreen(
                                 rainbowMape?.map {
                                     ShortcutAction(it.folderName, getDrawable(R.drawable.baseline_folder_24, context))
                                 }?.toMutableList()?.apply {
-                                    add(ShortcutAction("Nova mapa", getDrawable(R.drawable.ic_baseline_create_new_folder_50, context)))
+                                    add(ShortcutAction(getTranslatedString(R.string.new_folder, context), getDrawable(R.drawable.ic_baseline_create_new_folder_50, context)))
                                 } ?: mutableListOf(),
                                 handler,
                                 pathViewRef.value ?: return

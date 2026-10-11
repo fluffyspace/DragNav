@@ -191,4 +191,5 @@
     <string name="shortcut_not_added">Shortcut not added.</string>
     <string name="failed_launch_shortcut">Failed to launch shortcut: %1$s</string>
 
+    <string name="new_folder">New folder</string>
 </resources>
