@@ -52,6 +52,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.res.stringResource
 import com.example.dragnav.R
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
+import com.ingokodba.dragnav.modeli.AppInfo
 import com.ingokodba.dragnav.SearchUtils
 import kotlinx.coroutines.delay
 import android.graphics.Rect
@@ -259,9 +260,7 @@ fun SearchOverlayMaterial(
                     ) { index, item ->
                         AppListItem(
                             item = item,
-                            icon = item.apps.firstOrNull()?.let { app ->
-                                icons[app.packageName]
-                            },
+                            icons = icons,
                             onClick = { onAppClicked(item) },
                             onLongClick = { onAppLongPressed(item) },
                             isSelected = index == 0,
@@ -384,7 +383,7 @@ private fun SearchBar(
 @Composable
 private fun AppListItem(
     item: EncapsulatedAppInfoWithFolder,
-    icon: Drawable?,
+    icons: Map<String, Drawable?>,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     isSelected: Boolean = false,
@@ -439,42 +438,23 @@ private fun AppListItem(
                 contentAlignment = Alignment.Center
             ) {
                 if (item.folderName != null) {
-                    // Folder icon - simple circle
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                    )
-                } else if (icon != null) {
-                    // App icon
-                    val bitmap = remember(icon) {
-                        icon.toBitmap(56, 56)
+                    // Folder: up to 4 app icons in a 2x2 grid, like on the rainbow path
+                    Column {
+                        item.apps.take(4).chunked(2).forEach { row ->
+                            Row {
+                                row.forEach { app ->
+                                    AppIcon(app, icons[app.packageName], 28.dp)
+                                }
+                            }
+                        }
                     }
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = item.apps.firstOrNull()?.label,
-                        modifier = Modifier.size(56.dp),
-                        contentScale = ContentScale.Fit
-                    )
                 } else {
-                    // Fallback: colored circle
-                    val colorValue = try {
-                        item.apps.firstOrNull()?.color?.takeIf { it.isNotEmpty() }?.toInt()
-                            ?: android.graphics.Color.GRAY
-                    } catch (e: Exception) {
-                        android.graphics.Color.GRAY
+                    item.apps.firstOrNull()?.let { app ->
+                        AppIcon(app, icons[app.packageName], 56.dp)
                     }
-                    val composeColor = Color(colorValue)
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(composeColor)
-                    )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(20.dp))
             
             // Text
@@ -492,6 +472,34 @@ private fun AppListItem(
                 modifier = Modifier.weight(1f)
             )
         }
+    }
+}
+
+@Composable
+private fun AppIcon(app: AppInfo, icon: Drawable?, size: androidx.compose.ui.unit.Dp) {
+    if (icon != null) {
+        val bitmap = remember(icon) {
+            icon.toBitmap(56, 56)
+        }
+        androidx.compose.foundation.Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = app.label,
+            modifier = Modifier.size(size),
+            contentScale = ContentScale.Fit
+        )
+    } else {
+        // Fallback: colored circle
+        val colorValue = try {
+            app.color.takeIf { it.isNotEmpty() }?.toInt() ?: android.graphics.Color.GRAY
+        } catch (e: Exception) {
+            android.graphics.Color.GRAY
+        }
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(Color(colorValue))
+        )
     }
 }
 
