@@ -170,7 +170,7 @@ fun GeneralSettingsScreen(
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
                             data = Uri.parse("mailto:")
-                            putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gamil.com"))
+                            putExtra(Intent.EXTRA_EMAIL, arrayOf("ingokodba@gmail.com"))
                             putExtra(Intent.EXTRA_SUBJECT, feedbackSubject)
                         }
                         if (intent.resolveActivity(context.packageManager) != null) {
