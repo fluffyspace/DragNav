@@ -130,6 +130,8 @@ class RainbowPathView @JvmOverloads constructor(
                 checkAndInvalidateIfIconsLoaded()
                 // Continue checking every 100ms until all visible icons are loaded
                 postDelayed(this, 100)
+            } else {
+                iconCheckActive = false
             }
         }
     }
