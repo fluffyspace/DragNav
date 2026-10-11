@@ -130,7 +130,6 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         super.onCreate(savedInstanceState)
 
         Log.d("MainActivityCompose", "onCreate")
-        Thread.setDefaultUncaughtExceptionHandler(TopExceptionHandler(this))
 
         checkErrors()
 

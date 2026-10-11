@@ -1,6 +1,5 @@
 package com.ingokodba.dragnav;
 
-import android.app.Activity;
 import android.content.Context;
 
 import androidx.core.content.ContextCompat;
@@ -13,11 +12,11 @@ import java.time.Instant;
 public class TopExceptionHandler implements Thread.UncaughtExceptionHandler {
     public static final String ERORI_FILE = "erori.txt";
     private Thread.UncaughtExceptionHandler defaultUEH;
-    private Activity app = null;
+    private Context app = null;
 
-    public TopExceptionHandler(Activity app) {
+    public TopExceptionHandler(Context app) {
         this.defaultUEH = Thread.getDefaultUncaughtExceptionHandler();
-        this.app = app;
+        this.app = app.getApplicationContext();
     }
 
     public void uncaughtException(Thread t, Throwable e) {
