@@ -377,12 +377,9 @@ class RainbowPathView @JvmOverloads constructor(
             putFloat("${viewStateId}_all_apps_scroll", allAppsScrollOffset)
             putFloat("${viewStateId}_favorites_scroll", favoritesScrollOffset)
             putFloat("${viewStateId}_folder_scroll", folderScrollOffset)
-            putBoolean("${viewStateId}_only_favorites", onlyFavorites)
-            putBoolean("${viewStateId}_in_folder", inFolder)
-            putFloat("${viewStateId}_current_scroll", scrollOffset)
             apply()
         }
-        Log.d("RainbowPath", "Saved scroll state: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset, inFolder=$inFolder, current=$scrollOffset")
+        Log.d("RainbowPath", "Saved scroll state: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset")
     }
     
     /**
@@ -392,16 +389,10 @@ class RainbowPathView @JvmOverloads constructor(
         allAppsScrollOffset = prefs.getFloat("${viewStateId}_all_apps_scroll", 0f)
         favoritesScrollOffset = prefs.getFloat("${viewStateId}_favorites_scroll", 0f)
         folderScrollOffset = prefs.getFloat("${viewStateId}_folder_scroll", 0f)
-        val savedOnlyFavorites = prefs.getBoolean("${viewStateId}_only_favorites", false)
-        val savedInFolder = prefs.getBoolean("${viewStateId}_in_folder", false)
-        val savedCurrentScroll = prefs.getFloat("${viewStateId}_current_scroll", 0f)
-        
+
         // Only restore if we have saved values (not defaults)
-        if (allAppsScrollOffset != 0f || favoritesScrollOffset != 0f || folderScrollOffset != 0f || savedCurrentScroll != 0f) {
-            onlyFavorites = savedOnlyFavorites
-            inFolder = savedInFolder
-            scrollOffset = savedCurrentScroll
-            Log.d("RainbowPath", "Loaded scroll state from prefs: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset, inFolder=$inFolder, current=$scrollOffset")
+        if (allAppsScrollOffset != 0f || favoritesScrollOffset != 0f || folderScrollOffset != 0f) {
+            Log.d("RainbowPath", "Loaded scroll state from prefs: allApps=$allAppsScrollOffset, favorites=$favoritesScrollOffset, folder=$folderScrollOffset")
         }
     }
 
