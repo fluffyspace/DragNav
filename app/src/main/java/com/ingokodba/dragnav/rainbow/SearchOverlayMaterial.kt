@@ -547,8 +547,8 @@ class SearchOverlayMaterialView @JvmOverloads constructor(
     
     init {
         // Apply window insets padding to handle keyboard
-        setOnApplyWindowInsetsListener { v, insets ->
-            val imeInsets = insets.getInsets(android.view.WindowInsets.Type.ime())
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            val imeInsets = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())
             setPadding(0, 0, 0, imeInsets.bottom)
             insets
         }
