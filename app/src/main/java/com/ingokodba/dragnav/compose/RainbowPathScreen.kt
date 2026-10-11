@@ -324,6 +324,7 @@ fun RainbowPathScreen(
             countdownJob?.cancel()
             pathViewRef.value?.saveScrollPosition()
             context.startActivity(launchIntent)
+            mainActivity.addFrequency(app.packageName)
         }
     }
 
@@ -602,6 +603,7 @@ fun RainbowPathScreen(
                     if (launchIntent != null) {
                         pathViewRef.value?.saveScrollPosition()
                         context.startActivity(launchIntent)
+                        mainActivity.addFrequency(app.apps.first().packageName)
                     }
                 } else if (app.folderName != null) {
                     if (inFolder) goToHome()
@@ -731,6 +733,7 @@ fun RainbowPathScreen(
                                         countdownJob?.cancel()
                                         this@apply.saveScrollPosition()
                                         context.startActivity(launchIntent)
+                                        mainActivity.addFrequency(app.packageName)
                                     }
                                 } else {
                                     // Open folder - need to pass the thing directly

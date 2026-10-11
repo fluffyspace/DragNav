@@ -68,6 +68,9 @@ interface AppInfoDao {
     @Query("SELECT * FROM AppInfo WHERE id = :id")
     fun findById(id: Int): List<AppInfo>
 
+    @Query("SELECT * FROM AppInfo WHERE packageName = :packageName LIMIT 1")
+    fun findByPackageName(packageName: String): AppInfo?
+
     @Insert
     fun insertAll(vararg polja: AppInfo): List<Long>
 

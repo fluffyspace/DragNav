@@ -520,12 +520,14 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         }
     }
 
-    fun addFrequency(application: AppInfo) {
-        val db = AppDatabase.getInstance(this)
-        val appDao: AppInfoDao = db.appInfoDao()
-        application.frequency++
-        application.lastLaunched = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
-        appDao.update(application)
+    fun addFrequency(packageName: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val appDao = AppDatabase.getInstance(this@MainActivityCompose).appInfoDao()
+            val app = appDao.findByPackageName(packageName) ?: return@launch
+            app.frequency++
+            app.lastLaunched = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+            appDao.update(app)
+        }
     }
 
     fun isAppAlreadyInMap(whatApp: AppInfo): Boolean {
