@@ -188,7 +188,6 @@ fun GeneralSettingsScreen(
                     onClick = {
                         restartAction = {
                             mainActivity.dropDatabase()
-                            mainActivity.recreate()
                         }
                         showRestartDialog = true
                     }

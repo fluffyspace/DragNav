@@ -913,15 +913,21 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     fun dropDatabase() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val db = AppDatabase.getInstance(this@MainActivityCompose)
-                db.close()
-                db.clearAllTables()
-                db.setInstanceToNull()
+                AppDatabase.getInstance(this@MainActivityCompose).clearAllTables()
                 Log.d("MainActivityCompose", "Database dropped successfully")
             } catch (e: Exception) {
                 Log.e("MainActivityCompose", "Failed to drop database", e)
             }
+            withContext(Dispatchers.Main) { restartProcess() }
         }
+    }
+
+    /** Kill and relaunch the app so every database/ViewModel reference starts fresh. */
+    private fun restartProcess() {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)!!
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        startActivity(intent)
+        Runtime.getRuntime().exit(0)
     }
 
     /**
@@ -969,23 +975,19 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     private val restoreLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.also { uri ->
-                val db = AppDatabase.getInstance(this)
+            val uri = result.data?.data ?: return@registerForActivityResult
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    db.close()
-                    val currentDBPath = getDatabasePath(AppDatabase.DATABASE_NAME).path
-                    val currentDB = File(currentDBPath)
+                    AppDatabase.getInstance(this@MainActivityCompose).close()
+                    val currentDB = getDatabasePath(AppDatabase.DATABASE_NAME)
+                    File(currentDB.path + "-wal").delete()
+                    File(currentDB.path + "-shm").delete()
 
-                    contentResolver.openFileDescriptor(uri, "r")?.use {
-                        FileInputStream(it.fileDescriptor).use { fis ->
-                            FileOutputStream(currentDB).use { fos ->
-                                fos.channel.transferFrom(fis.channel, 0, fis.channel.size())
-                            }
-                        }
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(currentDB).use { input.copyTo(it) }
                     }
                     Log.d("MainActivityCompose", "Restore successful")
-                    db.setInstanceToNull()
-                    recreate() // Restart app after restore
+                    withContext(Dispatchers.Main) { restartProcess() }
                 } catch (e: Exception) {
                     Log.e("MainActivityCompose", "Restore failed", e)
                 }
