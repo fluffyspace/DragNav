@@ -330,32 +330,25 @@ fun RainbowPathScreen(
         }
     }
 
-    fun openFolder(appIndex: Int) {
+    fun openFolderWithApps(folderApps: List<AppInfo>) {
         countdownJob?.cancel()
+        pathViewRef.value?.saveScrollPosition()
+        inFolder = true
+        pathViewRef.value?.inFolder = true
+        pathViewRef.value?.setApps(folderApps.map { EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite) })
+        pathViewRef.value?.resetFolderScroll()
+        pathViewRef.value?.invalidate()
+    }
 
+    fun openFolder(appIndex: Int) {
         val apps = getDisplayedApps()
         if (appIndex < 0 || appIndex >= apps.size) return
 
         val thing = apps[appIndex]
         if (thing.folderName == null) return
 
-        pathViewRef.value?.saveScrollPosition()
-
-        val folderApps = thing.apps
-        Log.d("RainbowPathScreen", "Opening folder with ${folderApps.size} apps: ${folderApps.map { it.label }}")
-
-        inFolder = true
-        pathViewRef.value?.inFolder = true
-
-        val folderEncapsulated = folderApps.map {
-            EncapsulatedAppInfoWithFolder(listOf(it), null, it.favorite)
-        }
-        Log.d("RainbowPathScreen", "Setting folder apps with ${folderEncapsulated.size} items")
-
-        // When in folder, directly set the apps instead of using flow
-        pathViewRef.value?.setApps(folderEncapsulated)
-        pathViewRef.value?.resetFolderScroll()
-        pathViewRef.value?.invalidate()
+        Log.d("RainbowPathScreen", "Opening folder with ${thing.apps.size} apps: ${thing.apps.map { it.label }}")
+        openFolderWithApps(thing.apps)
     }
 
     // Create OnShortcutClick handler - must be defined before showShortcuts uses it
@@ -614,26 +607,8 @@ fun RainbowPathScreen(
                         context.startActivity(launchIntent)
                     }
                 } else if (app.folderName != null) {
-                    if (inFolder) {
-                        goToHome()
-                    }
-                    val wasOnlyFavorites = onlyFavorites
-                    onlyFavorites = true
-                    pathViewRef.value?.onlyFavorites = true
-                    // Flow will automatically update when onlyFavorites changes
-
-                    val apps = getDisplayedApps()
-                    val folderIndex = apps.indexOfFirst {
-                        it.folderName == app.folderName
-                    }
-                    if (folderIndex >= 0) {
-                        openFolder(folderIndex)
-                    } else {
-                        onlyFavorites = wasOnlyFavorites
-                        pathViewRef.value?.onlyFavorites = wasOnlyFavorites
-                        // Flow will automatically update when onlyFavorites changes
-                        Log.d("RainbowPathScreen", "Folder not found in displayed apps: ${app.folderName}")
-                    }
+                    if (inFolder) goToHome()
+                    openFolderWithApps(app.apps)
                 }
             }
 
