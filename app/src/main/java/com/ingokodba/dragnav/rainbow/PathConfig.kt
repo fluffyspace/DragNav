@@ -8,7 +8,20 @@ import android.graphics.PointF
 enum class PathShape {
     LINEAR,           // Straight line from start to end
     CURVED,           // Smooth bezier curve
-    CURVED_POLYGON    // Multiple straight segments forming a curved overall shape
+    CURVED_POLYGON,   // Multiple straight segments forming a curved overall shape
+    ZIGZAG,           // Sharp back-and-forth around the straight line
+    SINE_WAVE,        // Smooth wave around the straight line
+    S_CURVE           // Cubic bezier bending one way, then the other
+}
+
+/**
+ * How the visible line is drawn beneath the apps. The apps themselves always sit on the path shape;
+ * ZIGZAG and WAVE make the line swing from side to side between consecutive apps.
+ */
+enum class LineStyle {
+    FOLLOW_PATH,  // Line runs exactly along the path
+    ZIGZAG,       // Sharp zigzag between neighbouring apps
+    WAVE          // Smooth wave between neighbouring apps
 }
 
 /**
@@ -35,6 +48,22 @@ data class PathConfig(
 
     // For curved polygon, number of segments
     val polygonSegments: Int = 8,
+
+    // Zigzag / sine wave: sideways swing (normalized) and number of half-waves along the path
+    val waveAmplitude: Float = 0.06f,
+    val waveCount: Int = 6,
+
+    // Line drawn between apps (null in configs saved before this existed = FOLLOW_PATH)
+    val lineStyle: LineStyle? = LineStyle.FOLLOW_PATH,
+    val lineSwing: Float = 0.5f,   // Sideways swing between apps, in icon sizes
+    val lineFixed: Boolean = false, // true = line stays in place while apps slide over it
+    val lineZigzags: Int = 10,     // Swings (peaks) in the line between two neighbouring apps
+
+    // Path line color. pathColor == 0 means "use pathHue" (older saved configs).
+    // With pathGradient the line fades from pathColor to pathColor2 along the path.
+    val pathColor: Int = 0,
+    val pathGradient: Boolean = false,
+    val pathColor2: Int = 0,
 
     // Path line color (hue in degrees, 0-360)
     val pathHue: Float = 0f,  // 0 = red, 120 = green, 240 = blue
@@ -169,6 +198,9 @@ object PathShapeRegistry {
         providers[PathShape.LINEAR] = LinearPathProvider()
         providers[PathShape.CURVED] = CurvedPathProvider()
         providers[PathShape.CURVED_POLYGON] = CurvedPolygonPathProvider()
+        providers[PathShape.ZIGZAG] = WavePathProvider(zigzag = true)
+        providers[PathShape.SINE_WAVE] = WavePathProvider(zigzag = false)
+        providers[PathShape.S_CURVE] = SCurvePathProvider()
     }
 
     fun getProvider(shape: PathShape): PathShapeProvider {
@@ -317,6 +349,50 @@ class CurvedPolygonPathProvider : PathShapeProvider {
         return PointF(
             segmentStart.x + (segmentEnd.x - segmentStart.x) * segmentT,
             segmentStart.y + (segmentEnd.y - segmentStart.y) * segmentT
+        )
+    }
+}
+
+/**
+ * Swings sideways around the straight start-end line: triangle wave for a zigzag, sine for a wave.
+ * waveCount is the number of half-waves, so the path always starts and ends on the line.
+ */
+class WavePathProvider(private val zigzag: Boolean) : PathShapeProvider {
+    override fun getPointOnPath(t: Float, start: PointF, end: PointF, config: PathConfig): PointF {
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        val length = kotlin.math.sqrt(dx * dx + dy * dy).coerceAtLeast(1e-6f)
+        val phase = Math.PI * config.waveCount.coerceAtLeast(1) * t
+        val wave = if (zigzag) (kotlin.math.asin(kotlin.math.sin(phase)) * 2 / Math.PI).toFloat()
+                   else kotlin.math.sin(phase).toFloat()
+        val offset = wave * config.waveAmplitude
+        return PointF(
+            start.x + dx * t - dy / length * offset,
+            start.y + dy * t + dx / length * offset
+        )
+    }
+}
+
+/** Cubic bezier whose two control points sit on opposite sides of the line (curveIntensity sets the bend). */
+class SCurvePathProvider : PathShapeProvider {
+    override fun getPointOnPath(t: Float, start: PointF, end: PointF, config: PathConfig): PointF {
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        val length = kotlin.math.sqrt(dx * dx + dy * dy).coerceAtLeast(1e-6f)
+        val px = -dy / length * config.curveIntensity
+        val py = dx / length * config.curveIntensity
+        val c1x = start.x + dx / 3 + px
+        val c1y = start.y + dy / 3 + py
+        val c2x = start.x + dx * 2 / 3 - px
+        val c2y = start.y + dy * 2 / 3 - py
+        val u = 1 - t
+        val a = u * u * u
+        val b = 3 * u * u * t
+        val c = 3 * u * t * t
+        val d = t * t * t
+        return PointF(
+            a * start.x + b * c1x + c * c2x + d * end.x,
+            a * start.y + b * c1y + c * c2y + d * end.y
         )
     }
 }

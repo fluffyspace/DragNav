@@ -120,6 +120,8 @@ class RainbowPathView @JvmOverloads constructor(
 
     // Long press detection
     private var longPressTriggered: Boolean = false
+    // The current touch began by catching a flinging list; it only stops the motion, so no long press or app tap
+    private var touchStoppedFling: Boolean = false
     private var touchedAppIndex: Int? = null
 
     // Fling animation runnable
@@ -273,15 +275,15 @@ class RainbowPathView @JvmOverloads constructor(
     private fun updateDebugPaintColor() {
         // Convert hue (0-360) to RGB color using HSV color space
         // Use full saturation (1.0) and full brightness (1.0) for vibrant colors
-        val hsv = floatArrayOf(
-            config.pathHue.coerceIn(0f, 360f),
-            1.0f,  // Saturation
-            1.0f   // Value (brightness)
-        )
         val alpha = config.pathAlpha.coerceIn(0f, 255f).toInt()
-        debugPaint.color = Color.HSVToColor(alpha, hsv)
+        debugPaint.color = baseLineColor(alpha)
     }
     
+    private fun baseLineColor(alpha: Int): Int {
+        if (config.pathColor != 0) return Color.argb(alpha, Color.red(config.pathColor), Color.green(config.pathColor), Color.blue(config.pathColor))
+        return Color.HSVToColor(alpha, floatArrayOf(config.pathHue.coerceIn(0f, 360f), 1f, 1f))
+    }
+
     private fun updateDebugPaintWidth() {
         debugPaint.strokeWidth = config.pathWidth.coerceAtLeast(0.5f)
     }
@@ -925,6 +927,7 @@ class RainbowPathView @JvmOverloads constructor(
         val key = listOf(
             config.pathShape, config.startPoint.x, config.startPoint.y,
             config.endPoint.x, config.endPoint.y, config.curveIntensity, config.polygonSegments,
+            config.waveAmplitude, config.waveCount,
             config.spacingFocus, config.spacingStrength, w, h
         )
         cachedProvider?.let { if (key == cachedProviderKey) return it }
@@ -943,8 +946,11 @@ class RainbowPathView @JvmOverloads constructor(
         val provider = pathProvider(w, h)
         val path = Path()
 
-        for (i in 0..100) {
-            val t = i / 100f
+        val style = config.lineStyle ?: LineStyle.FOLLOW_PATH
+        if (style != LineStyle.FOLLOW_PATH && (config.lineFixed || getDisplayedApps().isNotEmpty())) {
+            buildSwingingLine(path, provider, style, w, h)
+        } else for (i in 0..300) {
+            val t = i / 300f
             val point = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
             val screenX = point.x * w
             val screenY = (1 - point.y) * h // Flip Y since screen Y is top-down
@@ -956,7 +962,69 @@ class RainbowPathView @JvmOverloads constructor(
             }
         }
 
+        if (config.pathGradient && config.pathColor != 0 && config.pathColor2 != 0) {
+            val alpha = config.pathAlpha.coerceIn(0f, 255f).toInt()
+            val c1 = baseLineColor(alpha)
+            val c2 = Color.argb(alpha, Color.red(config.pathColor2), Color.green(config.pathColor2), Color.blue(config.pathColor2))
+            debugPaint.shader = LinearGradient(
+                config.startPoint.x * w, (1 - config.startPoint.y) * h,
+                config.endPoint.x * w, (1 - config.endPoint.y) * h,
+                c1, c2, Shader.TileMode.CLAMP
+            )
+        } else {
+            debugPaint.shader = null
+        }
         canvas.drawPath(path, debugPaint)
+    }
+
+    /**
+     * Line through the centre of every app that swings to alternating sides between neighbours.
+     * Nodes follow the same positions the apps are drawn at, so the line scrolls with them.
+     */
+    private fun buildSwingingLine(path: Path, provider: PathShapeProvider, style: LineStyle, w: Float, h: Float) {
+        val spacing = config.appSpacing.coerceAtLeast(0.001f)
+        val count = getDisplayedApps().size
+        val fixed = config.lineFixed
+        val bounce = if (fixed) 0f else overscrollDistance * config.appSpacing
+        val amp = config.lineSwing * config.appIconSize * w
+        val shift = if (fixed) 0f else scrollOffset + bounce
+        val first = (kotlin.math.floor((-shift - 0.05f) / spacing).toInt() - 1).coerceIn(0, if (fixed) 0 else count - 1)
+        val last = (kotlin.math.ceil((1.05f - shift) / spacing).toInt() + 1)
+            .coerceIn(0, if (fixed) Int.MAX_VALUE else count - 1)
+        val n = config.lineZigzags.coerceIn(1, 40)
+        val sub = if (style == LineStyle.WAVE) (n * 12).coerceAtMost(240) else n * 2
+
+        fun nodeT(i: Int): Float {
+            val off = if (!fixed && config.physicsEnabled && i < physOffset.size) physOffset[i] else 0f
+            return (i * spacing + shift + off).coerceIn(0f, 1f)
+        }
+        fun px(t: Float): PointF {
+            val p = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
+            return PointF(p.x * w, (1 - p.y) * h)
+        }
+
+        var started = false
+        for (i in first until last) {
+            val t0 = nodeT(i)
+            val t1 = nodeT(i + 1)
+            for (j in (if (started) 1 else 0)..sub) {
+                val u = j / sub.toFloat()
+                val t = t0 + (t1 - t0) * u
+                val p = px(t)
+                val a = px((t - 0.004f).coerceAtLeast(0f))
+                val b = px((t + 0.004f).coerceAtMost(1f))
+                val tx = b.x - a.x
+                val ty = b.y - a.y
+                val len = sqrt(tx * tx + ty * ty).coerceAtLeast(1e-3f)
+                val phase = Math.PI * n * u
+                val bump = if (style == LineStyle.WAVE) kotlin.math.sin(phase).toFloat()
+                           else (kotlin.math.asin(kotlin.math.sin(phase)) * 2 / Math.PI).toFloat()
+                val d = amp * bump
+                val x = p.x - ty / len * d
+                val y = p.y + tx / len * d
+                if (!started) { path.moveTo(x, y); started = true } else path.lineTo(x, y)
+            }
+        }
     }
 
     // ---- Elastic physics state (per displayed app, in path-parameter units) ----
@@ -1501,6 +1569,7 @@ class RainbowPathView @JvmOverloads constructor(
                 isDragging = false
                 initialScrollOffset = 0f
                 // Stop any ongoing fling
+                touchStoppedFling = isFling
                 if (isFling) {
                     Log.d("RainbowPathTouch", "ACTION_DOWN: Stopping ongoing fling")
                     removeCallbacks(flingRunnable)
@@ -1540,7 +1609,7 @@ class RainbowPathView @JvmOverloads constructor(
                 } else {
                     // Check if touch is on an app and start long press countdown
                     // Calculate directly to avoid stale drawnApps data
-                    val touchedIndex = getAppIndexAtTouchPosition(event.x, event.y)
+                    val touchedIndex = if (touchStoppedFling) null else getAppIndexAtTouchPosition(event.x, event.y)
                     if (touchedIndex != null) {
                         Log.d("RainbowPathTouch", "ACTION_DOWN: Touch on app at index $touchedIndex, starting long press countdown")
                         touchedAppIndex = touchedIndex
@@ -1741,7 +1810,7 @@ class RainbowPathView @JvmOverloads constructor(
 
                         // Check for tap on app - calculate directly from touch coordinates
                         // to avoid stale drawnApps data
-                        val clickedAppIndex = getAppIndexAtTouchPosition(event.x, event.y)
+                        val clickedAppIndex = if (touchStoppedFling) null else getAppIndexAtTouchPosition(event.x, event.y)
                         if (clickedAppIndex != null) {
                             Log.d("RainbowPathTouch", "ACTION_UP: Tap on app at index $clickedAppIndex, calling onAppClicked")
                             if (eventListener == null) {

@@ -3,6 +3,9 @@ package com.ingokodba.dragnav.rainbow
 import android.graphics.PointF
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -284,6 +287,24 @@ private fun PathSettings(
 
         SettingsDivider()
 
+        // Zigzag / wave
+        if (config.pathShape == PathShape.ZIGZAG || config.pathShape == PathShape.SINE_WAVE) {
+            SettingsLabel("Wave Amplitude")
+            SettingsSlider(
+                value = config.waveAmplitude,
+                valueRange = 0f..0.25f,
+                onValueChange = { onConfigChanged(config.copy(waveAmplitude = it)) }
+            )
+            SettingsLabel("Wave Count (half-waves)")
+            SettingsSlider(
+                value = config.waveCount.toFloat(),
+                valueRange = 1f..20f,
+                steps = 18,
+                onValueChange = { onConfigChanged(config.copy(waveCount = it.toInt())) }
+            )
+            SettingsDivider()
+        }
+
         // Polygon segments
         SettingsLabel("Polygon Segments")
         SettingsSlider(
@@ -295,14 +316,89 @@ private fun PathSettings(
 
         SettingsDivider()
 
+        // Line between apps
+        SettingsLabel("Line Between Apps")
+        SettingsSubtext("Apps stay on the path; the visible line can swing between them")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LineStyle.values().forEach { style ->
+                FilterChip(
+                    selected = (config.lineStyle ?: LineStyle.FOLLOW_PATH) == style,
+                    onClick = { onConfigChanged(config.copy(lineStyle = style)) },
+                    label = { Text(style.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }) }
+                )
+            }
+        }
+        if ((config.lineStyle ?: LineStyle.FOLLOW_PATH) != LineStyle.FOLLOW_PATH) {
+            SettingsLabel("Line Swing")
+            SettingsSlider(
+                value = config.lineSwing,
+                valueRange = 0f..1.5f,
+                onValueChange = { onConfigChanged(config.copy(lineSwing = it)) }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Keep line in place (apps slide over it)", color = Color.White, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = config.lineFixed,
+                    onCheckedChange = { onConfigChanged(config.copy(lineFixed = it)) }
+                )
+            }
+            SettingsLabel("Zigzags Between Apps: ${config.lineZigzags.coerceIn(1, 40)}")
+            SettingsSlider(
+                value = config.lineZigzags.coerceIn(1, 40).toFloat(),
+                valueRange = 1f..40f,
+                steps = 38,
+                onValueChange = { onConfigChanged(config.copy(lineZigzags = it.toInt())) }
+            )
+        }
+
+        SettingsDivider()
+
         // Path line color
-        SettingsLabel("Path Line Color (Hue)")
-        SettingsSubtext("0 = Red, 120 = Green, 240 = Blue, 360 = Red")
-        SettingsSlider(
-            value = config.pathHue,
-            valueRange = 0f..360f,
-            onValueChange = { onConfigChanged(config.copy(pathHue = it)) }
-        )
+        SettingsLabel("Path Line Color")
+        SettingsSubtext("Soft Material 3 tones; the second row follows your wallpaper")
+        val context = LocalContext.current
+        val wallpaperColors = remember { PathPalette.fromWallpaper(context) }
+        ColorSwatchRow(PathPalette.fixed, config.pathColor) {
+            onConfigChanged(config.copy(pathColor = it))
+        }
+        if (wallpaperColors.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            ColorSwatchRow(wallpaperColors, config.pathColor) {
+                onConfigChanged(config.copy(pathColor = it))
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Gradient", color = Color.White, modifier = Modifier.weight(1f))
+            Switch(
+                checked = config.pathGradient,
+                onCheckedChange = {
+                    // Pick a neighbouring palette color for the far end the first time
+                    val second = if (config.pathColor2 != 0) config.pathColor2
+                        else (wallpaperColors + PathPalette.fixed).let { l -> l[(l.indexOf(config.pathColor).coerceAtLeast(0) + 3) % l.size] }
+                    onConfigChanged(config.copy(pathGradient = it, pathColor2 = second,
+                        pathColor = if (config.pathColor == 0) PathPalette.fixed[0] else config.pathColor))
+                }
+            )
+        }
+        if (config.pathGradient) {
+            SettingsSubtext("End color")
+            ColorSwatchRow(PathPalette.fixed, config.pathColor2) {
+                onConfigChanged(config.copy(pathColor2 = it))
+            }
+            if (wallpaperColors.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                ColorSwatchRow(wallpaperColors, config.pathColor2) {
+                    onConfigChanged(config.copy(pathColor2 = it))
+                }
+            }
+        }
 
         SettingsDivider()
 
@@ -844,6 +940,24 @@ private fun SettingsCheckbox(
             color = Color.White,
             fontSize = 14.sp
         )
+    }
+}
+
+@Composable
+private fun ColorSwatchRow(colors: List<Int>, selected: Int, onPick: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        colors.forEach { argb ->
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(argb), CircleShape)
+                    .border(if (argb == selected) 3.dp else 1.dp, if (argb == selected) Color.White else Color(0x55FFFFFF), CircleShape)
+                    .clickable { onPick(argb) }
+            )
+        }
     }
 }
 
