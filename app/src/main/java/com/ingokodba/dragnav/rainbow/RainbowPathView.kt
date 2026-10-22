@@ -50,6 +50,7 @@ class RainbowPathView @JvmOverloads constructor(
             field = value
             updateDebugPaintColor()
             updateDebugPaintWidth()
+            applyTextConfig()
             invalidate()
         }
 
@@ -755,23 +756,8 @@ class RainbowPathView @JvmOverloads constructor(
         post(animator)
     }
 
-    override fun onDraw(canvas: Canvas) {
-        val drawStartTime = System.currentTimeMillis()
-        super.onDraw(canvas)
-
-        drawnApps.clear()
-        shortcutRects.clear()
-
-        // Track visible apps and missing icons for automatic rerender when icons load
-        visiblePackageNames.clear()
-        visibleAppsMissingIcons.clear()
-
-        val w = width.toFloat()
-        val h = height.toFloat()
-
-        //Log.d("RainbowPathView", "onDraw started: ${appList.size} apps, scrollOffset=$scrollOffset")
-
-        // Update text sizes and styles based on config
+    /** Text paint setup depends only on [config], so it is applied when the config changes, not per frame. */
+    private fun applyTextConfig() {
         textPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
         textBorderPaint.textSize = config.appNameSize * resources.displayMetrics.scaledDensity
         textBorderPaint.strokeWidth = config.appNameBorderWidth
@@ -807,6 +793,28 @@ class RainbowPathView @JvmOverloads constructor(
                 textPaint.clearShadowLayer()
             }
         }
+        textFontMetrics = textPaint.fontMetrics
+    }
+
+    private var textFontMetrics: Paint.FontMetrics = textPaint.fontMetrics
+
+    init { applyTextConfig() }
+
+    override fun onDraw(canvas: Canvas) {
+        val drawStartTime = System.currentTimeMillis()
+        super.onDraw(canvas)
+
+        drawnApps.clear()
+        shortcutRects.clear()
+
+        // Track visible apps and missing icons for automatic rerender when icons load
+        visiblePackageNames.clear()
+        visibleAppsMissingIcons.clear()
+
+        val w = width.toFloat()
+        val h = height.toFloat()
+
+        //Log.d("RainbowPathView", "onDraw started: ${appList.size} apps, scrollOffset=$scrollOffset")
 
         letterPaint.textSize = config.letterIndexSize * w
         letterPaintBold.textSize = config.letterIndexSize * w
@@ -1033,6 +1041,7 @@ class RainbowPathView @JvmOverloads constructor(
     private var physSpeed = FloatArray(0)     // smoothed on-screen speed in icons/s
     private var physAccel = FloatArray(0)     // smoothed change of that speed in icons/s^2
     private var physLastScroll = Float.NaN
+    private var physJumpPending = false      // scroll was set by the letter index: always bounce, however far it jumped
     private var physLastNanos = 0L
 
     private fun resetPhysics() {
@@ -1054,8 +1063,10 @@ class RainbowPathView @JvmOverloads constructor(
         val spacing = config.appSpacing.coerceAtLeast(0.001f)
         var delta = if (physLastScroll.isNaN()) 0f else effectiveScroll - physLastScroll
         physLastScroll = effectiveScroll
-        // A jump (letter index, folder switch) is not a drag: do not make the whole chain swing
-        if (abs(delta) > spacing * 2.5f) delta = 0f
+        // A big jump (folder switch) is not a drag: do not make the whole chain swing. Letter-index jumps are exempt;
+        // the lag is clamped to maxOff, so they bounce the same at any distance.
+        if (abs(delta) > spacing * 2.5f && !physJumpPending) delta = 0f
+        physJumpPending = false
 
         val omega = 14f + 26f * config.physicsStiffness                // rad/s
         val k = omega * omega
@@ -1347,7 +1358,7 @@ class RainbowPathView @JvmOverloads constructor(
                     AppNameAlignment.RIGHT -> screenX + iconSizePx / 2 + textOffsetX
                 }
                 // For vertical centering, adjust Y position to text baseline
-                val textMetrics = textPaint.fontMetrics
+                val textMetrics = textFontMetrics
                 val textCenterY = screenY + textOffsetY - (textMetrics.ascent + textMetrics.descent) / 2f
 
                 // Draw based on style
@@ -2010,7 +2021,9 @@ class RainbowPathView @JvmOverloads constructor(
             
             // Apply scroll limits to prevent overscrolling
             val (validMinScroll, validMaxScroll) = getValidScrollLimits()
-            scrollOffset = desiredScrollOffset.coerceIn(validMinScroll, validMaxScroll)
+            val newScroll = desiredScrollOffset.coerceIn(validMinScroll, validMaxScroll)
+            if (newScroll != scrollOffset) physJumpPending = true
+            scrollOffset = newScroll
 
             // Only trigger haptic feedback if the letter changed
             if (currentLetterIndexLetter != letter) {
