@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -219,6 +221,7 @@ fun SearchOverlayMaterial(
 
                     // Settings button
                     if (onSettingsClick != null || onRainbowSettingsClick != null) {
+                      Box {
                         Surface(
                             modifier = Modifier
                                 .size(60.dp)
@@ -241,6 +244,41 @@ fun SearchOverlayMaterial(
                                 )
                             }
                         }
+                        val settingsContext = LocalContext.current
+                        DropdownMenu(
+                            expanded = showSettingsDialog,
+                            onDismissRequest = { showSettingsDialog = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.app_settings)) },
+                                leadingIcon = { Icon(Icons.Default.Settings, null) },
+                                onClick = {
+                                    showSettingsDialog = false
+                                    onSettingsClick?.invoke()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.rainbow_settings)) },
+                                leadingIcon = { Icon(Icons.Default.Palette, null) },
+                                onClick = {
+                                    showSettingsDialog = false
+                                    onRainbowSettingsClick?.invoke()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.system_settings)) },
+                                leadingIcon = { Icon(Icons.Default.PhoneAndroid, null) },
+                                onClick = {
+                                    showSettingsDialog = false
+                                    onDismiss()
+                                    settingsContext.startActivity(
+                                        Intent(android.provider.Settings.ACTION_SETTINGS)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }
+                            )
+                        }
+                      }
                     }
                 }
                 
@@ -272,35 +310,6 @@ fun SearchOverlayMaterial(
                 }
             }
         }
-    }
-
-    // Settings choice dialog
-    if (showSettingsDialog) {
-        AlertDialog(
-            onDismissRequest = { showSettingsDialog = false },
-            title = { Text("Open Settings") },
-            text = { Text("Which settings would you like to open?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSettingsDialog = false
-                        onSettingsClick?.invoke()
-                    }
-                ) {
-                    Text("App Settings")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showSettingsDialog = false
-                        onRainbowSettingsClick?.invoke()
-                    }
-                ) {
-                    Text("Rainbow Settings")
-                }
-            }
-        )
     }
 }
 

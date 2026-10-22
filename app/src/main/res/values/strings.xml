@@ -179,6 +179,7 @@
     <!-- Rainbow path -->
     <string name="open_settings_title">Open Settings</string>
     <string name="open_settings_message">Which settings would you like to open?</string>
+    <string name="system_settings">System settings</string>
     <string name="app_settings">App Settings</string>
 
     <!-- Misc -->

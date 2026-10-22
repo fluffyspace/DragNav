@@ -18,7 +18,10 @@ import androidx.core.graphics.drawable.toBitmap
 import com.example.dragnav.R
 import com.ingokodba.dragnav.EncapsulatedAppInfoWithFolder
 import com.ingokodba.dragnav.modeli.AppInfo
+import android.animation.ValueAnimator
+import android.view.animation.DecelerateInterpolator
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.sqrt
 
 /**
@@ -169,6 +172,20 @@ class RainbowPathView @JvmOverloads constructor(
     private var letterIndexRect: RectF? = null
     private var isInLetterIndex = false
     private var touchStartedInLetterIndex = false  // Track if touch started in letter index
+    // 0 = letter index resting at the edge, 1 = fully slid out from under the finger
+    private var letterSlide = 0f
+    private var letterTouchY = 0f
+    private var letterSlideAnimator: ValueAnimator? = null
+    private var letterSlideTarget = 0f
+    // Apps starting with this letter get a dark band behind them; it lingers after release
+    private var highlightLetter: Char? = null
+    private var highlightAlpha = 0f
+    private var highlightAnimator: ValueAnimator? = null
+    private val clearHighlightRunnable = Runnable { animateHighlight(0f) }
+    private val highlightBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#E6101418")
+        style = Paint.Style.STROKE
+    }
     private var currentLetterIndexLetter: Char? = null  // Track current letter to avoid repeated haptic feedback
     var showLetterIndexBackground = false  // Force show background (e.g., when in settings)
 
@@ -209,16 +226,6 @@ class RainbowPathView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
         setShadowLayer(2f, 1f, 1f, Color.BLACK)
-    }
-    private val bigLetterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        textAlign = Paint.Align.LEFT
-        typeface = Typeface.DEFAULT_BOLD
-        setShadowLayer(8f, 2f, 2f, Color.BLACK)
-    }
-    private val bigLetterBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#CC000000")
-        style = Paint.Style.FILL
     }
     // Reusable paint for fallback colored circles (when icons aren't loaded)
     private val fallbackIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -330,6 +337,8 @@ class RainbowPathView @JvmOverloads constructor(
         Log.d("RainbowPathTouch", "resetTouchState: BEFORE - isDragging=$isDragging, isFling=$isFling, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex")
         isInLetterIndex = false
         currentLetterIndexLetter = null
+        animateLetterSlide(0f)
+        if (highlightLetter != null) scheduleHighlightClear()
         isDragging = false
         longPressTriggered = false
         touchedAppIndex = null
@@ -812,11 +821,6 @@ class RainbowPathView @JvmOverloads constructor(
             drawShortcutsPopup(canvas, w, h)
         }
 
-        // Draw big letter indicator when scrolling through letter index
-        if (isInLetterIndex && currentLetterIndexLetter != null) {
-            drawBigLetterIndicator(canvas, w, h)
-        }
-
         // Draw edge effects for overscroll (LAST, with isolated canvas state)
         drawEdgeEffects(canvas, w.toInt(), h.toInt())
 
@@ -925,6 +929,8 @@ class RainbowPathView @JvmOverloads constructor(
         //Log.d("RainbowPath", "drawAppsOnPath: ${apps.size} apps, appList size: ${appList.size}")
         visibleLetters.clear()
         if (apps.isEmpty()) return
+
+        drawLetterHighlight(canvas, apps, w, h)
 
         val provider = PathShapeRegistry.getProvider(config.pathShape)
         val iconSizePx = config.appIconSize * w
@@ -1192,20 +1198,47 @@ class RainbowPathView @JvmOverloads constructor(
 
         letterIndexRect = RectF(touchableLeft, top, touchableRight, bottom)
 
-        // Draw background when user is actively touching the letter index OR when forced (e.g., in settings)
-        if (isInLetterIndex || showLetterIndexBackground) {
-            canvas.drawRoundRect(letterIndexRect!!, 16f, 16f, letterIndexBgPaint)
+        // While scrubbing, the whole index slides away from the finger and letters near it are magnified
+        val slide = letterSlide
+        val dir = if (config.letterIndexPosition == LetterIndexPosition.RIGHT) -1f else 1f
+        val baseSize = letterPaint.textSize
+        val shift = dir * slide * w * 0.22f
+        val centerX = left + indexWidth / 2 + shift
+        val sigma = letterHeight * 1.6f
+        val maxBoost = 1.0f * slide
+        // The letter closest to the finger is the selected one: clearly biggest and fully opaque
+        val selectedIndex = if (slide > 0f) {
+            ((letterTouchY - top) / letterHeight).toInt().coerceIn(0, letters.size - 1)
+        } else -1
+
+        if (slide > 0f || showLetterIndexBackground) {
+            val isRight = config.letterIndexPosition == LetterIndexPosition.RIGHT
+            // Backdrop stays anchored to the screen edge and stretches over the slid letters
+            val bgRect = RectF(
+                if (isRight) left + shift - baseSize * 1.2f * slide else 0f,
+                top,
+                if (isRight) w else left + indexWidth + shift + baseSize * 1.2f * slide,
+                bottom
+            )
+            val alpha = if (showLetterIndexBackground) 1f else slide
+            letterIndexBgPaint.alpha = (alpha * 0x88).toInt()
+            canvas.drawRoundRect(bgRect, 16f, 16f, letterIndexBgPaint)
         }
 
         letters.forEachIndexed { index, letter ->
-            val y = top + letterHeight * index + letterHeight / 2 + letterPaint.textSize / 3
-            val paint = if (letter in visibleLetters) letterPaintBold else letterPaint
-            canvas.drawText(
-                letter.toString(),
-                left + indexWidth / 2,
-                y,
-                paint
-            )
+            val cy = top + letterHeight * index + letterHeight / 2
+            val d = (cy - letterTouchY) / sigma
+            val focus = exp(-d * d) * slide
+            val selected = index == selectedIndex
+            val paint = if (letter in visibleLetters || selected) letterPaintBold else letterPaint
+            val boost = maxBoost * exp(-d * d) + if (selected) 0.8f * slide else 0f
+            paint.textSize = baseSize * (1f + boost)
+            // Everything except the selected letter fades while scrubbing
+            paint.alpha = if (selected) 255 else (255 * (1f - 0.55f * slide)).toInt()
+            val x = centerX + dir * focus * baseSize * 0.9f
+            canvas.drawText(letter.toString(), x, cy + paint.textSize / 3, paint)
+            paint.textSize = baseSize
+            paint.alpha = 255
         }
     }
 
@@ -1288,38 +1321,6 @@ class RainbowPathView @JvmOverloads constructor(
                 shortcutTextPaint
             )
         }
-    }
-
-    private fun drawBigLetterIndicator(canvas: Canvas, w: Float, h: Float) {
-        val letter = currentLetterIndexLetter ?: return
-
-        // Set text size to be large and bold
-        val textSize = w * 0.5f  // % of screen width
-        bigLetterPaint.textSize = textSize
-
-        // Calculate text dimensions
-        val letterStr = letter.toString()
-        val textWidth = bigLetterPaint.measureText(letterStr)
-        val textMetrics = bigLetterPaint.fontMetrics
-        val textHeight = textMetrics.descent - textMetrics.ascent
-
-        // Position in upper left corner with padding
-        val padding = w * 0.05f
-        val bgPadding = w * 0.02f
-        val left = padding + bgPadding
-        val top = padding - textMetrics.ascent + bgPadding
-
-        // Draw background rectangle with equal padding on all sides
-        val bgRect = RectF(
-            left - bgPadding,
-            top + textMetrics.ascent - bgPadding,
-            left + textWidth + bgPadding,
-            top + textMetrics.descent + bgPadding
-        )
-        canvas.drawRoundRect(bgRect, 16f, 16f, bigLetterBgPaint)
-
-        // Draw the letter
-        canvas.drawText(letterStr, left, top, bigLetterPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -1505,7 +1506,8 @@ class RainbowPathView @JvmOverloads constructor(
                 isInLetterIndex = false
                 currentLetterIndexLetter = null  // Reset letter tracking
                 if (wasInLetterIndex) {
-                    invalidate()  // Redraw to clear the big letter indicator
+                    animateLetterSlide(0f)
+                    scheduleHighlightClear()
                 }
 
                 // Release edge effects
@@ -1643,7 +1645,93 @@ class RainbowPathView @JvmOverloads constructor(
         return Pair(validMinScroll, validMaxScroll)
     }
 
+    private fun animateLetterSlide(target: Float) {
+        // Called on every MOVE: restarting a running animator toward the same target would keep it stuck on its first frame
+        if (letterSlideTarget == target && letterSlideAnimator?.isRunning == true) return
+        letterSlideAnimator?.cancel()
+        letterSlideTarget = target
+        if (letterSlide == target) return
+        letterSlideAnimator = ValueAnimator.ofFloat(letterSlide, target).apply {
+            duration = if (target > 0f) 160L else 300L
+            interpolator = DecelerateInterpolator(1.5f)
+            addUpdateListener {
+                letterSlide = it.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+        invalidate()
+    }
+
+    private fun animateHighlight(target: Float) {
+        highlightAnimator?.cancel()
+        if (highlightAlpha == target) return
+        highlightAnimator = ValueAnimator.ofFloat(highlightAlpha, target).apply {
+            duration = 250L
+            addUpdateListener {
+                highlightAlpha = it.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    private fun scheduleHighlightClear() {
+        removeCallbacks(clearHighlightRunnable)
+        postDelayed(clearHighlightRunnable, 5000L)
+    }
+
+    private val highlightPath = Path()
+
+    /** One thick, rounded band that follows the app path through all apps of the highlighted letter. */
+    private fun drawLetterHighlight(canvas: Canvas, apps: List<EncapsulatedAppInfoWithFolder>, w: Float, h: Float) {
+        val letter = highlightLetter ?: return
+        if (highlightAlpha <= 0f) return
+        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val iconSizePx = config.appIconSize * w
+        val bounceOffset = overscrollDistance * config.appSpacing
+        val pad = iconSizePx * 0.4f
+
+        var tMin = Float.MAX_VALUE
+        var tMax = -Float.MAX_VALUE
+        var count = 0
+
+        apps.forEachIndexed { index, thing ->
+            val baseT = index * config.appSpacing + scrollOffset + bounceOffset
+            if (baseT < -0.1f || baseT > 1.1f) return@forEachIndexed
+            val name = getNameOfApp(thing)
+            if (name.isEmpty() || name[0].uppercaseChar() != letter) return@forEachIndexed
+
+            tMin = minOf(tMin, baseT)
+            tMax = maxOf(tMax, baseT)
+            count++
+
+        }
+        if (count == 0) return
+
+        val t0 = tMin.coerceIn(0f, 1f)
+        val t1 = maxOf(tMax.coerceIn(0f, 1f), t0 + 0.001f)
+        val steps = 48
+        highlightPath.rewind()
+        for (i in 0..steps) {
+            val t = (t0 + (t1 - t0) * i / steps).coerceIn(0f, 1f)
+            val pt = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
+            val x = pt.x * w
+            val y = (1 - pt.y) * h
+            if (i == 0) highlightPath.moveTo(x, y) else highlightPath.lineTo(x, y)
+        }
+
+        highlightBgPaint.style = Paint.Style.STROKE
+        highlightBgPaint.strokeCap = Paint.Cap.ROUND
+        highlightBgPaint.strokeJoin = Paint.Join.ROUND
+        highlightBgPaint.strokeWidth = iconSizePx + 2 * pad
+        highlightBgPaint.alpha = (highlightAlpha * 0xE6).toInt()
+        canvas.drawPath(highlightPath, highlightBgPaint)
+    }
+
     private fun handleLetterIndexTouch(y: Float) {
+        letterTouchY = y
+        animateLetterSlide(1f)
         // Use same reversed order as visual display
         val letters = when (config.appSortOrder) {
             AppSortOrder.ASCENDING -> letterPositions.keys.sortedDescending()
@@ -1675,6 +1763,9 @@ class RainbowPathView @JvmOverloads constructor(
             // Only trigger haptic feedback if the letter changed
             if (currentLetterIndexLetter != letter) {
                 currentLetterIndexLetter = letter
+                highlightLetter = letter
+                removeCallbacks(clearHighlightRunnable)
+                animateHighlight(1f)
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             }
 

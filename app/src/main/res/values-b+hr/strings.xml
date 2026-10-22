@@ -180,6 +180,7 @@
     <!-- Rainbow path -->
     <string name="open_settings_title">Otvori postavke</string>
     <string name="open_settings_message">Koje postavke želite otvoriti?</string>
+    <string name="system_settings">Postavke sustava</string>
     <string name="app_settings">Postavke aplikacije</string>
 
     <!-- Misc -->
