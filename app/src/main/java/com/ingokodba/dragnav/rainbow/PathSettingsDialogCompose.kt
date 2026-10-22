@@ -379,6 +379,14 @@ private fun AppsSettings(
 
         SettingsDivider()
 
+        SettingsCheckbox(
+            text = "Show touch borders",
+            checked = config.showTouchBorders,
+            onCheckedChange = { onConfigChanged(config.copy(showTouchBorders = it)) }
+        )
+
+        SettingsDivider()
+
         // Elastic physics
         SettingsLabel("Elastic Physics")
         SettingsSubtext("Icons trail behind the scroll as if tied together with elastic string, and stretch or squash with speed")

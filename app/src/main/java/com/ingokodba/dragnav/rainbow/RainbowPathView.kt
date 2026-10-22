@@ -299,6 +299,8 @@ class RainbowPathView @JvmOverloads constructor(
         fun onFlingEnded()
         fun onLongPressStart(appIndex: Int)
         fun onSearchButtonClicked()
+        /** Finger started swiping after the long press already fired; dismiss whatever it opened. */
+        fun onLongPressCancelled() {}
     }
     
     // Log when event listener is called
@@ -1042,6 +1044,20 @@ class RainbowPathView @JvmOverloads constructor(
             physOffset = FloatArray(0)
         }
 
+        val pressedNow = touchedAppIndex
+        if (pressedNow != null) pressIndex = pressedNow
+        val pressTarget = when {
+            pressedNow == null -> 1f
+            longPressTriggered -> 1.35f
+            else -> 1.15f
+        }
+        pressScale += (pressTarget - pressScale) * 0.3f
+        if (abs(pressTarget - pressScale) > 0.005f) postInvalidateOnAnimation()
+        else {
+            pressScale = pressTarget
+            if (pressTarget == 1f) pressIndex = null
+        }
+
         apps.forEachIndexed { index, thing ->
             // Calculate position on path with bounce offset
             val baseT = index * config.appSpacing + scrollOffset + bounceOffset
@@ -1074,6 +1090,12 @@ class RainbowPathView @JvmOverloads constructor(
             )
 
             drawnApps.add(DrawnAppInfo(index, rect, t))
+
+            val pressed = index == pressIndex && pressScale != 1f
+            if (pressed) {
+                canvas.save()
+                canvas.scale(pressScale, pressScale, screenX, screenY)
+            }
 
             // Stretch along the path with speed, squash when slowing down, keeping volume
             var stretched = false
@@ -1241,6 +1263,7 @@ class RainbowPathView @JvmOverloads constructor(
             }
 
             if (stretched) canvas.restore()
+            if (pressed) canvas.restore()
 
             // Draw app/folder name
             if (config.showAppNames) {
@@ -1274,7 +1297,7 @@ class RainbowPathView @JvmOverloads constructor(
                 }
             }
         }
-        if (showTouchBorders) drawTouchBorders(canvas)
+        if (config.showTouchBorders) drawTouchBorders(canvas)
     }
 
     private fun drawLetterIndex(canvas: Canvas, w: Float, h: Float) {
@@ -1521,6 +1544,7 @@ class RainbowPathView @JvmOverloads constructor(
                     if (touchedIndex != null) {
                         Log.d("RainbowPathTouch", "ACTION_DOWN: Touch on app at index $touchedIndex, starting long press countdown")
                         touchedAppIndex = touchedIndex
+                        invalidate()
                         eventListener?.onLongPressStart(touchedIndex)
                     } else {
                         Log.d("RainbowPathTouch", "ACTION_DOWN: Touch not on any app")
@@ -1554,6 +1578,14 @@ class RainbowPathView @JvmOverloads constructor(
                     if (!longPressTriggered && touchedAppIndex != null) {
                         Log.d("RainbowPathTouch", "ACTION_MOVE: Cancelling long press due to drag")
                         touchedAppIndex = null
+                        invalidate()
+                    } else if (longPressTriggered) {
+                        // Finger still down and swiping after the long-press dialog opened: undo it, treat as plain swipe
+                        Log.d("RainbowPathTouch", "ACTION_MOVE: Undoing long press due to drag")
+                        longPressTriggered = false
+                        touchedAppIndex = null
+                        eventListener?.onLongPressCancelled()
+                        invalidate()
                     }
                 }
 
@@ -1643,6 +1675,7 @@ class RainbowPathView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 if (inFolder) saveScrollStateToPrefs()
                 touchedAppIndex = null  // lifting the finger cancels a pending long press (triggerLongPress checks this)
+                invalidate()
                 Log.d("RainbowPathTouch", "ACTION_UP: isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex, touchedAppIndex=$touchedAppIndex")
                 val wasInLetterIndex = isInLetterIndex || touchStartedInLetterIndex
                 isInLetterIndex = false
@@ -1938,40 +1971,25 @@ class RainbowPathView @JvmOverloads constructor(
         color = Color.parseColor("#88FFFFFF")
         strokeWidth = 2f
     }
-    private val showTouchBorders = true
 
-    /** Splits the overlap of [a] and [b] down the middle so neither covers the other. */
-    private fun separate(a: RectF, b: RectF, gap: Float) {
-        if (!RectF.intersects(a, b)) return
-        val ox = minOf(a.right, b.right) - maxOf(a.left, b.left)
-        val oy = minOf(a.bottom, b.bottom) - maxOf(a.top, b.top)
-        if (ox < oy) {
-            val mid = (maxOf(a.left, b.left) + minOf(a.right, b.right)) / 2
-            if (a.centerX() < b.centerX()) { a.right = mid - gap; b.left = mid + gap }
-            else { b.right = mid - gap; a.left = mid + gap }
-        } else {
-            val mid = (maxOf(a.top, b.top) + minOf(a.bottom, b.bottom)) / 2
-            if (a.centerY() < b.centerY()) { a.bottom = mid - gap; b.top = mid + gap }
-            else { b.bottom = mid - gap; a.top = mid + gap }
-        }
-    }
+    // Press feedback: the pressed app grows on touch-down and a bit more once the long press fires
+    private var pressScale = 1f
+    private var pressIndex: Int? = null
 
-    /** Trims [a] so it no longer covers [blocker] (letter index, favorites/search buttons). */
-    private fun trimAround(a: RectF, blocker: RectF) {
-        if (!RectF.intersects(a, blocker)) return
-        val ox = minOf(a.right, blocker.right) - maxOf(a.left, blocker.left)
-        val oy = minOf(a.bottom, blocker.bottom) - maxOf(a.top, blocker.top)
-        if (ox < oy) {
-            if (a.centerX() < blocker.centerX()) a.right = blocker.left else a.left = blocker.right
-        } else {
-            if (a.centerY() < blocker.centerY()) a.bottom = blocker.top else a.top = blocker.bottom
-        }
+    private fun isOnFavOrSearchButton(x: Float, y: Float): Boolean {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        fun hit(size: Float, cx: Float, cy: Float) =
+            (x - cx) * (x - cx) + (y - cy) * (y - cy) < (size / 2) * (size / 2)
+        return hit(config.favButtonSize * w, config.favButtonPosition.x * w, (1 - config.favButtonPosition.y) * h) ||
+            hit(config.searchButtonSize * w, config.searchButtonPosition.x * w, (1 - config.searchButtonPosition.y) * h)
     }
 
     /**
-     * Touch zone of every visible app: icon plus its name plus some padding, with overlaps between
-     * apps split down the middle and the letter index / favorites / search buttons carved out.
-     * Returns (app index, zone) pairs; later apps win ties, matching draw order.
+     * Touch zone of every visible app. The screen is cut into bands across the path's dominant
+     * direction (horizontal bands for a mostly vertical path, vertical bands otherwise), each band
+     * belonging to the app whose icon centre lies in it; the band runs to the screen edge, stopping
+     * where the letter index begins. Returns (app index, zone) pairs; zones never overlap.
      */
     private fun computeTouchZones(): List<Pair<Int, RectF>> {
         val apps = getDisplayedApps()
@@ -1980,70 +1998,54 @@ class RainbowPathView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
         val provider = pathProvider(w, h)
-        val iconSizePx = config.appIconSize * w
         val bounceOffset = overscrollDistance * config.appSpacing
-        val pad = 6f * resources.displayMetrics.density
-        val fm = textPaint.fontMetrics
 
-        val zones = mutableListOf<Pair<Int, RectF>>()
-        apps.forEachIndexed { index, thing ->
+        val centers = mutableListOf<Triple<Int, Float, Float>>()
+        apps.forEachIndexed { index, _ ->
             val baseT = index * config.appSpacing + scrollOffset + bounceOffset
             if (baseT < -0.1f || baseT > 1.1f) return@forEachIndexed
             val off = if (config.physicsEnabled && index < physOffset.size) physOffset[index] else 0f
             val t = (baseT + off).coerceIn(0f, 1f)
-
             val point = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
-            val screenX = point.x * w
-            val screenY = (1 - point.y) * h
+            centers.add(Triple(index, point.x * w, (1 - point.y) * h))
+        }
+        if (centers.isEmpty()) return emptyList()
 
-            val zone = RectF(
-                screenX - iconSizePx / 2, screenY - iconSizePx / 2,
-                screenX + iconSizePx / 2, screenY + iconSizePx / 2
-            )
-            if (config.showAppNames) {
-                val name = getNameOfApp(thing)
-                val textW = textPaint.measureText(name)
-                val textX = when (config.appNameAlignment) {
-                    AppNameAlignment.LEFT -> screenX - iconSizePx / 2 + config.appNameOffsetX * iconSizePx * 3f
-                    AppNameAlignment.CENTER -> screenX + config.appNameOffsetX * iconSizePx * 3f
-                    AppNameAlignment.RIGHT -> screenX + iconSizePx / 2 + config.appNameOffsetX * iconSizePx * 3f
+        val horizontalBands = centers.size == 1 ||
+            centers.maxOf { it.third } - centers.minOf { it.third } >= centers.maxOf { it.second } - centers.minOf { it.second }
+        val sorted = if (horizontalBands) centers.sortedBy { it.third } else centers.sortedBy { it.second }
+        fun pos(c: Triple<Int, Float, Float>) = if (horizontalBands) c.third else c.second
+        val limit = if (horizontalBands) h else w
+
+        val zones = mutableListOf<Pair<Int, RectF>>()
+        sorted.forEachIndexed { i, c ->
+            val here = pos(c)
+            val prevGap = if (i > 0) here - pos(sorted[i - 1]) else null
+            val nextGap = if (i < sorted.lastIndex) pos(sorted[i + 1]) - here else null
+            // Outer apps reach as far out as their only neighbour gap does
+            val before = (prevGap ?: nextGap ?: limit) / 2
+            val after = (nextGap ?: prevGap ?: limit) / 2
+            val lo = (here - before).coerceAtLeast(0f) + 1f
+            val hi = (here + after).coerceAtMost(limit) - 1f
+            val zone = if (horizontalBands) RectF(0f, lo, w, hi) else RectF(lo, 0f, hi, h)
+
+            letterIndexRect?.let { strip ->
+                if (RectF.intersects(zone, strip)) {
+                    if (horizontalBands) {
+                        if (strip.centerX() > w / 2) zone.right = strip.left else zone.left = strip.right
+                    } else {
+                        if (c.third < strip.centerY()) zone.bottom = minOf(zone.bottom, strip.top)
+                        else zone.top = maxOf(zone.top, strip.bottom)
+                    }
                 }
-                val left = when (config.appNameAlignment) {
-                    AppNameAlignment.LEFT -> textX
-                    AppNameAlignment.CENTER -> textX - textW / 2
-                    AppNameAlignment.RIGHT -> textX - textW
-                }
-                val cy = screenY + config.appNameOffsetY * iconSizePx * 3f
-                zone.union(RectF(left, cy + fm.ascent / 2, left + textW, cy - fm.ascent / 2))
             }
-            zone.inset(-pad, -pad)
-            zones.add(index to zone)
+            if (zone.width() > 0f && zone.height() > 0f) zones.add(c.first to zone)
         }
-
-        repeat(2) {
-            for (i in zones.indices) for (j in i + 1 until zones.size) {
-                separate(zones[i].second, zones[j].second, 1f)
-            }
-        }
-
-        val blockers = mutableListOf<RectF>()
-        letterIndexRect?.let { blockers.add(it) }
-        val favSize = config.favButtonSize * w
-        val favX = config.favButtonPosition.x * w
-        val favY = (1 - config.favButtonPosition.y) * h
-        blockers.add(RectF(favX - favSize / 2, favY - favSize / 2, favX + favSize / 2, favY + favSize / 2))
-        val searchSize = config.searchButtonSize * w
-        val searchX = config.searchButtonPosition.x * w
-        val searchY = (1 - config.searchButtonPosition.y) * h
-        blockers.add(RectF(searchX - searchSize / 2, searchY - searchSize / 2, searchX + searchSize / 2, searchY + searchSize / 2))
-        for ((_, z) in zones) {
-            blockers.forEach { trimAround(z, it) }
-            z.intersect(0f, 0f, w, h)
-        }
-        return zones.filter { it.second.width() > 0f && it.second.height() > 0f }
+        return zones
     }
 
     private fun getAppIndexAtTouchPosition(x: Float, y: Float): Int? {
+        if (isOnFavOrSearchButton(x, y)) return null
         return computeTouchZones().firstOrNull { it.second.contains(x, y) }?.first
     }
 
@@ -2081,6 +2083,8 @@ class RainbowPathView @JvmOverloads constructor(
             if (!isDragging) {
                 Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: Setting longPressTriggered=true, calling onAppLongPressed($appIndex)")
                 longPressTriggered = true
+                invalidate()
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 eventListener?.onAppLongPressed(appIndex)
             } else {
                 Log.d("RainbowPathTouch", "RainbowPathView.triggerLongPress: BLOCKED - isDragging=true")

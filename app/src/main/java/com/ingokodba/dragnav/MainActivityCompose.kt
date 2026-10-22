@@ -649,6 +649,11 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
         shortcutDialogListener = onShortcutClick
     }
 
+    fun dismissShortcutDialog() {
+        shortcutDialogActions = null
+        shortcutDialogListener = null
+    }
+
     override fun onShortcutClick(index: Int) {
         Log.d("MainActivityCompose", "onShortcutClick: index=$index")
         // This is called when a shortcut is clicked, but the actual handling

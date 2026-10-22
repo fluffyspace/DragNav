@@ -88,6 +88,9 @@ data class PathConfig(
     val physicsCoupling: Float = 0.5f,     // 0 = icons move independently, 1 = strongly linked neighbours
     val physicsStretch: Float = 0.6f,      // 0 = rigid icons, 1 = strong stretch and squash
 
+    // Draws the tappable area around every app (for tuning touch zones)
+    val showTouchBorders: Boolean = false,
+
     // Notification icons settings
     val notificationIconSize: Float = 48f,           // Icon size in dp
     val notificationIconSpacing: Float = 8f,         // Spacing between icons in dp

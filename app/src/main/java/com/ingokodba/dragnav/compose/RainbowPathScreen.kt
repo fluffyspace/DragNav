@@ -838,6 +838,10 @@ fun RainbowPathScreen(
                             override fun onSearchButtonClicked() {
                                 showSearchOverlay()
                             }
+
+                            override fun onLongPressCancelled() {
+                                mainActivity.dismissShortcutDialog()
+                            }
                         })
                     }
                     addView(pathView)
