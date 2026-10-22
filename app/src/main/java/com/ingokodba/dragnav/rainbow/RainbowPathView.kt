@@ -189,7 +189,7 @@ class RainbowPathView @JvmOverloads constructor(
     private val viewStateId: String = "rainbow_path_view_default"
 
     // Paints
-    private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
@@ -499,8 +499,6 @@ class RainbowPathView @JvmOverloads constructor(
         // Update folder scroll offset when scrolling inside folder
         if (inFolder) {
             folderScrollOffset = scrollOffset
-            // Save to SharedPreferences periodically during scrolling
-            saveScrollStateToPrefs()
         }
     }
 
@@ -1333,7 +1331,9 @@ class RainbowPathView @JvmOverloads constructor(
             else -> "ACTION_${event.action}"
         }
         val timestamp = System.currentTimeMillis()
-        Log.d("RainbowPathTouch", "onTouchEvent: $actionName at (${event.x}, ${event.y}), timestamp=$timestamp, isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex, shortcutsAppIndex=$shortcutsAppIndex")
+        if (event.action != MotionEvent.ACTION_MOVE) {
+            Log.d("RainbowPathTouch", "onTouchEvent: $actionName at (${event.x}, ${event.y}), timestamp=$timestamp, isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchedAppIndex=$touchedAppIndex, touchStartedInLetterIndex=$touchStartedInLetterIndex, shortcutsAppIndex=$shortcutsAppIndex")
+        }
         
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -1425,18 +1425,9 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (isDragging) {
-                    // Calculate total distance from touch start to current position
-                    val totalDistance = sqrt(
-                        (event.x - touchStartX) * (event.x - touchStartX) +
-                        (event.y - touchStartY) * (event.y - touchStartY)
-                    )
-                    
-                    // Use Y direction as boolean: if moved up (event.y < touchStartY), scroll positive
-                    val scrollDirection = if (event.y < touchStartY) 1f else -1f
-                    
-                    // Calculate scroll amount based on total distance
-                    val scrollAmount = (totalDistance / (height * config.appSpacing * 10)) * config.scrollSensitivity
-                    
+                    // Scroll by this event's vertical finger movement (up scrolls positive)
+                    val scrollStep = (-dy / (height * config.appSpacing * 10)) * config.scrollSensitivity
+
                     val apps = getDisplayedApps()
 
                     if (apps.isNotEmpty()) {
@@ -1454,7 +1445,7 @@ class RainbowPathView @JvmOverloads constructor(
                         val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
 
                         // Set scroll offset based on initial position + distance * direction
-                        val newScrollOffset = initialScrollOffset + scrollAmount * scrollDirection
+                        val newScrollOffset = scrollOffset + scrollStep
                         val scrollDelta = newScrollOffset - scrollOffset
 
                         // Check if we're at boundaries
@@ -1487,7 +1478,6 @@ class RainbowPathView @JvmOverloads constructor(
                             // Fling will continue at this natural velocity and decelerate with friction
                             scrollVelocity = scrollDelta
 
-                            Log.d("RainbowPath", "Tracking velocity: scrollDelta=$scrollDelta, velocity=$scrollVelocity")
 
                             // Release overscroll if moving away from boundary
                             if (overscrollDistance != 0f) {
@@ -1508,6 +1498,7 @@ class RainbowPathView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
+                if (inFolder) saveScrollStateToPrefs()
                 touchedAppIndex = null  // lifting the finger cancels a pending long press (triggerLongPress checks this)
                 Log.d("RainbowPathTouch", "ACTION_UP: isDragging=$isDragging, longPressTriggered=$longPressTriggered, touchStartedInLetterIndex=$touchStartedInLetterIndex, touchedAppIndex=$touchedAppIndex")
                 val wasInLetterIndex = isInLetterIndex || touchStartedInLetterIndex

@@ -190,5 +190,7 @@
     <string name="new_folder">New folder</string>
     <string name="remove_shortcut">Remove shortcut</string>
     <string name="pin_shortcut_title">Add shortcut to</string>
-    <string name="pin_shortcut_main_list">Main list</string>
+    <string name="pin_shortcut_main_list">Main list (all apps)</string>
+    <string name="pin_shortcut_favorites">Favorites</string>
+    <string name="pin_shortcut_new_folder">New folder…</string>
 </resources>

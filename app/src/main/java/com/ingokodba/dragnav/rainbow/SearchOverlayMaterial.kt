@@ -126,7 +126,8 @@ fun SearchOverlayMaterial(
             delay(100)
             focusRequester.requestFocus()
             keyboardController?.show()
-            isKeyboardVisible = true
+            // isKeyboardVisible is set by the layout listener once the IME is really on screen;
+            // setting it here made any layout pass before the IME appeared dismiss the overlay.
         } else {
             keyboardController?.hide()
             searchQuery = ""

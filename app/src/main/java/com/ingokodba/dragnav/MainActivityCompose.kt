@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.content.pm.*
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.os.SystemClock
+import kotlinx.coroutines.Job
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -89,6 +91,8 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     var newApps: MutableList<AppInfo> = mutableListOf()
     var loadIconBool: Boolean = true
+    private var loadedIconSizePx = 0
+    private var iconReloadJob: Job? = null
     val cache_apps: Boolean = true
     var gcolor: Int = 1
     var shortcutPopup: android.widget.PopupWindow? = null
@@ -456,31 +460,32 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
     }
 
     suspend fun loadIcons(apps: List<AppInfo>) {
-        Log.d("MainActivityCompose", "loadIcons start")
-        val iconsMap = mutableMapOf<String, Drawable?>()
+        val start = SystemClock.elapsedRealtime()
+        val store = IconBitmapStore(this, ::getBestPrimaryColor)
+        loadedIconSizePx = store.sizePx
 
-        for (app in apps) {
-            try {
-                val icon = packageManager.getApplicationIcon(app.packageName)
-                iconsMap[app.packageName] = icon
-
-                // Update color if not set
-                if (app.color.isEmpty()) {
-                    app.color = getBestPrimaryColor(icon).toString()
-                }
-            } catch (e: Exception) {
-                Log.e("MainActivityCompose", "Failed to load icon for ${app.packageName}", e)
-                iconsMap[app.packageName] = null
-            }
-        }
-
-        withContext(Dispatchers.Main) {
+        suspend fun publish(iconsMap: Map<String, Drawable?>) = withContext(Dispatchers.Main) {
             // Keep pinned-shortcut icons that were loaded separately
-            viewModel.icons.value?.filterKeys { it.startsWith(PinnedShortcut.KEY_PREFIX) }?.let { iconsMap.putAll(it) }
-            viewModel.setIcons(iconsMap.toMutableMap())
+            val merged = iconsMap.toMutableMap()
+            viewModel.icons.value?.filterKeys { it.startsWith(PinnedShortcut.KEY_PREFIX) }?.let { merged.putAll(it) }
+            viewModel.setIcons(merged)
         }
 
-        Log.d("MainActivityCompose", "loadIcons completed: ${iconsMap.size} icons")
+        val iconsMap = store.loadAll(apps) { publish(it) }
+        publish(iconsMap)
+        Log.d("MainActivityCompose", "loadIcons completed: ${iconsMap.size} icons in ${SystemClock.elapsedRealtime() - start}ms")
+    }
+
+    /** Reloads icons at the size the path now draws them at, if that changed noticeably. */
+    fun reloadIconsIfSizeChanged() {
+        val ratio = IconBitmapStore.targetSizePx(this).toFloat() / loadedIconSizePx.coerceAtLeast(1)
+        if (ratio in 0.7f..1.2f) return
+        iconReloadJob?.cancel()
+        iconReloadJob = lifecycleScope.launch(Dispatchers.IO) {
+            delay(500) // let a slider drag settle
+            val apps = AppDatabase.getInstance(this@MainActivityCompose).appInfoDao().getAll().filter { it.installed }
+            loadIcons(apps)
+        }
     }
 
     fun getBestPrimaryColor(icon: Drawable): Int {
@@ -685,8 +690,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
                 Log.d("ingokodba", "Loading newly installed app: ${newApp.label} ($packageName)")
 
                 // Load icon
-                val iconCache = IconCache(ctx)
-                val (iconDrawable, color) = iconCache.getIcon(packageName, quality_icons)
+                val (iconDrawable, color) = IconBitmapStore(ctx, ::getBestPrimaryColor).loadOne(packageName)
                 if (iconDrawable != null) {
                     newApp.color = color
                     withContext(Dispatchers.Main) {
@@ -784,8 +788,7 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
                     // Reload icon (force refresh)
                     viewModel.icons.value?.remove(packageName)
-                    val iconCache = IconCache(this@MainActivityCompose)
-                    val (iconDrawable, color) = iconCache.getIcon(packageName, quality_icons)
+                    val (iconDrawable, color) = IconBitmapStore(this@MainActivityCompose, ::getBestPrimaryColor).loadOne(packageName)
                     if (iconDrawable != null) {
                         withContext(Dispatchers.Main) {
                             viewModel.icons.value!![packageName] = iconDrawable

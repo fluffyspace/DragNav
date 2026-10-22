@@ -667,6 +667,7 @@ fun RainbowPathScreen(
                 config = newConfig
                 pathViewRef.value?.config = config
                 saveConfig(context, config)
+                mainActivity.reloadIconsIfSizeChanged()
             }
         })
 
