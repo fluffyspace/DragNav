@@ -80,6 +80,14 @@ data class PathConfig(
     // 1.0 = normal, >1.0 = faster scrolling (e.g., 10.0 means 1cm touch scrolls 10cm)
     val scrollSensitivity: Float = 1.0f,
 
+    // Elastic physics: icons trail behind the scroll as if tied to each other by rubber bands,
+    // and stretch/squash along the path with speed and acceleration
+    val physicsEnabled: Boolean = true,
+    val physicsStiffness: Float = 0.5f,   // 0 = loose and slow, 1 = tight and snappy
+    val physicsDamping: Float = 0.3f,     // 0 = wobbles for long, 1 = settles without overshoot
+    val physicsCoupling: Float = 0.5f,     // 0 = icons move independently, 1 = strongly linked neighbours
+    val physicsStretch: Float = 0.6f,      // 0 = rigid icons, 1 = strong stretch and squash
+
     // Notification icons settings
     val notificationIconSize: Float = 48f,           // Icon size in dp
     val notificationIconSpacing: Float = 8f,         // Spacing between icons in dp

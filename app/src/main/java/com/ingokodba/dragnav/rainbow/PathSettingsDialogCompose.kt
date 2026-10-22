@@ -1,7 +1,9 @@
 package com.ingokodba.dragnav.rainbow
 
 import android.graphics.PointF
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -25,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
+import android.view.Gravity
+import android.view.WindowManager
 import com.example.dragnav.R
 
 enum class PathSettingsCategory(val title: String) {
@@ -37,6 +44,10 @@ enum class PathSettingsCategory(val title: String) {
     NOTIFICATIONS("Notifications")
 }
 
+private val PanelColor = Color(0xA6101216)      // ~65% opaque: launcher stays visible underneath
+private val CardColor = Color(0x1FFFFFFF)
+private val AccentColor = Color(0xFF7CC4FF)
+
 @Composable
 fun PathSettingsDialogCompose(
     config: PathConfig,
@@ -48,6 +59,11 @@ fun PathSettingsDialogCompose(
     var currentCategory by remember { mutableStateOf(PathSettingsCategory.PATH) }
     var currentConfig by remember { mutableStateOf(config) }
     var isTransparent by remember { mutableStateOf(false) }
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val update: (PathConfig) -> Unit = {
+        currentConfig = it
+        onConfigChanged(it)
+    }
 
     LaunchedEffect(currentCategory) {
         onCategoryChanged?.invoke(currentCategory)
@@ -62,37 +78,40 @@ fun PathSettingsDialogCompose(
     val dialogContent = @Composable {
         Surface(
             modifier = Modifier
-                .then(
-                    if (showAsFullScreenOverlay) {
-                        Modifier.fillMaxSize()
-                    } else {
-                        Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                    }
-                )
-                .graphicsLayer {
-                    alpha = if (isTransparent) 0.1f else 1f
-                },
-            shape = RoundedCornerShape(0.dp),
-            color = Color(0xE6222222), // 90% opacity dark background
-            tonalElevation = 8.dp
+                .fillMaxWidth()
+                .graphicsLayer { alpha = if (isTransparent) 0.08f else 1f },
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = PanelColor,
+            border = BorderStroke(1.dp, Color(0x33FFFFFF))
         ) {
-            Column(
-                modifier = Modifier.padding(0.dp)
-            ) {
-                // Top button row: Visibility button and Close button
+            Column(modifier = Modifier.navigationBarsPadding()) {
+                // Drag-handle style grip
+                Box(
+                    modifier = Modifier
+                        .padding(top = 10.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .size(width = 36.dp, height = 4.dp)
+                        .background(Color(0x66FFFFFF), RoundedCornerShape(2.dp))
+                )
+
+                // Header: title, hold-to-peek, close
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    horizontalArrangement = Arrangement.End,
+                        .padding(start = 20.dp, end = 8.dp, top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Visibility toggle button
+                    Text(
+                        text = stringResource(R.string.rainbow_preferences),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f)
+                    )
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(44.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures(
                                     onPress = {
@@ -110,13 +129,7 @@ fun PathSettingsDialogCompose(
                             tint = Color.White
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Close button
-                    IconButton(
-                        onClick = onDismiss
-                    ) {
+                    IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = stringResource(R.string.close),
@@ -125,98 +138,51 @@ fun PathSettingsDialogCompose(
                     }
                 }
 
-                // Title
-                Text(
-                    text = stringResource(R.string.rainbow_preferences),
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
+                // Category chips
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                )
-
-                // Tab layout
-                ScrollableTabRow(
-                    selectedTabIndex = currentCategory.ordinal,
-                    containerColor = Color(0x33FFFFFF),
-                    contentColor = Color.White,
-                    edgePadding = 0.dp,
-                    modifier = Modifier.fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PathSettingsCategory.values().forEach { category ->
-                        Tab(
-                            selected = category == currentCategory,
+                        val selected = category == currentCategory
+                        FilterChip(
+                            selected = selected,
                             onClick = { currentCategory = category },
-                            text = {
-                                Text(
-                                    text = category.title,
-                                    color = if (category == currentCategory) Color.White else Color.Gray
-                                )
-                            }
+                            label = { Text(category.title) },
+                            shape = RoundedCornerShape(50),
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color.Transparent,
+                                labelColor = Color(0xCCFFFFFF),
+                                selectedContainerColor = AccentColor.copy(alpha = 0.28f),
+                                selectedLabelColor = Color.White
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selected,
+                                borderColor = Color(0x44FFFFFF),
+                                selectedBorderColor = AccentColor
+                            )
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Content container
+                // Content: capped so at least the top ~40% of the launcher stays visible
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 400.dp, max = 600.dp)
+                        .heightIn(max = screenHeight * 0.5f)
                 ) {
                     when (currentCategory) {
-                        PathSettingsCategory.PATH -> PathSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.APPS -> AppsSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.APP_NAMES -> AppNamesSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.FAVORITES -> FavoritesSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.SEARCH -> SearchSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.LETTERS -> LettersSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
-                        PathSettingsCategory.NOTIFICATIONS -> NotificationsSettings(
-                            config = currentConfig,
-                            onConfigChanged = {
-                                currentConfig = it
-                                onConfigChanged(it)
-                            }
-                        )
+                        PathSettingsCategory.PATH -> PathSettings(currentConfig, update)
+                        PathSettingsCategory.APPS -> AppsSettings(currentConfig, update)
+                        PathSettingsCategory.APP_NAMES -> AppNamesSettings(currentConfig, update)
+                        PathSettingsCategory.FAVORITES -> FavoritesSettings(currentConfig, update)
+                        PathSettingsCategory.SEARCH -> SearchSettings(currentConfig, update)
+                        PathSettingsCategory.LETTERS -> LettersSettings(currentConfig, update)
+                        PathSettingsCategory.NOTIFICATIONS -> NotificationsSettings(currentConfig, update)
                     }
                 }
             }
@@ -224,22 +190,28 @@ fun PathSettingsDialogCompose(
     }
 
     if (showAsFullScreenOverlay) {
-        // Full screen overlay version
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             dialogContent()
         }
     } else {
-        // Dialog version
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = true,
-                usePlatformDefaultWidth = false
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
             )
         ) {
+            // No dim, bottom-anchored, so the launcher above stays fully visible and live
+            (LocalView.current.parent as? DialogWindowProvider)?.window?.apply {
+                setDimAmount(0f)
+                setGravity(Gravity.BOTTOM)
+                setFlags(
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                )
+            }
             dialogContent()
         }
     }
@@ -263,7 +235,7 @@ private fun PathSettings(
             onSelected = { onConfigChanged(config.copy(pathShape = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Start point
         SettingsLabel("Start Point")
@@ -272,7 +244,7 @@ private fun PathSettings(
             onPointChanged = { onConfigChanged(config.copy(startPoint = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // End point
         SettingsLabel("End Point")
@@ -281,7 +253,7 @@ private fun PathSettings(
             onPointChanged = { onConfigChanged(config.copy(endPoint = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Curve intensity
         SettingsLabel("Curve Intensity")
@@ -291,7 +263,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(curveIntensity = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Icon spacing along the path
         SettingsLabel("Spread Position (bottom to top)")
@@ -301,7 +273,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(spacingFocus = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         SettingsLabel("Spread Amount (negative squeezes)")
         SettingsSlider(
@@ -310,7 +282,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(spacingStrength = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Polygon segments
         SettingsLabel("Polygon Segments")
@@ -321,7 +293,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(polygonSegments = it.toInt())) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Path line color
         SettingsLabel("Path Line Color (Hue)")
@@ -332,7 +304,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(pathHue = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Path line transparency
         SettingsLabel("Path Line Transparency")
@@ -343,7 +315,7 @@ private fun PathSettings(
             onValueChange = { onConfigChanged(config.copy(pathAlpha = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Path line width
         SettingsLabel("Path Line Width")
@@ -374,7 +346,7 @@ private fun AppsSettings(
             onSelected = { onConfigChanged(config.copy(appSortOrder = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Icon size
         SettingsLabel("Icon Size")
@@ -384,7 +356,7 @@ private fun AppsSettings(
             onValueChange = { onConfigChanged(config.copy(appIconSize = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // App spacing
         SettingsLabel("App Spacing")
@@ -394,7 +366,7 @@ private fun AppsSettings(
             onValueChange = { onConfigChanged(config.copy(appSpacing = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Scroll sensitivity
         SettingsLabel("Scroll Sensitivity")
@@ -404,6 +376,43 @@ private fun AppsSettings(
             valueRange = 0.5f..20f,
             onValueChange = { onConfigChanged(config.copy(scrollSensitivity = it)) }
         )
+
+        SettingsDivider()
+
+        // Elastic physics
+        SettingsLabel("Elastic Physics")
+        SettingsSubtext("Icons trail behind the scroll as if tied together with elastic string, and stretch or squash with speed")
+        SettingsCheckbox(
+            text = "Enable elastic physics",
+            checked = config.physicsEnabled,
+            onCheckedChange = { onConfigChanged(config.copy(physicsEnabled = it)) }
+        )
+        if (config.physicsEnabled) {
+            SettingsLabel("Stiffness")
+            SettingsSlider(
+                value = config.physicsStiffness,
+                valueRange = 0f..1f,
+                onValueChange = { onConfigChanged(config.copy(physicsStiffness = it)) }
+            )
+            SettingsLabel("Damping (low = wobbly)")
+            SettingsSlider(
+                value = config.physicsDamping,
+                valueRange = 0f..1f,
+                onValueChange = { onConfigChanged(config.copy(physicsDamping = it)) }
+            )
+            SettingsLabel("Neighbour Coupling")
+            SettingsSlider(
+                value = config.physicsCoupling,
+                valueRange = 0f..1f,
+                onValueChange = { onConfigChanged(config.copy(physicsCoupling = it)) }
+            )
+            SettingsLabel("Stretch & Squash")
+            SettingsSlider(
+                value = config.physicsStretch,
+                valueRange = 0f..1f,
+                onValueChange = { onConfigChanged(config.copy(physicsStretch = it)) }
+            )
+        }
     }
 }
 
@@ -425,7 +434,7 @@ private fun AppNamesSettings(
             onCheckedChange = { onConfigChanged(config.copy(showAppNames = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Name position
         SettingsLabel("Name Position (offset from icon center)")
@@ -446,7 +455,7 @@ private fun AppNamesSettings(
             onValueChange = { onConfigChanged(config.copy(appNameOffsetY = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Text size
         SettingsLabel("Text Size")
@@ -456,7 +465,7 @@ private fun AppNamesSettings(
             onValueChange = { onConfigChanged(config.copy(appNameSize = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Alignment
         SettingsLabel("Text Alignment")
@@ -465,7 +474,7 @@ private fun AppNamesSettings(
             onSelected = { onConfigChanged(config.copy(appNameAlignment = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Style
         SettingsLabel("Text Style")
@@ -474,7 +483,7 @@ private fun AppNamesSettings(
             onSelected = { onConfigChanged(config.copy(appNameStyle = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Border width
         SettingsLabel("Border Width (for bordered style)")
@@ -484,7 +493,7 @@ private fun AppNamesSettings(
             onValueChange = { onConfigChanged(config.copy(appNameBorderWidth = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Font
         SettingsLabel("Font")
@@ -513,7 +522,7 @@ private fun FavoritesSettings(
             onPointChanged = { onConfigChanged(config.copy(favButtonPosition = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Button size
         SettingsLabel("Button Size")
@@ -543,7 +552,7 @@ private fun SearchSettings(
             onPointChanged = { onConfigChanged(config.copy(searchButtonPosition = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Button size
         SettingsLabel("Button Size")
@@ -573,7 +582,7 @@ private fun LettersSettings(
             onCheckedChange = { onConfigChanged(config.copy(letterIndexEnabled = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Position
         SettingsLabel("Position")
@@ -582,7 +591,7 @@ private fun LettersSettings(
             onSelected = { onConfigChanged(config.copy(letterIndexPosition = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Size
         SettingsLabel("Letter Size")
@@ -592,7 +601,7 @@ private fun LettersSettings(
             onValueChange = { onConfigChanged(config.copy(letterIndexSize = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Padding from edge
         SettingsLabel("Padding from Edge")
@@ -602,7 +611,7 @@ private fun LettersSettings(
             onValueChange = { onConfigChanged(config.copy(letterIndexPadding = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Pan from letters
         SettingsLabel("Pan from Letters")
@@ -613,7 +622,7 @@ private fun LettersSettings(
             onValueChange = { onConfigChanged(config.copy(letterIndexPanFromLetters = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Letter index height
         SettingsLabel("Letters View Height")
@@ -624,7 +633,7 @@ private fun LettersSettings(
             onValueChange = { onConfigChanged(config.copy(letterIndexHeight = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Letter index bottom offset
         SettingsLabel("Bottom Offset")
@@ -655,7 +664,7 @@ private fun NotificationsSettings(
             onSelected = { onConfigChanged(config.copy(notificationAnchor = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Icon size
         SettingsLabel("Icon Size (dp)")
@@ -665,7 +674,7 @@ private fun NotificationsSettings(
             onValueChange = { onConfigChanged(config.copy(notificationIconSize = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Icon spacing
         SettingsLabel("Icon Spacing (dp)")
@@ -675,7 +684,7 @@ private fun NotificationsSettings(
             onValueChange = { onConfigChanged(config.copy(notificationIconSpacing = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Offset X
         SettingsLabel("Horizontal Position")
@@ -686,7 +695,7 @@ private fun NotificationsSettings(
             onValueChange = { onConfigChanged(config.copy(notificationOffsetX = it)) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsDivider()
 
         // Offset Y
         SettingsLabel("Vertical Position")
@@ -705,10 +714,11 @@ private fun NotificationsSettings(
 private fun SettingsLabel(text: String) {
     Text(
         text = text,
-        color = Color.White,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(bottom = 8.dp)
+        color = AccentColor,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.4.sp,
+        modifier = Modifier.padding(bottom = 6.dp)
     )
 }
 
@@ -716,9 +726,9 @@ private fun SettingsLabel(text: String) {
 private fun SettingsSubtext(text: String) {
     Text(
         text = text,
-        color = Color.LightGray,
+        color = Color(0xB3FFFFFF),
         fontSize = 12.sp,
-        modifier = Modifier.padding(bottom = 4.dp)
+        modifier = Modifier.padding(bottom = 2.dp)
     )
 }
 
@@ -738,6 +748,7 @@ private fun SettingsSlider(
             text = formatSliderValue(value, valueRange, steps),
             color = Color.White,
             fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End,
             modifier = Modifier.fillMaxWidth()
         )
@@ -750,9 +761,9 @@ private fun SettingsSlider(
             valueRange = valueRange,
             steps = steps,
             colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.White,
-                inactiveTrackColor = Color.Gray
+                thumbColor = AccentColor,
+                activeTrackColor = AccentColor,
+                inactiveTrackColor = Color(0x44FFFFFF)
             )
         )
     }
@@ -814,8 +825,8 @@ private fun SettingsCheckbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(
-                checkedColor = Color.White,
-                uncheckedColor = Color.Gray,
+                checkedColor = AccentColor,
+                uncheckedColor = Color(0x99FFFFFF),
                 checkmarkColor = Color.Black
             )
         )
@@ -848,12 +859,7 @@ private fun PathShapeSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -895,12 +901,7 @@ private fun SortOrderSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -946,12 +947,7 @@ private fun AppNameStyleSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -996,12 +992,7 @@ private fun AppNameAlignmentSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -1040,12 +1031,7 @@ private fun AppNameFontSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -1084,12 +1070,7 @@ private fun LetterPositionSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -1136,12 +1117,7 @@ private fun NotificationAnchorSpinner(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0x33FFFFFF),
-                unfocusedContainerColor = Color(0x33FFFFFF)
-            )
+            colors = settingsFieldColors()
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -1158,4 +1134,24 @@ private fun NotificationAnchorSpinner(
             }
         }
     }
+}
+
+@Composable
+private fun settingsFieldColors() = TextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    focusedContainerColor = CardColor,
+    unfocusedContainerColor = CardColor,
+    focusedIndicatorColor = AccentColor,
+    unfocusedIndicatorColor = Color.Transparent,
+    focusedTrailingIconColor = Color.White,
+    unfocusedTrailingIconColor = Color.White
+)
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 12.dp),
+        color = Color(0x1FFFFFFF)
+    )
 }

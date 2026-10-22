@@ -140,6 +140,7 @@ fun SearchOverlayMaterial(
     // Monitor keyboard visibility using global layout listener
     DisposableEffect(view, visible) {
         if (!visible) {
+            showSettingsDialog = false
             return@DisposableEffect onDispose { }
         }
 
@@ -155,7 +156,7 @@ fun SearchOverlayMaterial(
 
             android.util.Log.d("SearchOverlayMaterial", "Layout change: keypadHeight=$keypadHeight, screenHeight=$screenHeight, wasVisible=$wasVisible, isVisible=$isVisible")
 
-            if (wasVisible && !isVisible && visible) {
+            if (wasVisible && !isVisible && visible && !showSettingsDialog) {
                 // Keyboard was visible and now it's hidden - dismiss overlay
                 android.util.Log.d("SearchOverlayMaterial", "Keyboard closed, dismissing overlay")
                 onDismiss()

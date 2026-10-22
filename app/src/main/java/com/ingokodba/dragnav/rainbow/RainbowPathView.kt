@@ -11,6 +11,7 @@ import android.util.Log
 import android.util.SparseArray
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import android.widget.EdgeEffect
 import androidx.appcompat.content.res.AppCompatResources
@@ -21,6 +22,8 @@ import com.ingokodba.dragnav.modeli.AppInfo
 import android.animation.ValueAnimator
 import android.view.animation.DecelerateInterpolator
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.sign
 import kotlin.math.exp
 import kotlin.math.sqrt
 
@@ -110,6 +113,9 @@ class RainbowPathView @JvmOverloads constructor(
     private var isDragging: Boolean = false
     private var isFling: Boolean = false
     private var lastMoveTime: Long = 0L
+    private var velocityTracker: VelocityTracker? = null
+    private var lastFlingFrameNanos: Long = 0L
+    private var lastDragDirection: Int = 0
     private var initialScrollOffset: Float = 0f  // Track scroll offset when drag starts
 
     // Long press detection
@@ -657,7 +663,12 @@ class RainbowPathView @JvmOverloads constructor(
     fun flingUpdate() {
         if (!isFling) return
 
-        scrollVelocity *= flingFriction
+        // Frame-rate independent: friction and step are defined per 60Hz frame
+        val now = System.nanoTime()
+        val frames = if (lastFlingFrameNanos == 0L) 1f
+            else ((now - lastFlingFrameNanos) / 16_666_667f).coerceIn(0.25f, 4f)
+        lastFlingFrameNanos = now
+        scrollVelocity *= Math.pow(flingFriction.toDouble(), frames.toDouble()).toFloat()
         val apps = getDisplayedApps()
 
         if (apps.isNotEmpty()) {
@@ -674,7 +685,7 @@ class RainbowPathView @JvmOverloads constructor(
             val validMinScroll = minScroll.coerceAtMost(maxScroll)
             val validMaxScroll = maxScroll.coerceAtLeast(minScroll)
 
-            val newScrollOffset = scrollOffset + scrollVelocity
+            val newScrollOffset = scrollOffset + scrollVelocity * frames
 
             // Check for boundary collision during fling
             val atTop = scrollOffset >= validMaxScroll && scrollVelocity > 0
@@ -946,6 +957,70 @@ class RainbowPathView @JvmOverloads constructor(
         canvas.drawPath(path, debugPaint)
     }
 
+    // ---- Elastic physics state (per displayed app, in path-parameter units) ----
+    private var physOffset = FloatArray(0)    // displacement of each icon from its resting spot on the path
+    private var physVel = FloatArray(0)
+    private var physSpeed = FloatArray(0)     // smoothed on-screen speed in icons/s
+    private var physAccel = FloatArray(0)     // smoothed change of that speed in icons/s^2
+    private var physLastScroll = Float.NaN
+    private var physLastNanos = 0L
+
+    private fun resetPhysics() {
+        physOffset.fill(0f); physVel.fill(0f); physSpeed.fill(0f); physAccel.fill(0f)
+        physLastScroll = Float.NaN
+        physLastNanos = 0L
+    }
+
+    /** Advances the spring chain; returns true while anything is still moving. */
+    private fun stepPhysics(count: Int, effectiveScroll: Float): Boolean {
+        if (physOffset.size != count) {
+            physOffset = FloatArray(count); physVel = FloatArray(count)
+            physSpeed = FloatArray(count); physAccel = FloatArray(count)
+            physLastScroll = Float.NaN
+        }
+        val now = System.nanoTime()
+        val dt = if (physLastNanos == 0L) 1f / 60f else ((now - physLastNanos) / 1e9f).coerceIn(0.001f, 1f / 20f)
+        physLastNanos = now
+        val spacing = config.appSpacing.coerceAtLeast(0.001f)
+        var delta = if (physLastScroll.isNaN()) 0f else effectiveScroll - physLastScroll
+        physLastScroll = effectiveScroll
+        // A jump (letter index, folder switch) is not a drag: do not make the whole chain swing
+        if (abs(delta) > spacing * 2.5f) delta = 0f
+
+        val omega = 14f + 26f * config.physicsStiffness                // rad/s
+        val k = omega * omega
+        val c = 2f * (0.12f + 0.88f * config.physicsDamping) * omega
+        val g = k * 1.5f * config.physicsCoupling                      // neighbour pull
+        val maxOff = spacing * 1.2f
+        val steps = (dt / (1f / 240f)).toInt().coerceIn(1, 12)
+        val h = dt / steps
+
+        // Part of the path's motion becomes lag, so icons trail a little but still feel attached to the finger
+        if (delta != 0f) for (i in 0 until count) physOffset[i] = (physOffset[i] - delta * 0.6f).coerceIn(-maxOff, maxOff)
+        val before = FloatArray(count) { physOffset[it] }
+
+        repeat(steps) {
+            for (i in 0 until count) {
+                val left = if (i > 0) physOffset[i - 1] else 0f
+                val right = if (i < count - 1) physOffset[i + 1] else 0f
+                val a = -k * physOffset[i] - c * physVel[i] + g * (left + right - 2f * physOffset[i])
+                physVel[i] += a * h
+            }
+            for (i in 0 until count) physOffset[i] = (physOffset[i] + physVel[i] * h).coerceIn(-maxOff, maxOff)
+        }
+
+        var moving = delta != 0f
+        for (i in 0 until count) {
+            // On-screen motion this frame: the share of the scroll not turned into lag, plus spring motion
+            val signed = ((physOffset[i] - before[i] + delta * 0.4f) / dt) / spacing   // icons per second
+            val prev = physSpeed[i]
+            physSpeed[i] = prev + (signed - prev) * 0.35f
+            physAccel[i] += (((physSpeed[i] - prev) / dt) - physAccel[i]) * 0.35f
+            if (abs(physOffset[i]) > 1e-4f || abs(physVel[i]) > 1e-3f || abs(physSpeed[i]) > 0.05f) moving = true
+        }
+        return moving
+    }
+
     private fun drawAppsOnPath(canvas: Canvas, w: Float, h: Float) {
         val apps = getDisplayedApps()
         //Log.d("RainbowPath", "drawAppsOnPath: ${apps.size} apps, appList size: ${appList.size}")
@@ -960,10 +1035,18 @@ class RainbowPathView @JvmOverloads constructor(
         // Apply overscroll offset to create bounce effect
         val bounceOffset = overscrollDistance * config.appSpacing
 
+        val physics = config.physicsEnabled
+        if (physics) {
+            if (stepPhysics(apps.size, scrollOffset + bounceOffset)) postInvalidateOnAnimation()
+        } else if (physOffset.isNotEmpty()) {
+            physOffset = FloatArray(0)
+        }
+
         apps.forEachIndexed { index, thing ->
             // Calculate position on path with bounce offset
             val baseT = index * config.appSpacing + scrollOffset + bounceOffset
-            val t = baseT.coerceIn(0f, 1f)
+            val off = if (physics && index < physOffset.size) physOffset[index] else 0f
+            val t = (baseT + off).coerceIn(0f, 1f)
 
             // Skip if outside visible range
             if (baseT < -0.1f || baseT > 1.1f) return@forEachIndexed
@@ -991,6 +1074,24 @@ class RainbowPathView @JvmOverloads constructor(
             )
 
             drawnApps.add(DrawnAppInfo(index, rect, t))
+
+            // Stretch along the path with speed, squash when slowing down, keeping volume
+            var stretched = false
+            if (physics && config.physicsStretch > 0f && index < physSpeed.size) {
+                val speedN = (abs(physSpeed[index]) / 12f).coerceIn(0f, 1.5f)
+                val accelN = (physAccel[index] * sign(physSpeed[index]) / 300f).coerceIn(-1f, 1f)
+                val along = (1f + config.physicsStretch * (0.45f * speedN + 0.35f * accelN)).coerceIn(0.6f, 1.7f)
+                if (abs(along - 1f) > 0.01f) {
+                    val ahead = provider.getPointOnPath((t + 0.01f).coerceAtMost(1f), config.startPoint, config.endPoint, config)
+                    val behind = provider.getPointOnPath((t - 0.01f).coerceAtLeast(0f), config.startPoint, config.endPoint, config)
+                    val angle = Math.toDegrees(atan2(-(ahead.y - behind.y) * h, (ahead.x - behind.x) * w).toDouble()).toFloat()
+                    canvas.save()
+                    canvas.rotate(angle, screenX, screenY)
+                    canvas.scale(along, 1f / sqrt(along), screenX, screenY)
+                    canvas.rotate(-angle, screenX, screenY)
+                    stretched = true
+                }
+            }
 
             if (thing.folderName != null) {
                 // Draw folder with multiple app icons
@@ -1139,6 +1240,8 @@ class RainbowPathView @JvmOverloads constructor(
                 }
             }
 
+            if (stretched) canvas.restore()
+
             // Draw app/folder name
             if (config.showAppNames) {
                 val name = getNameOfApp(thing)
@@ -1171,6 +1274,7 @@ class RainbowPathView @JvmOverloads constructor(
                 }
             }
         }
+        if (showTouchBorders) drawTouchBorders(canvas)
     }
 
     private fun drawLetterIndex(canvas: Canvas, w: Float, h: Float) {
@@ -1346,6 +1450,12 @@ class RainbowPathView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            velocityTracker?.recycle()
+            velocityTracker = VelocityTracker.obtain()
+            lastDragDirection = 0
+        }
+        velocityTracker?.addMovement(event)
         val actionName = when (event.action) {
             MotionEvent.ACTION_DOWN -> "ACTION_DOWN"
             MotionEvent.ACTION_MOVE -> "ACTION_MOVE"
@@ -1448,6 +1558,16 @@ class RainbowPathView @JvmOverloads constructor(
                 }
 
                 if (isDragging) {
+                    // On a clear direction reversal, forget the old direction's samples so the
+                    // fling reflects only the new direction instead of a blend of both.
+                    if (abs(dy) > 2f) {
+                        val dir = if (dy > 0) 1 else -1
+                        if (lastDragDirection != 0 && dir != lastDragDirection) {
+                            velocityTracker?.clear()
+                            velocityTracker?.addMovement(event)
+                        }
+                        lastDragDirection = dir
+                    }
                     // Scroll by this event's vertical finger movement (up scrolls positive)
                     val scrollStep = (-dy / (height * config.appSpacing * 10)) * config.scrollSensitivity
 
@@ -1606,8 +1726,16 @@ class RainbowPathView @JvmOverloads constructor(
                     }
                 } else {
                     Log.d("RainbowPathTouch", "ACTION_UP: Was dragging, checking for fling")
-                    // Start fling if velocity is high enough
+                    // Fling velocity from the tracker (least-squares fit over the last ~100ms),
+                    // not from the last MOVE delta, which is noisy and often near zero at lift-off.
+                    velocityTracker?.let { vt ->
+                        vt.computeCurrentVelocity(1000)
+                        // px/s -> scroll units per 60Hz frame, same mapping as the drag step
+                        val perPx = -1f / (height * config.appSpacing * 10) * config.scrollSensitivity
+                        scrollVelocity = vt.yVelocity * perPx / 60f
+                    }
                     if (abs(scrollVelocity) > minFlingVelocity) {
+                        lastFlingFrameNanos = 0L
                         Log.d("RainbowPath", "Starting fling with velocity: $scrollVelocity")
                         isFling = true
                         eventListener?.onFlingStarted()
@@ -1805,50 +1933,122 @@ class RainbowPathView @JvmOverloads constructor(
         return null
     }
 
+    private val touchBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = Color.parseColor("#88FFFFFF")
+        strokeWidth = 2f
+    }
+    private val showTouchBorders = true
+
+    /** Splits the overlap of [a] and [b] down the middle so neither covers the other. */
+    private fun separate(a: RectF, b: RectF, gap: Float) {
+        if (!RectF.intersects(a, b)) return
+        val ox = minOf(a.right, b.right) - maxOf(a.left, b.left)
+        val oy = minOf(a.bottom, b.bottom) - maxOf(a.top, b.top)
+        if (ox < oy) {
+            val mid = (maxOf(a.left, b.left) + minOf(a.right, b.right)) / 2
+            if (a.centerX() < b.centerX()) { a.right = mid - gap; b.left = mid + gap }
+            else { b.right = mid - gap; a.left = mid + gap }
+        } else {
+            val mid = (maxOf(a.top, b.top) + minOf(a.bottom, b.bottom)) / 2
+            if (a.centerY() < b.centerY()) { a.bottom = mid - gap; b.top = mid + gap }
+            else { b.bottom = mid - gap; a.top = mid + gap }
+        }
+    }
+
+    /** Trims [a] so it no longer covers [blocker] (letter index, favorites/search buttons). */
+    private fun trimAround(a: RectF, blocker: RectF) {
+        if (!RectF.intersects(a, blocker)) return
+        val ox = minOf(a.right, blocker.right) - maxOf(a.left, blocker.left)
+        val oy = minOf(a.bottom, blocker.bottom) - maxOf(a.top, blocker.top)
+        if (ox < oy) {
+            if (a.centerX() < blocker.centerX()) a.right = blocker.left else a.left = blocker.right
+        } else {
+            if (a.centerY() < blocker.centerY()) a.bottom = blocker.top else a.top = blocker.bottom
+        }
+    }
+
     /**
-     * Calculate which app is at the given touch position by recalculating positions
-     * This avoids using potentially stale drawnApps data
+     * Touch zone of every visible app: icon plus its name plus some padding, with overlaps between
+     * apps split down the middle and the letter index / favorites / search buttons carved out.
+     * Returns (app index, zone) pairs; later apps win ties, matching draw order.
      */
-    private fun getAppIndexAtTouchPosition(x: Float, y: Float): Int? {
+    private fun computeTouchZones(): List<Pair<Int, RectF>> {
         val apps = getDisplayedApps()
-        if (apps.isEmpty()) return null
+        if (apps.isEmpty() || width == 0) return emptyList()
 
         val w = width.toFloat()
         val h = height.toFloat()
         val provider = pathProvider(w, h)
         val iconSizePx = config.appIconSize * w
         val bounceOffset = overscrollDistance * config.appSpacing
+        val pad = 6f * resources.displayMetrics.density
+        val fm = textPaint.fontMetrics
 
-        // Check apps in reverse order (last drawn = topmost)
-        // This matches the visual order when apps overlap
-        for (index in apps.size - 1 downTo 0) {
-            val thing = apps[index]
+        val zones = mutableListOf<Pair<Int, RectF>>()
+        apps.forEachIndexed { index, thing ->
             val baseT = index * config.appSpacing + scrollOffset + bounceOffset
-            val t = baseT.coerceIn(0f, 1f)
-
-            // Skip if outside visible range
-            if (baseT < -0.1f || baseT > 1.1f) continue
+            if (baseT < -0.1f || baseT > 1.1f) return@forEachIndexed
+            val off = if (config.physicsEnabled && index < physOffset.size) physOffset[index] else 0f
+            val t = (baseT + off).coerceIn(0f, 1f)
 
             val point = provider.getPointOnPath(t, config.startPoint, config.endPoint, config)
             val screenX = point.x * w
             val screenY = (1 - point.y) * h
 
-            // Create rect for this app
-            val rect = RectF(
-                screenX - iconSizePx / 2,
-                screenY - iconSizePx / 2,
-                screenX + iconSizePx / 2,
-                screenY + iconSizePx / 2
+            val zone = RectF(
+                screenX - iconSizePx / 2, screenY - iconSizePx / 2,
+                screenX + iconSizePx / 2, screenY + iconSizePx / 2
             )
+            if (config.showAppNames) {
+                val name = getNameOfApp(thing)
+                val textW = textPaint.measureText(name)
+                val textX = when (config.appNameAlignment) {
+                    AppNameAlignment.LEFT -> screenX - iconSizePx / 2 + config.appNameOffsetX * iconSizePx * 3f
+                    AppNameAlignment.CENTER -> screenX + config.appNameOffsetX * iconSizePx * 3f
+                    AppNameAlignment.RIGHT -> screenX + iconSizePx / 2 + config.appNameOffsetX * iconSizePx * 3f
+                }
+                val left = when (config.appNameAlignment) {
+                    AppNameAlignment.LEFT -> textX
+                    AppNameAlignment.CENTER -> textX - textW / 2
+                    AppNameAlignment.RIGHT -> textX - textW
+                }
+                val cy = screenY + config.appNameOffsetY * iconSizePx * 3f
+                zone.union(RectF(left, cy + fm.ascent / 2, left + textW, cy - fm.ascent / 2))
+            }
+            zone.inset(-pad, -pad)
+            zones.add(index to zone)
+        }
 
-            if (rect.contains(x, y)) {
-                val appName = getNameOfApp(thing)
-                val pkg = if (thing.apps.isNotEmpty()) thing.apps.first().packageName else "N/A"
-                Log.d("RainbowPath", "getAppIndexAtTouchPosition: Touch detected at index $index: '$appName' ($pkg)")
-                return index
+        repeat(2) {
+            for (i in zones.indices) for (j in i + 1 until zones.size) {
+                separate(zones[i].second, zones[j].second, 1f)
             }
         }
-        return null
+
+        val blockers = mutableListOf<RectF>()
+        letterIndexRect?.let { blockers.add(it) }
+        val favSize = config.favButtonSize * w
+        val favX = config.favButtonPosition.x * w
+        val favY = (1 - config.favButtonPosition.y) * h
+        blockers.add(RectF(favX - favSize / 2, favY - favSize / 2, favX + favSize / 2, favY + favSize / 2))
+        val searchSize = config.searchButtonSize * w
+        val searchX = config.searchButtonPosition.x * w
+        val searchY = (1 - config.searchButtonPosition.y) * h
+        blockers.add(RectF(searchX - searchSize / 2, searchY - searchSize / 2, searchX + searchSize / 2, searchY + searchSize / 2))
+        for ((_, z) in zones) {
+            blockers.forEach { trimAround(z, it) }
+            z.intersect(0f, 0f, w, h)
+        }
+        return zones.filter { it.second.width() > 0f && it.second.height() > 0f }
+    }
+
+    private fun getAppIndexAtTouchPosition(x: Float, y: Float): Int? {
+        return computeTouchZones().firstOrNull { it.second.contains(x, y) }?.first
+    }
+
+    private fun drawTouchBorders(canvas: Canvas) {
+        computeTouchZones().forEach { (_, r) -> canvas.drawRoundRect(r, 12f, 12f, touchBorderPaint) }
     }
 
     fun scrollToApp(index: Int) {
