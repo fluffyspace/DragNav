@@ -28,6 +28,11 @@ data class PathConfig(
     // For curved paths, control point offset (0-1, affects curve intensity)
     val curveIntensity: Float = 0.5f,
 
+    // Where along the path (0 = start/bottom, 1 = end/top) icons are spread out or squeezed together
+    val spacingFocus: Float = 0.5f,
+    // 0 = even spacing; positive spreads icons apart around the focus, negative squeezes them together
+    val spacingStrength: Float = 0f,
+
     // For curved polygon, number of segments
     val polygonSegments: Int = 8,
 
@@ -169,6 +174,62 @@ object PathShapeRegistry {
 
     fun getCustomProviderNames(): List<String> {
         return customProviders.keys.toList()
+    }
+}
+
+/**
+ * Re-parametrizes another provider by on-screen arc length, so equal steps in t are equal
+ * distances along the drawn path. Bezier parameter t alone bunches icons up where the curve
+ * bends and spreads them where it runs straight. Lengths are measured in pixels (w x h),
+ * because normalized x and y are stretched differently by the screen. On top of that, the local
+ * gap between icons is scaled by config.spacingStrength around config.spacingFocus.
+ */
+class ArcLengthPathProvider(
+    private val base: PathShapeProvider,
+    private val start: PointF,
+    private val end: PointF,
+    private val config: PathConfig,
+    private val w: Float,
+    private val h: Float
+) : PathShapeProvider {
+    private val samples = 256
+    private val cumulative = FloatArray(samples + 1)
+
+    init {
+        val lengths = FloatArray(samples + 1)
+        var prev = base.getPointOnPath(0f, start, end, config)
+        for (i in 1..samples) {
+            val p = base.getPointOnPath(i / samples.toFloat(), start, end, config)
+            val dx = (p.x - prev.x) * w
+            val dy = (p.y - prev.y) * h
+            lengths[i] = lengths[i - 1] + kotlin.math.sqrt(dx * dx + dy * dy)
+            prev = p
+        }
+        // Weight each stretch of path by the local gap scale; a wider gap means fewer icons per length
+        val total = lengths[samples]
+        val strength = config.spacingStrength.coerceAtLeast(-0.95f)
+        for (i in 1..samples) {
+            val seg = lengths[i] - lengths[i - 1]
+            val s = if (total > 0f) (lengths[i - 1] + lengths[i]) / 2f / total else 0f
+            val d = (s - config.spacingFocus) / 0.2f
+            val gap = 1f + strength * kotlin.math.exp(-d * d)
+            cumulative[i] = cumulative[i - 1] + seg * gap
+        }
+    }
+
+    override fun getPointOnPath(t: Float, start: PointF, end: PointF, config: PathConfig): PointF {
+        val total = cumulative[samples]
+        if (total <= 0f) return base.getPointOnPath(t, start, end, config)
+        val target = t.coerceIn(0f, 1f) * total
+        var lo = 0
+        var hi = samples
+        while (hi - lo > 1) {
+            val mid = (lo + hi) ushr 1
+            if (cumulative[mid] <= target) lo = mid else hi = mid
+        }
+        val segLen = cumulative[hi] - cumulative[lo]
+        val frac = if (segLen > 0f) (target - cumulative[lo]) / segLen else 0f
+        return base.getPointOnPath((lo + frac) / samples, start, end, config)
     }
 }
 

@@ -293,6 +293,25 @@ private fun PathSettings(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Icon spacing along the path
+        SettingsLabel("Spread Position (bottom to top)")
+        SettingsSlider(
+            value = config.spacingFocus,
+            valueRange = 0f..1f,
+            onValueChange = { onConfigChanged(config.copy(spacingFocus = it)) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsLabel("Spread Amount (negative squeezes)")
+        SettingsSlider(
+            value = config.spacingStrength,
+            valueRange = -0.9f..3f,
+            onValueChange = { onConfigChanged(config.copy(spacingStrength = it)) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Polygon segments
         SettingsLabel("Polygon Segments")
         SettingsSlider(

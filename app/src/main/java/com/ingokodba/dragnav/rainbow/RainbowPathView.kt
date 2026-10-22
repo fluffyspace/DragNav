@@ -904,8 +904,30 @@ class RainbowPathView @JvmOverloads constructor(
         }
     }
 
+    private var cachedProvider: PathShapeProvider? = null
+    private var cachedProviderKey: List<Any>? = null
+
+    /** Path provider spaced by arc length; rebuilt only when the path geometry or view size changes. */
+    private fun pathProvider(w: Float, h: Float): PathShapeProvider {
+        val key = listOf(
+            config.pathShape, config.startPoint.x, config.startPoint.y,
+            config.endPoint.x, config.endPoint.y, config.curveIntensity, config.polygonSegments,
+            config.spacingFocus, config.spacingStrength, w, h
+        )
+        cachedProvider?.let { if (key == cachedProviderKey) return it }
+        val provider = ArcLengthPathProvider(
+            PathShapeRegistry.getProvider(config.pathShape),
+            PointF(config.startPoint.x, config.startPoint.y),
+            PointF(config.endPoint.x, config.endPoint.y),
+            config, w, h
+        )
+        cachedProvider = provider
+        cachedProviderKey = key
+        return provider
+    }
+
     private fun drawDebugPath(canvas: Canvas, w: Float, h: Float) {
-        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val provider = pathProvider(w, h)
         val path = Path()
 
         for (i in 0..100) {
@@ -932,7 +954,7 @@ class RainbowPathView @JvmOverloads constructor(
 
         drawLetterHighlight(canvas, apps, w, h)
 
-        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val provider = pathProvider(w, h)
         val iconSizePx = config.appIconSize * w
 
         // Apply overscroll offset to create bounce effect
@@ -1687,7 +1709,7 @@ class RainbowPathView @JvmOverloads constructor(
     private fun drawLetterHighlight(canvas: Canvas, apps: List<EncapsulatedAppInfoWithFolder>, w: Float, h: Float) {
         val letter = highlightLetter ?: return
         if (highlightAlpha <= 0f) return
-        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val provider = pathProvider(w, h)
         val iconSizePx = config.appIconSize * w
         val bounceOffset = overscrollDistance * config.appSpacing
         val pad = iconSizePx * 0.4f
@@ -1793,7 +1815,7 @@ class RainbowPathView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-        val provider = PathShapeRegistry.getProvider(config.pathShape)
+        val provider = pathProvider(w, h)
         val iconSizePx = config.appIconSize * w
         val bounceOffset = overscrollDistance * config.appSpacing
 
