@@ -534,6 +534,12 @@ class MainActivityCompose : AppCompatActivity(), OnShortcutClick {
 
     /** Launches an installed app or a pinned shortcut. Returns false if nothing could be launched. */
     fun launchAppOrShortcut(app: AppInfo): Boolean {
+        val launched = launchAppOrShortcutInternal(app)
+        if (launched) com.ingokodba.dragnav.rainbow.RecentApps.record(this, app.packageName)
+        return launched
+    }
+
+    private fun launchAppOrShortcutInternal(app: AppInfo): Boolean {
         PinnedShortcut.parseKey(app.packageName)?.let { (pkg, shortcutId) ->
             return try {
                 val launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps

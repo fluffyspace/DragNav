@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -86,6 +88,8 @@ fun SearchOverlayMaterial(
     val scope = rememberCoroutineScope()
     var isKeyboardVisible by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showRecents by remember { mutableStateOf(false) }
+    val appContext = LocalContext.current
 
     // Control status bar appearance based on overlay visibility
     var originalStatusBarAppearance by remember { mutableStateOf<Boolean?>(null) }
@@ -110,9 +114,13 @@ fun SearchOverlayMaterial(
     }
     
     // Update filtered apps when query or apps change
-    LaunchedEffect(searchQuery, apps) {
+    LaunchedEffect(searchQuery, apps, showRecents, visible) {
         filteredApps = if (searchQuery.isEmpty()) {
-            apps
+            if (showRecents) {
+                val byPackage = apps.filter { it.folderName == null }
+                    .associateBy { it.apps.firstOrNull()?.packageName }
+                RecentApps.get(appContext).mapNotNull { byPackage[it] }
+            } else apps
         } else {
             searchApps(apps, searchQuery)
         }
@@ -310,7 +318,41 @@ fun SearchOverlayMaterial(
                     }
                 }
             }
+
+            // Toggle between alphabetical and recently opened apps. The overlay sits above the IME
+            // (the host view pads for it), and the button never takes focus, so the keyboard stays open.
+            FloatingActionButton(
+                onClick = {
+                    showRecents = !showRecents
+                    focusRequester.requestFocus()
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.systemBars)
+                    .padding(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (showRecents) Icons.Default.SortByAlpha else Icons.Default.History,
+                    contentDescription = null
+                )
+            }
         }
+    }
+}
+
+/** Most recently launched package names, newest first. */
+object RecentApps {
+    private const val KEY = "recent_apps"
+    private const val MAX = 30
+
+    fun get(context: Context): List<String> =
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(KEY, "")!!.split('\n').filter { it.isNotEmpty() }
+
+    fun record(context: Context, packageName: String) {
+        val list = listOf(packageName) + get(context).filter { it != packageName }
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(KEY, list.take(MAX).joinToString("\n")).apply()
     }
 }
 
