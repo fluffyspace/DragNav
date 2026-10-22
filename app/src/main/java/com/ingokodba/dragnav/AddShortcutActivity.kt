@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Started when another app asks to pin a shortcut to the launcher ("Add to home screen").
- * The user picks favorites, the main list, an existing folder or a new folder, and the shortcut is then stored as a [PinnedShortcut].
+ * The user picks any combination of favorites, existing folders and a new folder (or nothing, for the main list only), and the shortcut is then stored as a [PinnedShortcut].
  */
 @AndroidEntryPoint
 class AddShortcutActivity : AppCompatActivity() {
@@ -41,35 +41,39 @@ class AddShortcutActivity : AppCompatActivity() {
             val folders = withContext(Dispatchers.IO) {
                 AppDatabase.getInstance(this@AddShortcutActivity).rainbowMapaDao().getAll()
             }
-            val choices = listOf(
-                getString(R.string.pin_shortcut_favorites),
-                getString(R.string.pin_shortcut_main_list),
-            ) + folders.map { it.folderName } + getString(R.string.pin_shortcut_new_folder)
+            // Nothing checked = main list only (every pinned shortcut is in the all-apps list)
+            val choices = listOf(getString(R.string.pin_shortcut_favorites)) +
+                folders.map { it.folderName } + getString(R.string.pin_shortcut_new_folder)
+            val checked = BooleanArray(choices.size)
             AlertDialog.Builder(this@AddShortcutActivity)
                 .setTitle(R.string.pin_shortcut_title)
-                .setItems(choices.toTypedArray()) { _, which ->
-                    when {
-                        which == 0 -> save(request, shortcut, Destination.Favorites)
-                        which == 1 -> save(request, shortcut, Destination.MainList)
-                        which == choices.lastIndex -> askNewFolderName(request, shortcut)
-                        else -> save(request, shortcut, Destination.Folder(folders[which - 2].id))
-                    }
+                .setMultiChoiceItems(choices.toTypedArray(), checked) { _, which, isChecked ->
+                    checked[which] = isChecked
                 }
+                .setPositiveButton(R.string.pin_shortcut_add) { _, _ ->
+                    val destination = Destination(
+                        favorite = checked[0],
+                        folderIds = folders.filterIndexed { i, _ -> checked[i + 1] }.map { it.id },
+                        newFolder = checked.last(),
+                    )
+                    if (destination.newFolder) askNewFolderName(request, shortcut, destination)
+                    else save(request, shortcut, destination)
+                }
+                .setNegativeButton(R.string.cancel) { _, _ -> cancel() }
                 .setOnCancelListener { cancel() }
                 .show()
         }
     }
 
-    private sealed interface Destination {
-        /** Shown in the favorites view (and the main list). */
-        object Favorites : Destination
-        /** Only in the all-apps list, like any installed app. */
-        object MainList : Destination
-        class Folder(val id: Int) : Destination
-        class NewFolder(val name: String) : Destination
-    }
+    /** Where to put the shortcut; it is always in the main list, the rest is optional and combinable. */
+    private data class Destination(
+        val favorite: Boolean,
+        val folderIds: List<Int>,
+        val newFolder: Boolean,
+        val newFolderName: String = "",
+    )
 
-    private fun askNewFolderName(request: LauncherApps.PinItemRequest, shortcut: ShortcutInfo) {
+    private fun askNewFolderName(request: LauncherApps.PinItemRequest, shortcut: ShortcutInfo, destination: Destination) {
         val input = EditText(this).apply {
             setSingleLine()
             hint = getString(R.string.folder_name)
@@ -86,7 +90,7 @@ class AddShortcutActivity : AppCompatActivity() {
             .setView(container)
             .setPositiveButton(R.string.ok) { _, _ ->
                 val name = input.text.toString().trim()
-                if (name.isEmpty()) cancel() else save(request, shortcut, Destination.NewFolder(name))
+                if (name.isEmpty()) cancel() else save(request, shortcut, destination.copy(newFolderName = name))
             }
             .setNegativeButton(R.string.cancel) { _, _ -> cancel() }
             .setOnCancelListener { cancel() }
@@ -105,19 +109,18 @@ class AddShortcutActivity : AppCompatActivity() {
                     var pinned = dao.find(shortcut.`package`, shortcut.id)
                         ?: PinnedShortcut(0, shortcut.id, shortcut.`package`, label).also { dao.insert(it) }
                     pinned = dao.find(pinned.packageName, pinned.shortcutId) ?: pinned
-                    if (destination is Destination.Favorites && !pinned.favorite) {
+                    if (destination.favorite && !pinned.favorite) {
                         pinned = pinned.copy(favorite = true).also { dao.update(it) }
                     }
                     val folderDao = db.rainbowMapaDao()
                     val item = pinned.toAppInfo()
-                    when (destination) {
-                        is Destination.Folder -> folderDao.getAll().firstOrNull { it.id == destination.id }?.let { folder ->
-                            if (folder.apps.none { it.packageName == item.packageName }) {
-                                folderDao.update(folder.copy(apps = folder.apps.plus(item).toMutableList()))
-                            }
+                    folderDao.getAll().filter { it.id in destination.folderIds }.forEach { folder ->
+                        if (folder.apps.none { it.packageName == item.packageName }) {
+                            folderDao.update(folder.copy(apps = folder.apps.plus(item).toMutableList()))
                         }
-                        is Destination.NewFolder -> folderDao.insertAll(RainbowMapa(0, destination.name, mutableListOf(item), true))
-                        else -> {}
+                    }
+                    if (destination.newFolder) {
+                        folderDao.insertAll(RainbowMapa(0, destination.newFolderName, mutableListOf(item), true))
                     }
                     true
                 }

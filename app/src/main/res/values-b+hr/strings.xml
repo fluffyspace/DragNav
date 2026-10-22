@@ -190,7 +190,7 @@
     <string name="new_folder">Nova mapa</string>
     <string name="remove_shortcut">Ukloni prečac</string>
     <string name="pin_shortcut_title">Dodaj prečac u</string>
-    <string name="pin_shortcut_main_list">Glavni popis (sve aplikacije)</string>
     <string name="pin_shortcut_favorites">Favoriti</string>
     <string name="pin_shortcut_new_folder">Nova mapa…</string>
+    <string name="pin_shortcut_add">Dodaj</string>
 </resources>
